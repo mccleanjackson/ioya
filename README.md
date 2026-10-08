@@ -41,9 +41,17 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 | Web server | Node.js 18+ with Express, in [`server.js`](server.js) | Serves the page and passes it the Supabase URL and key from `.env`, so they are never committed to GitHub. |
 | Secrets | A git-ignored `.env` file | [`.env.example`](.env.example) shows the format. |
 
-**Security.** The app has no login yet, so it uses Supabase's public **anon** key and always acts as the sample user, Demo Payer. Row Level Security is on for every table: the anon key can **read** all tables but can **change only `participants.paid_method_id`**, which is the "Mark as paid" button. Every other change has to be made in the Supabase dashboard. Never put the `service_role` key or the database password in `.env` or in the code.
+**Security.** The app has no login yet, so it uses Supabase's public **anon** key and always acts as the sample user, Demo Payer. Row Level Security is on for every table. With the anon key, the app can:
 
-**Simulated for now:** scanning a receipt loads a sample receipt, payment requests and reminders are not actually sent, and a new split is not saved when you tap Done. Past events, contacts, groups and payment status all come from Supabase.
+- **read** every table;
+- **update only `participants.paid_method_id`**, which is the "Mark as paid" button;
+- **add, edit and delete contacts** only through two database functions, `save_contact` and `delete_contact` (in [`supabase/contacts-sync.sql`](supabase/contacts-sync.sql)). They check the input and save a contact and its payment methods together in one transaction. A contact who is on a past split can't be deleted, because that would erase their items from the receipt.
+
+Every other change has to be made in the Supabase dashboard. Never put the `service_role` key or the database password in `.env` or in the code.
+
+**Saved to Supabase:** contacts you add, edit or delete on the Contacts screen, and "Mark as paid." Everyone using the same Supabase project sees the same data.
+
+**Simulated for now:** scanning a receipt loads a sample receipt, payment requests and reminders are not actually sent, a new split is not saved when you tap Done, and groups can only be edited in the Supabase dashboard.
 
 ## How to Get It Running
 
@@ -66,7 +74,7 @@ npm install
 1. Sign in at [supabase.com](https://supabase.com) and create a new project (the free plan is fine).
 2. Open **SQL Editor** → **New query**, paste the whole contents of [`supabase/schema.sql`](supabase/schema.sql), and click **Run**. You should see "Success. No rows returned."
 3. Open another **New query**, paste all of [`supabase/seed.sql`](supabase/seed.sql), and click **Run**. The result shows a `setval` column; that is expected.
-4. In **Table Editor** you should now see 11 tables, each with sample rows.
+4. In **Table Editor** you should now see 11 tables, each with sample rows. (`schema.sql` already includes the contact functions, so you don't need to run `contacts-sync.sql` separately.)
 5. Find your **Project URL** and **anon public key** under **Project Settings → API** (or the **Connect** button).
 
 ### 3. Create your `.env` file
@@ -96,7 +104,8 @@ Open **http://localhost:3000**. On a laptop the app appears in a phone frame, wi
 
 - `Missing SUPABASE_URL or SUPABASE_ANON_KEY`: `.env` is missing, misnamed, or not in the project folder.
 - "Couldn't load your data" in the app: check that the URL and key in `.env` match your project, that you ran both SQL files, and that your internet connection works. Restart `npm start` after editing `.env`.
-- `permission denied` when saving: you are trying to change something other than "Mark as paid," which the security rules block on purpose.
+- `Could not find the function public.save_contact` when saving a contact: the project was set up before contact syncing was added. Run [`supabase/contacts-sync.sql`](supabase/contacts-sync.sql) once in the SQL Editor.
+- `permission denied` when saving: you are trying to change something other than a contact or "Mark as paid," which the security rules block on purpose.
 
 ## Verifying the Vertical Slice
 
@@ -124,7 +133,8 @@ Open **http://localhost:3000**. On a laptop the app appears in a phone frame, wi
 ```
 server.js              Serves public/ and /config.js (Supabase URL + anon key from .env)
 public/index.html      The whole frontend: screens, styles, and Supabase calls
-supabase/schema.sql    Creates the 11 tables and the security rules (drops existing tables first)
+supabase/schema.sql    Creates the 11 tables, security rules and contact functions (drops existing tables first)
+supabase/contacts-sync.sql  Adds just the contact functions to a project set up before they existed
 supabase/seed.sql      Sample rows for every table
 docs/ioya-erd.pdf      Our ERD (docs/ioya-erd.png is the same diagram for this README)
 .env.example           Template for your .env file

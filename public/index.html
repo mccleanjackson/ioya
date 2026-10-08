@@ -355,7 +355,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
     <p>Scan a receipt, match items to friends, and track who has paid you back.</p>
     <h2>Screens</h2>
     <div class="jump" id="jump"></div>
-    <p class="fine">Contacts, groups, past splits and who has paid are stored in Supabase. "Mark as paid" saves to the database; scanning, sending requests and new splits are still simulated.</p>
+    <p class="fine">Contacts, groups, past splits and who has paid are stored in Supabase. Adding or editing a contact and "Mark as paid" save to the database; scanning, sending requests and new splits are still simulated.</p>
   </aside>
   <div class="phone">
     <div class="app" id="app">
@@ -466,7 +466,7 @@ async function loadAll(){
     const [user, methods, contacts, groups, events] = await Promise.all([
       sb.from('users').select('user_id, user_first_name, user_last_name, phone').eq('user_id', USER_ID).single().then(need),
       sb.from('payment_methods').select('pay_method_id, pay_method_name').order('pay_method_id').then(need),
-      sb.from('contacts').select('contact_id, cont_first_name, cont_last_name, phone, contacts_payment_method(pay_method_id, pay_method_username, is_preferred, payment_methods(pay_method_name))')
+      sb.from('contacts').select(CONTACT_SELECT)
         .eq('user_id', USER_ID).order('contact_id').then(need),
       sb.from('friend_groups').select('group_id, group_name, group_members(contact_id)').order('group_id').then(need),
       sb.from('events').select(`event_id, event_name,
@@ -478,13 +478,7 @@ async function loadAll(){
     // The payer's own contact row has the same name and phone as their user row (shows as "You").
     const self = contacts.find(c => c.cont_first_name === user.user_first_name && c.cont_last_name === user.user_last_name && c.phone === user.phone);
     S.selfContactId = self ? String(self.contact_id) : null;
-    S.contacts = contacts.filter(c => c !== self).map(c => {
-      const m = {venmo:'', paypal:'', zelle:''}; let pref = null;
-      const list = c.contacts_payment_method.map(x => ({id:x.pay_method_id, name:x.payment_methods.pay_method_name, username:x.pay_method_username, preferred:x.is_preferred}));
-      list.forEach(x => { const k = METHOD_KEY[x.name]; if (k) m[k] = x.username; if (x.preferred) pref = x; });
-      return {id:String(c.contact_id), name:fullName(c.cont_first_name, c.cont_last_name), short:c.cont_first_name, phone:c.phone || '',
-        ...m, method:(pref && METHOD_KEY[pref.name]) || 'sms', pref, methods:list};
-    });
+    S.contacts = contacts.filter(c => c !== self).map(normContact);
     const byId = Object.fromEntries(S.contacts.map(c => [c.id, c]));
     S.groups = groups.map(g => ({id:String(g.group_id), name:g.group_name, members:g.group_members.map(m => String(m.contact_id)).filter(id => byId[id])}));
     S.history = events.filter(e => e.receipts.some(r => r.payer_user_id === USER_ID)).map(e => {
@@ -504,6 +498,15 @@ async function loadAll(){
     Object.assign(S, {loading:false, loadError:e.message});
   }
   render();
+}
+const CONTACT_SELECT = 'contact_id, cont_first_name, cont_last_name, phone, contacts_payment_method(pay_method_id, pay_method_username, is_preferred, payment_methods(pay_method_name))';
+function normContact(c){
+  const m = {venmo:'', paypal:'', zelle:''}; let pref = null;
+  const list = c.contacts_payment_method.map(x => ({id:x.pay_method_id, name:x.payment_methods.pay_method_name, username:x.pay_method_username, preferred:x.is_preferred}))
+    .sort((a, b) => a.id - b.id);
+  list.forEach(x => { const k = METHOD_KEY[x.name]; if (k) m[k] = x.username; if (x.preferred) pref = x; });
+  return {id:String(c.contact_id), first:c.cont_first_name, last:c.cont_last_name, name:fullName(c.cont_first_name, c.cont_last_name), short:c.cont_first_name, phone:c.phone || '',
+    ...m, method:(pref && METHOD_KEY[pref.name]) || 'sms', pref, methods:list};
 }
 const payMethodName = id => (S.payMethods.find(m => m.id === id) || {}).name || 'Unknown';
 const ui = {sheet:null, toast:null, photo:null, scanStep:0, scanError:false, q:'', open:null, failDemo:false, saving:false};
@@ -630,7 +633,8 @@ V.contacts = () => `
     <div class="chead"><span>Name</span><span>Preferred payment</span></div>
     ${S.contacts.map(c => `<button class="crow" data-act="sheet" data-s="contact" data-id="${c.id}"><span><b>${esc(c.name)}</b><small>${esc(c.pref ? c.pref.username : 'No payment method saved')}</small></span><span class="meth">${esc(c.pref ? c.pref.name : 'None')}</span></button>`).join('')}
   </div>
-  <p class="fine">Contacts and groups are edited in Supabase for now.</p>`;
+  <button class="addrow" data-act="sheet" data-s="contact">${I('plus')} Add contact</button>
+  <p class="fine">Contacts save to Supabase. Groups are edited in Supabase for now.</p>`;
 
 V.scan = () => `
   ${flowHead(0, 'home')}
@@ -878,11 +882,23 @@ function sheetHTML(){
     <p class="fine">Signed in as the demo user. Data comes from the Split Scan Supabase project.</p>
     <div class="next"><button class="btn" data-act="close">Close</button></div>`;
   if (s.type === 'contact'){
-    const c = S.contacts.find(x => x.id === s.id);
-    body = `<h2 id="sh-t">${esc(c.name)}</h2>
-      ${c.phone ? `<div class="kv"><span>Phone</span><span>${esc(c.phone)}</span></div>` : ''}
-      ${c.methods.map(m => `<div class="kv"><span>${esc(m.name)}${m.preferred ? ' <span class="pill paid tiny">Preferred</span>' : ''}</span><span>${esc(m.username)}</span></div>`).join('') || '<p class="fine">No payment methods saved.</p>'}
-      <div class="next"><button class="btn" data-act="close">Close</button></div>`;
+    const c = S.contacts.find(x => x.id === s.id) || {first:'', last:'', phone:'', methods:[]};
+    const methods = S.payMethods.filter(m => m.name !== 'Cash');  // cash has no username to save
+    const has = id => c.methods.find(x => x.id === id);
+    const prefId = (c.methods.find(x => x.preferred) || {}).id;
+    body = `<h2 id="sh-t">${s.id ? 'Edit ' + esc(c.first) : 'New contact'}</h2>
+      <div class="slot-m" style="grid-template-columns:1fr 1fr">
+        <label class="field"><span>First name</span><input id="f-first" value="${esc(c.first)}" autocomplete="off"></label>
+        <label class="field"><span>Last name</span><input id="f-last" value="${esc(c.last)}" autocomplete="off"></label>
+      </div>
+      <label class="field"><span>Phone</span><input id="f-phone" inputmode="tel" value="${esc(c.phone)}" placeholder="(555) 000-0000" autocomplete="off"></label>
+      <p class="eyebrow">Payment methods</p>
+      ${methods.map(m => `<div class="frow" style="gap:10px">
+        <label class="field" style="flex:1"><span>${esc(m.name)}</span><input id="f-m-${m.id}" value="${esc(has(m.id)?.username || '')}" placeholder="${esc(m.name === 'Venmo' ? '@username' : 'Phone or email')}" autocomplete="off"></label>
+        <label class="checkrow" style="padding-top:18px"><input type="radio" name="f-pref" id="f-pref-${m.id}" value="${m.id}" ${prefId === m.id ? 'checked' : ''}> Preferred</label></div>`).join('')}
+      <p class="fine" id="f-err" role="alert" hidden></p>
+      <div class="next two">${s.id ? `<button class="btn ghost" data-act="delcontact" data-id="${s.id}" ${ui.saving ? 'disabled' : ''}>Delete</button>` : `<button class="btn ghost" data-act="close">Cancel</button>`}
+        <button class="btn" data-act="savecontact" data-id="${s.id || ''}" ${ui.saving ? 'disabled' : ''}>${ui.saving ? 'Saving…' : 'Save'}</button></div>`;
   }
   if (s.type === 'group'){
     const g = S.groups.find(x => x.id === s.id);
@@ -1023,6 +1039,8 @@ const A = {
   paywith: ds => { ui.sheet.payWith = +ds.m; render(); },
   markpaid: ds => setPaid(+ds.m),
   markunpaid: () => setPaid(null),
+  savecontact: ds => saveContact(ds.id || null),
+  delcontact: ds => deleteContact(ds.id),
   remind: () => { const r = currentRequest(); ui.sheet = null; toast(`Reminder to ${r.name} is simulated. Nothing was sent.`); },
   send: () => { const {c, ready} = sendPlan(); ui.failDemo = !!document.getElementById('faildemo')?.checked;
     S.draft.results = ready.map(p => ({pid:p.id, amount:c.totals[p.id], status:'sending'})); ui.sheet = null; go('sent'); runSend(ready.map(p => p.id)); },
@@ -1033,6 +1051,48 @@ const A = {
     catch(e) { selectCode(); } },
   done: () => { S.draft = newDraft(); ui.photo = null; go('home'); toast('New splits are not saved yet. This one was a demo.'); }
 };
+// Contacts sync: Supabase functions save_contact / delete_contact (see supabase/contacts-sync.sql).
+async function saveContact(id){
+  const val = k => (document.getElementById(k)?.value || '').trim();
+  const err = document.getElementById('f-err');
+  const fail = m => { err.hidden = false; err.textContent = m; };
+  const first = val('f-first'), pref = Number(document.querySelector('input[name="f-pref"]:checked')?.value) || null;
+  const methods = S.payMethods.filter(m => m.name !== 'Cash').map(m => ({pay_method_id:m.id, username:val('f-m-' + m.id), preferred:m.id === pref}))
+    .filter(m => m.username);
+  if (!first) return fail('Add a first name.');
+  if (pref && !methods.some(m => m.pay_method_id === pref)) return fail(`Add a ${payMethodName(pref)} username, or pick a different preferred method.`);
+  if (methods.length && !pref) methods[0].preferred = true;  // first filled-in method becomes preferred
+  const draft = {first, last:val('f-last'), phone:val('f-phone')};
+  ui.saving = true; render();
+  try {
+    const newId = need(await sb.rpc('save_contact', {p_contact_id: id ? Number(id) : null, p_first_name:draft.first, p_last_name:draft.last, p_phone:draft.phone, p_methods:methods}));
+    const saved = normContact(need(await sb.from('contacts').select(CONTACT_SELECT).eq('contact_id', newId).single()));
+    const i = S.contacts.findIndex(c => c.id === saved.id);
+    if (i >= 0) S.contacts[i] = saved; else S.contacts.push(saved);
+    ui.saving = false; ui.sheet = null;
+    toast(`Saved ${saved.name}.`);
+  } catch(e) {
+    ui.saving = false; render();
+    // keep what was typed after the re-render
+    Object.entries({'f-first':draft.first, 'f-last':draft.last, 'f-phone':draft.phone}).forEach(([k, v]) => { const el = document.getElementById(k); if (el) el.value = v; });
+    methods.forEach(m => { const el = document.getElementById('f-m-' + m.pay_method_id); if (el) el.value = m.username; });
+    const e2 = document.getElementById('f-err'); e2.hidden = false; e2.textContent = `Couldn't save: ${e.message}`;
+  }
+}
+async function deleteContact(id){
+  const c = S.contacts.find(x => x.id === id);
+  ui.saving = true; render();
+  try {
+    need(await sb.rpc('delete_contact', {p_contact_id:Number(id)}));
+    S.contacts = S.contacts.filter(x => x.id !== id);
+    S.groups.forEach(g => g.members = g.members.filter(m => m !== id));
+    ui.saving = false; ui.sheet = null;
+    toast(`Deleted ${c.name}.`);
+  } catch(e) {
+    ui.saving = false; render();
+    const err = document.getElementById('f-err'); err.hidden = false; err.textContent = e.message;
+  }
+}
 const currentRequest = () => S.history.find(x => x.id === ui.sheet.sid).requests[ui.sheet.i];
 async function setPaid(methodId){
   const r = currentRequest();
