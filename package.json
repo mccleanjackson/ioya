@@ -1,0 +1,18 @@
+{
+  "name": "split-scan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Scan a receipt, assign items to friends, and track who has paid you back. Data in Supabase.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.6",
+    "express": "^5.2.1"
+  }
+}
