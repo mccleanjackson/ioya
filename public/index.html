@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Split Scan</title>
+<title>IOYA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -63,6 +63,8 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .phone{width:390px;max-width:100%;height:min(820px,calc(100vh - 64px));min-height:640px;border:10px solid var(--bezel);border-radius:46px;background:var(--paper);box-shadow:var(--shadow);overflow:hidden;position:relative;flex:none}
 .app{position:relative;height:100%;display:grid;grid-template-rows:1fr auto;overflow:hidden}
 .screen{overflow-y:auto;overflow-x:hidden;padding:22px 18px 28px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth}
+/* Keep every block at its full height so long lists scroll instead of being squeezed and clipped. */
+.screen > *{flex-shrink:0}
 @media (max-width:760px){
   .stage{padding:0;display:block;min-height:0}
   .aside{display:none}
@@ -101,7 +103,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 /* home */
 .top{display:flex;justify-content:space-between;align-items:center}
 .logo{display:flex;flex-direction:column;line-height:.9;font-family:var(--f-logo)}
-.logo .l1{font-size:40px;color:var(--accent);text-shadow:3px 3px 0 var(--ink);letter-spacing:.02em}
+.logo .l1{font-size:48px;color:var(--accent);text-shadow:3px 3px 0 var(--ink);letter-spacing:.02em}
 .logo .l2{font-size:22px;letter-spacing:.32em;margin-top:6px}
 .avatar{width:42px;height:42px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ink);display:grid;place-items:center}
 .tag{font-family:var(--f-display);font-weight:700;font-size:21px;margin:0;line-height:1.2}
@@ -233,9 +235,9 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .pick{display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 6px;border-radius:999px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);font-weight:600;font-size:14px}
 .pick:hover{box-shadow:inset 0 0 0 1.5px var(--ink)}
 .pick small{color:var(--muted);font-weight:500;font-size:12px}
-.pick.grp{box-shadow:inset 0 0 0 1.5px var(--pen)}
+.pick.pgrp{box-shadow:inset 0 0 0 1.5px var(--pen)}
 .ini{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--hi);color:var(--on-hi);flex:none}
-.pick.grp .ini{background:var(--pen);color:var(--card)}
+.pick.pgrp .ini{background:var(--pen);color:var(--card)}
 .slots{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .slot{display:grid;grid-template-columns:28px 1fr 32px;gap:8px;align-items:start;background:var(--card);border-radius:14px;box-shadow:inset 0 0 0 1.5px var(--line);padding:10px 8px 10px 10px}
 .slot .sn{padding-top:9px;color:var(--muted);font-size:13px}
@@ -351,7 +353,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 <body>
 <div class="stage">
   <aside class="aside">
-    <h1>Split <span>Scan</span></h1>
+    <h1><span>IOYA</span></h1>
     <p>Scan a receipt, match items to friends, and track who has paid you back.</p>
     <h2>Screens</h2>
     <div class="jump" id="jump"></div>
@@ -433,13 +435,13 @@ function demoDraft(){
 /* ---------- data (Supabase) ----------
    Contacts, groups and history are read from Supabase. Only the in-progress draft
    and the current screen are kept in this browser's localStorage. */
-const KEY = 'splitscan-draft-v1';
+const KEY = 'ioya-draft-v1';
 const USER_ID = 1;  // No login yet: the app always acts as user 1 (Demo Payer).
 let S = {view:'home', contacts:[], groups:[], history:[], payMethods:[], selfContactId:null, draft:newDraft(), loading:true, loadError:null};
 try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.draft) Object.assign(S, {view:saved.view, draft:saved.draft}); } catch(e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({view:S.view, draft:S.draft})); } catch(e) {} };
 
-const CFG = window.SPLIT_SCAN_CONFIG || {};
+const CFG = window.IOYA_CONFIG || {};
 const sb = window.supabase && CFG.supabaseUrl && CFG.supabaseAnonKey ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey) : null;
 const METHOD_KEY = {Venmo:'venmo', PayPal:'paypal', Zelle:'zelle'};
 const fullName = (f, l) => [f, l].filter(Boolean).join(' ');
@@ -462,7 +464,7 @@ function owedByContact(receipt){
 
 async function loadAll(){
   try {
-    if (!sb) throw new Error(window.SPLIT_SCAN_CONFIG ? 'The Supabase library did not load. Check your internet connection.' : 'Supabase settings are missing. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env and restart npm start.');
+    if (!sb) throw new Error(window.IOYA_CONFIG ? 'The Supabase library did not load. Check your internet connection.' : 'Supabase settings are missing. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env and restart npm start.');
     const [user, methods, contacts, groups, events] = await Promise.all([
       sb.from('users').select('user_id, user_first_name, user_last_name, phone').eq('user_id', USER_ID).single().then(need),
       sb.from('payment_methods').select('pay_method_id, pay_method_name').order('pay_method_id').then(need),
@@ -583,7 +585,7 @@ V.home = () => {
   const owed = unpaid.reduce((a, x) => a + x.r.amount, 0);
   return `
   <header class="top">
-    <div class="logo" role="img" aria-label="Split Scan"><span class="l1">SPLIT</span><span class="l2">SCAN</span></div>
+    <div class="logo" role="img" aria-label="IOYA"><span class="l1">IOYA</span></div>
     <button class="avatar" data-act="sheet" data-s="profile" aria-label="Profile">${I('user')}</button>
   </header>
   <p class="tag">Make sure <em>you</em> get <mark>paid</mark>.</p>
@@ -842,8 +844,8 @@ const LIVE = {
     const cs = S.contacts.filter(c => !taken.has(c.id) && (!q || c.name.toLowerCase().includes(q)));
     const gs = S.groups.filter(g => !q || g.name.toLowerCase().includes(q));
     if (!cs.length && !gs.length) return `<p class="fine">No contacts match "${esc(ui.q)}". Type the name in a slot below instead.</p>`;
-    return gs.map(g => `<button class="pick grp" data-act="addg" data-id="${g.id}"><span class="ini">${esc(ini(g.name))}</span>${esc(g.name)} <small>${g.members.length}</small></button>`).join('')
-      + cs.slice(0, 8).map(c => `<button class="pick" data-act="addc" data-id="${c.id}"><span class="ini">${esc(ini(c.name))}</span>${esc(c.name)} <small>${METHODS[c.method].label}</small></button>`).join('');
+    return gs.map(g => `<button class="pick pgrp" data-act="addg" data-id="${g.id}"><span class="ini">${esc(ini(g.name))}</span>${esc(g.name)} <small>${g.members.length}</small></button>`).join('')
+      + cs.map(c => `<button class="pick" data-act="addc" data-id="${c.id}"><span class="ini">${esc(ini(c.name))}</span>${esc(c.name)} <small>${METHODS[c.method].label}</small></button>`).join('');
   },
   pplnext: () => {
     const missing = S.draft.people.filter(p => !p.me && !p.name.trim()).length;
@@ -879,7 +881,7 @@ function sheetHTML(){
   if (s.type === 'profile') body = `<h2 id="sh-t">Profile</h2>
     <div class="kv"><span>Events</span><span class="mono">${S.history.length}</span></div>
     <div class="kv"><span>Contacts</span><span class="mono">${S.contacts.length}</span></div>
-    <p class="fine">Signed in as the demo user. Data comes from the Split Scan Supabase project.</p>
+    <p class="fine">Signed in as the demo user. Data comes from the IOYA Supabase project.</p>
     <div class="next"><button class="btn" data-act="close">Close</button></div>`;
   if (s.type === 'contact'){
     const c = S.contacts.find(x => x.id === s.id) || {first:'', last:'', phone:'', methods:[]};
@@ -931,7 +933,7 @@ function sheetHTML(){
       <ul class="conf">${ready.map(p => {
         const amt = money(c.totals[p.id]);
         const msg = p.method === 'sms'
-          ? `Hi ${esc(p.name)}! Your share of ${esc(d.merchant || 'dinner')} (${when}) is ${amt}. See the split: splitscan.app/${esc(d.code)}`
+          ? `Hi ${esc(p.name)}! Your share of ${esc(d.merchant || 'dinner')} (${when}) is ${amt}. See the split: ioya.app/${esc(d.code)}`
           : `${esc(d.merchant || 'Dinner')} · ${when} split · ${amt}`;
         return `<li><div class="ct"><span>${esc(p.name)}</span><span class="mono">${amt}</span></div><div class="cm">${METHODS[p.method].label} ${p.method === 'sms' ? 'to' : 'request to'} ${esc(handleOf(p))}</div><div class="msg">${p.method === 'sms' ? '' : 'Note: '}${msg}</div></li>`;
       }).join('')}
@@ -965,7 +967,7 @@ function render(){
 }
 function drawQR(){
   const el = document.getElementById('qr'); if (!el) return;
-  try { new QRCode(el, {text:'https://splitscan.app/s/' + S.draft.code, width:156, height:156, colorDark:'#15171C', colorLight:'#FFFFFF', correctLevel:QRCode.CorrectLevel.M}); }
+  try { new QRCode(el, {text:'https://ioya.app/s/' + S.draft.code, width:156, height:156, colorDark:'#15171C', colorLight:'#FFFFFF', correctLevel:QRCode.CorrectLevel.M}); }
   catch(e) { el.innerHTML = '<span class="fine">QR code unavailable</span>'; }
 }
 function go(v){

@@ -1,5 +1,5 @@
 {
-  "name": "split-scan",
+  "name": "ioya",
   "version": "1.0.0",
   "private": true,
   "description": "Scan a receipt, assign items to friends, and track who has paid you back. Data in Supabase.",

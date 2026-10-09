@@ -1,4 +1,4 @@
--- Split Scan: let the app add, edit and delete contacts.
+-- IOYA: let the app add, edit and delete contacts.
 -- Paste into Supabase → SQL Editor → New query → Run. Safe to run more than once.
 -- (schema.sql already includes this, so a brand-new project doesn't need it separately.)
 --

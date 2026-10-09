@@ -1,4 +1,4 @@
-# Split Scan
+# IOYA
 
 Scan a receipt, match items to friends, and make sure you get paid back.
 
@@ -6,11 +6,11 @@ Scan a receipt, match items to friends, and make sure you get paid back.
 
 ## App Summary
 
-When one person pays a shared restaurant bill, they are left doing math on a receipt, splitting shared appetizers, spreading tax and tip fairly, and then chasing each friend for their share. That process is slow, easy to get wrong, and makes it easy to forget who still owes money. Split Scan is for the person who picks up the tab for a group of friends, roommates, or family. The app turns a receipt into line items, lets the payer tap which friend had which item (including shared items), and splits tax, tip, and fees in proportion to what each person ordered. Each outing is saved as an event, so the Home screen's Paid / Unpaid board and the History screen show exactly who has paid you back and how. Saved contacts with their preferred payment method (Venmo, PayPal, Zelle, or cash) and friend groups like "Family" or "Lunch crew" make the next split faster.
+When one person pays a shared restaurant bill, they are left doing math on a receipt, splitting shared appetizers, spreading tax and tip fairly, and then chasing each friend for their share. That process is slow, easy to get wrong, and makes it easy to forget who still owes money. IOYA is for the person who picks up the tab for a group of friends, roommates, or family. The app turns a receipt into line items, lets the payer tap which friend had which item (including shared items), and splits tax, tip, and fees in proportion to what each person ordered. Each outing is saved as an event, so the Home screen's Paid / Unpaid board and the History screen show exactly who has paid you back and how. Saved contacts with their preferred payment method (Venmo, PayPal, Zelle, or cash) and friend groups like "Family" or "Lunch crew" make the next split faster.
 
 ## ERD
 
-![Split Scan entity relationship diagram](docs/ioya-erd.png)
+![IOYA entity relationship diagram](docs/ioya-erd.png)
 
 The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 
@@ -60,8 +60,8 @@ You need **Node.js 18 or newer** ([download](https://nodejs.org)) and a Supabase
 ### 1. Get the code
 
 ```bash
-git clone https://github.com/mccleanjackson/split-scan.git
-cd split-scan
+git clone https://github.com/mccleanjackson/ioya.git
+cd ioya
 npm install
 ```
 

@@ -1,4 +1,4 @@
--- Split Scan sample data. Run AFTER schema.sql (it expects empty tables).
+-- IOYA sample data. Run AFTER schema.sql (it expects empty tables).
 -- The app always acts as user 1 (Demo Payer); contact 1 is that user's own row and shows as "You".
 -- Participants with an empty paid_method_id still owe money: Mom and Bro (Sunday brunch) and Fred (Grocery run).
 

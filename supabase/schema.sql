@@ -1,4 +1,4 @@
--- Split Scan: database schema for Supabase (PostgreSQL).
+-- IOYA: database schema for Supabase (PostgreSQL).
 -- Paste into Supabase → SQL Editor → New query → Run. Then run seed.sql.
 -- Running it again DROPS every table and starts fresh.
 --
