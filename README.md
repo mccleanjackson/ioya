@@ -109,24 +109,27 @@ Open **http://localhost:3000**. On a laptop the app appears in a phone frame, wi
 
 ## Verifying the Vertical Slice
 
-**The button:** "Mark as paid" on a person who owes you money.
+**The button:** **Save** when adding a contact on the **Contacts** screen. (This is the action shown in our demo video.)
 
 **What happens:**
 
-1. The app sends an update request to Supabase: set `paid_method_id` on the `participants` row for that contact and event.
-2. Supabase updates that row in the database.
-3. Supabase returns the updated row to the app.
-4. The app moves the person from the **Unpaid** column to the **Paid** column and shows "Mom is marked as paid with Venmo."
+1. The app sends a request to Supabase that calls the `save_contact` function with the name, phone and payment usernames you typed.
+2. Supabase inserts a row into `contacts` and one row into `contacts_payment_method` for each payment method, in one transaction.
+3. Supabase returns the saved contact (with its new `contact_id`) to the app.
+4. The app adds the contact to the list and shows "Saved Alex Johnson."
 
-**Steps (with fresh sample data):**
+**Steps:**
 
-1. Open http://localhost:3000. On the **Home** screen, the **Recent payments** board shows **Mom, $19.59, Top Cafe** in the **Unpaid** column (3 unpaid, 5 paid).
-2. Tap **Mom**. A sheet opens: "Mom owes you $19.59", with **How did Mom pay?** set to Venmo, her preferred method.
-3. Tap **Mark as paid**. Mom moves to the **Paid** column (6 paid, 2 unpaid).
-4. **Refresh the page** (Cmd+R or Ctrl+R). Mom is still under **Paid**, because the board is loaded from Supabase.
-5. Optional: in Supabase, open **Table Editor → participants**. The row with `contact_id` 4 and `event_id` 1 now has `paid_method_id` 1 (Venmo).
+1. Open http://localhost:3000 and tap **Contacts** in the bottom bar.
+2. Scroll down and tap **Add contact**.
+3. Enter **First name** `Alex`, **Last name** `Johnson`, and a **Venmo** username such as `@alex-johnson`. Select **Preferred** next to Venmo.
+4. Tap **Save**. The sheet closes, a "Saved Alex Johnson." message appears, and Alex Johnson is at the bottom of the contacts list with Venmo as the preferred payment.
+5. **Refresh the page** (Cmd+R or Ctrl+R) and open **Contacts** again. Alex Johnson is still there, because the list is loaded from Supabase.
+6. Optional: in Supabase, open **Table Editor → contacts**. Alex Johnson is a new row, and **contacts_payment_method** has a row with that `contact_id`, `@alex-johnson`, and `is_preferred` = true. (The Table Editor may need its refresh button to show rows added since you opened it.)
 
-**To reset:** tap Mom again and choose **Mark as unpaid**, or run `schema.sql` and then `seed.sql` again in the SQL Editor to restore all the sample data.
+**To clean up:** tap Alex Johnson on the Contacts screen and choose **Delete**.
+
+**A second working example: "Mark as paid."** On the **Home** screen, tap someone in the **Unpaid** column (for example **Mom, $19.59, Top Cafe**), choose how they paid, and tap **Mark as paid**. The app updates `participants.paid_method_id` in Supabase and moves them to the **Paid** column, and they stay there after a refresh. Tap them again and choose **Mark as unpaid** to undo it.
 
 ## Project Layout
 
