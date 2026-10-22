@@ -98,7 +98,7 @@ SUPABASE_ANON_KEY=your-anon-public-key
 npm start
 ```
 
-Open **http://localhost:3000**. On a laptop the app appears in a phone frame, with a list of screens on the left.
+Open **http://localhost:3001**. On a laptop the app appears in a phone frame, with a list of screens on the left.
 
 **Troubleshooting**
 
@@ -120,7 +120,7 @@ Open **http://localhost:3000**. On a laptop the app appears in a phone frame, wi
 
 **Steps:**
 
-1. Open http://localhost:3000 and tap **Contacts** in the bottom bar.
+1. Open http://localhost:3001 and tap **Contacts** in the bottom bar.
 2. Scroll down and tap **Add contact**.
 3. Enter **First name** `Alex`, **Last name** `Johnson`, and a **Venmo** username such as `@alex-johnson`. Select **Preferred** next to Venmo.
 4. Tap **Save**. The sheet closes, a "Saved Alex Johnson." message appears, and Alex Johnson is at the bottom of the contacts list with Venmo as the preferred payment.
