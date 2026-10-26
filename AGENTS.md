@@ -127,10 +127,53 @@ There is no automated test suite. Before handing work back:
 
 ## Git workflow
 
-- `git pull` before starting. Almost everything is in one file (`public/index.html`), so merge conflicts are likely. Keep changes small and focused, and commit often.
+The team works on **short-lived branches, one per task**, and merges into `main` through pull requests. `main` holds the graded app and README, so it must always run. Don't commit directly to `main`; GitHub is set to require a pull request for it.
+
+**For each task:**
+
+1. Start from the latest `main`:
+
+   ```bash
+   git switch main
+   git pull
+   ```
+
+2. Create a branch named after the task (lowercase, hyphens), not after the person:
+
+   ```bash
+   git switch -c history-search-bar
+   ```
+
+3. Make the change, test it (see "Testing your change"), and commit in small steps with plain, descriptive messages.
+4. Before pushing, bring in anything merged to `main` since you started, and fix any conflicts locally:
+
+   ```bash
+   git fetch origin
+   git merge origin/main
+   ```
+
+5. **Ask your human before pushing.** Then push the branch:
+
+   ```bash
+   git push -u origin history-search-bar
+   ```
+
+6. Open a pull request into `main` (GitHub shows a "Compare & pull request" button after the push, or use `gh pr create` if the GitHub CLI is installed). In the description, say what changed, how you tested it, and whether any SQL must be run in Supabase. Ask a teammate to look at it or run it.
+7. After it is merged, delete the branch and switch back:
+
+   ```bash
+   git switch main
+   git pull
+   git branch -d history-search-bar
+   ```
+
+**Rules:**
+
+- Keep branches small and merge them within a day or two. Almost everything is in one file (`public/index.html`), so long-running branches turn into painful merge conflicts. Tell the team before starting a large change to a shared area.
+- When resolving a conflict, keep both teammates' work unless your human says otherwise, then re-test the app before committing the merge.
 - Never commit `.env`, keys, or `node_modules` (all in `.gitignore`). Before committing, check that `git diff --cached` contains no Supabase URL or key.
-- **Ask your human before every `git push`**, and before anything else that leaves their computer.
-- Write plain, descriptive commit messages. **Do not add AI co-author or "Generated with" lines** to commits or PRs unless your human explicitly asks; the team wants commits attributed to the teammate only.
+- **Ask your human before every `git push`**, before opening or merging a pull request, and before anything else that leaves their computer. Never force-push (`git push --force`) or rewrite history on `main`.
+- **Do not add AI co-author or "Generated with" lines** to commits or PRs unless your human explicitly asks; the team wants work attributed to the teammate only.
 - If you change setup steps, the data model, or how the vertical slice works, update `README.md` too (it is graded and must keep these sections: App Summary, ERD, Tech Stack, How to Get It Running, Verifying the Vertical Slice).
 
 ## Course rules (important)
