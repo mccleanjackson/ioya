@@ -10,9 +10,9 @@ INSERT INTO users (user_id, user_first_name, user_last_name, phone) VALUES
 INSERT INTO contacts (contact_id, cont_first_name, cont_last_name, phone, user_id) VALUES
   (1, 'Demo', 'Payer', '(555) 100-2000', 1),
   (2, 'Fred', 'Kim', '(555) 410-1101', 1),
-  (3, 'Dad', 'Payer', '(555) 201-4417', 1),
-  (4, 'Mom', 'Payer', '(555) 201-4418', 1),
-  (5, 'Bro', 'Payer', '(555) 201-4419', 1),
+  (3, 'Dad', '', '(555) 201-4417', 1),
+  (4, 'Mom', '', '(555) 201-4418', 1),
+  (5, 'Bro', '', '(555) 201-4419', 1),
   (6, 'Johnny', 'White', '(555) 410-2202', 1),
   (7, 'Joe', 'Martinez', '(555) 384-0192', 1),
   (8, 'Priya', 'Shah', '(555) 733-2050', 1),

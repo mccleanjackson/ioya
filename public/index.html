@@ -128,7 +128,8 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .brow{display:grid;grid-template-columns:1fr auto;gap:0 6px;text-align:left;padding:10px 12px;border-bottom:1px dashed var(--line)}
 .brow:hover{background:var(--paper)}
 .brow:last-child{border-bottom:0}
-.brow b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Names wrap instead of being cut off, so a person's full name is always visible. */
+.brow b{font-weight:600;min-width:0;overflow-wrap:anywhere}
 .brow small{grid-column:1/-1;color:var(--muted);font-size:12px;display:flex;gap:6px;align-items:center;min-width:0}
 .brow .amt{font-size:14px}
 .empty{padding:14px 12px;color:var(--muted);font-size:13px}
@@ -193,6 +194,7 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 
 /* review */
 .field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+.field small{font-weight:500}
 .field input,.field select{font-size:16px;font-weight:500;color:var(--ink)}
 input[type=text],input:not([type]),input[inputmode],select{background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0;width:100%}
 input:focus,select:focus{outline:none;border-color:var(--pen)}
@@ -314,7 +316,27 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .hstatus-count strong{font:600 22px/1 var(--f-mono)}
 .hstatus-count:not(:last-child){border-right:1px solid var(--line)}
 .hstatus-count:not(:first-child){padding-left:12px}
+.find{display:flex;flex-direction:column;gap:10px}
+.find .search{border-radius:14px;padding:0 6px 0 14px}
+.find .search input{padding:12px 0;font-size:15px}
+.sclear{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:var(--muted);flex:none}
+.sclear .ic{width:16px;height:16px}
+.sclear:hover{color:var(--ink);background:var(--paper)}
+.search input:placeholder-shown + .sclear{visibility:hidden}
+.fchips{display:flex;gap:6px;overflow-x:auto;margin:0 -18px;padding:2px 18px;scrollbar-width:none}
+.fchip{flex:none;padding:7px 14px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--muted);background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line)}
+.fchip:hover{color:var(--ink)}
+.fchip.on{background:var(--ink);color:var(--paper);box-shadow:none}
 .hlist{display:flex;flex-direction:column;gap:14px}
+.fcount{margin:-4px 0 -6px 2px}
+.clist{display:flex;flex-direction:column;gap:14px}
+.crow .cmatch{display:flex;align-items:center;gap:5px;margin-top:3px;font-family:var(--f-body)}
+.cmatch .ic{width:13px;height:13px}
+.hmatch{display:flex;align-items:center;gap:6px;margin:-4px 14px 12px 66px;font-size:12.5px;color:var(--muted)}
+.hmatch .ic{width:14px;height:14px}
+.hmatch span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nofind{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:28px 12px;border-radius:16px;border:1.5px dashed var(--line)}
+.nofind .btn{margin-top:6px}
 .hdate{font:600 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px;display:block}
 .hcard{background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line);overflow:hidden}
 .hhead{display:grid;grid-template-columns:40px 1fr auto 18px;gap:12px;align-items:center;width:100%;text-align:left;padding:14px}
@@ -337,7 +359,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .rsheet-h .iconbtn{margin:-4px -8px 0 0;color:var(--muted)}
 .rperson{background:var(--card);border-radius:14px;box-shadow:inset 0 0 0 1.5px var(--line)}
 .rperson-h{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px dashed var(--line)}
-.rperson-h b{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rperson-h b{font-weight:700;min-width:0;overflow-wrap:anywhere}
 .rperson-h .mono{margin-left:auto;font-weight:600;font-size:16px}
 .rperson-b{padding:8px 14px 10px}
 .rline{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:4px 0;font-size:14px}
@@ -383,7 +405,12 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .conf li{background:var(--card);border-radius:12px;box-shadow:inset 0 0 0 1.5px var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:4px}
 .conf .ct{display:flex;justify-content:space-between;font-weight:700}
 .conf .cm{font-size:12.5px;color:var(--muted)}
-.conf .msg{font-size:13px;background:var(--paper);border-radius:10px;padding:8px 10px;font-family:var(--f-mono);line-height:1.4}
+.msg-all{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:-4px}
+.msg-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;font-size:13px;font-weight:600}
+.msg-h small{color:var(--muted);font-weight:500}
+.msg-h .btn.small{min-height:30px;font-size:13px;padding:0 10px}
+.conf textarea{width:100%;min-height:68px;resize:vertical;background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font:14px/1.4 var(--f-body);color:var(--ink)}
+.conf textarea:focus{outline:none;border-color:var(--pen)}
 .conf li.blocked{opacity:.7;box-shadow:inset 0 0 0 1.5px var(--bad)}
 .checkrow{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
 .checkrow input{width:18px;height:18px;accent-color:var(--accent)}
@@ -462,7 +489,7 @@ const SAMPLE = {merchant:"Tony's Pizzeria", tax:375, fees:0, printed:4475, items
 function newDraft(){
   const blank = () => ({id:uid('p'), name:'', method:'venmo', venmo:'', phone:'', paypal:'', contactId:null});
   return {at:'scan', merchant:'', items:[], tax:0, fees:0, printed:0, tipPct:18,
-    people:[{id:'me', name:'You', me:true}, blank(), blank(), blank()], assign:{}, cur:0, results:null, code:null, fromSample:false};
+    people:[{id:'me', name:'You', me:true}, blank(), blank(), blank()], assign:{}, msgs:{}, cur:0, results:null, code:null, fromSample:false};
 }
 function loadSample(d){
   d.merchant = SAMPLE.merchant; d.tax = SAMPLE.tax; d.fees = SAMPLE.fees; d.printed = SAMPLE.printed; d.fromSample = true;
@@ -472,7 +499,7 @@ function loadSample(d){
 // Fill a complete example split so any screen can be previewed directly.
 function demoDraft(){
   const d = newDraft(); loadSample(d);
-  const pick = name => { const c = S.contacts.find(x => x.short === name); return c ? {id:uid('p'), name:c.short, method:c.method, venmo:c.venmo, phone:c.phone, paypal:c.paypal, contactId:c.id} : null; };
+  const pick = name => { const c = S.contacts.find(x => x.first === name); return c ? {id:uid('p'), name:c.name, method:c.method, venmo:c.venmo, phone:c.phone, paypal:c.paypal, contactId:c.id} : null; };
   d.people = [d.people[0], pick('Joe'), pick('Fred'), pick('Priya')].filter(Boolean);
   const [me, joe, fred, priya] = d.people.map(p => p.id);
   const plan = [[joe,fred,priya],[me,joe,fred,priya],[priya],[me],[joe],[fred],[priya],[me,joe]];
@@ -540,7 +567,7 @@ async function loadAll(){
         receipts:e.receipts.map(r => ({...r, line_items:r.line_items || []})),
         requests:e.participants.filter(p => String(p.contact_id) !== S.selfContactId).map(p => {
           const c = byId[String(p.contact_id)];
-          return {contactId:p.contact_id, eventId:e.event_id, name:c ? c.short : 'Unknown', pref:c && c.pref,
+          return {contactId:p.contact_id, eventId:e.event_id, name:c ? c.name : 'Unknown', pref:c && c.pref,
             amount:owed[p.contact_id] || 0, paidMethodId:p.paid_method_id, status:p.paid_method_id ? 'paid' : 'requested'};
         })};
     }).sort((a, b) => b.date.localeCompare(a.date));
@@ -556,11 +583,11 @@ function normContact(c){
   const list = c.contacts_payment_method.map(x => ({id:x.pay_method_id, name:x.payment_methods.pay_method_name, username:x.pay_method_username, preferred:x.is_preferred}))
     .sort((a, b) => a.id - b.id);
   list.forEach(x => { const k = METHOD_KEY[x.name]; if (k) m[k] = x.username; if (x.preferred) pref = x; });
-  return {id:String(c.contact_id), first:c.cont_first_name, last:c.cont_last_name, name:fullName(c.cont_first_name, c.cont_last_name), short:c.cont_first_name, phone:c.phone || '',
+  return {id:String(c.contact_id), first:c.cont_first_name, last:c.cont_last_name, name:fullName(c.cont_first_name, c.cont_last_name), phone:c.phone || '',
     ...m, method:(pref && METHOD_KEY[pref.name]) || 'sms', pref, methods:list};
 }
 const payMethodName = id => (S.payMethods.find(m => m.id === id) || {}).name || 'Unknown';
-const ui = {sheet:null, toast:null, photo:null, scanStep:0, scanError:false, q:'', open:null, failDemo:false, saving:false};
+const ui = {sheet:null, toast:null, photo:null, scanStep:0, scanError:false, q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, failDemo:false, saving:false};
 
 /* ---------- math (R7, R9, R10, R11) ---------- */
 function calc(d){
@@ -654,7 +681,7 @@ function receiptSplitDetail(s){
       p[rest] += extra; p.total += owed[cid];
     });
   });
-  const names = Object.fromEntries(S.contacts.map(c => [String(c.id), c.short]));
+  const names = Object.fromEntries(S.contacts.map(c => [String(c.id), c.name]));
   const rows = Object.values(people).map(p => {
     const me = p.cid === S.selfContactId, req = s.requests.find(r => String(r.contactId) === p.cid);
     const pill = me ? '<span class="pill sending">Paid the bill</span>' : req && req.status === 'paid' ? '<span class="pill paid">Paid</span>' : '<span class="pill unpaid">Unpaid</span>';
@@ -760,10 +787,40 @@ V.home = () => {
   <p class="fine">Tap anyone to mark them paid.</p>`;
 };
 
-V.history = () => `
-  <header class="top"><h1 class="h">History</h1><button class="avatar" data-act="sheet" data-s="profile" aria-label="Profile">${I('user')}</button></header>
-  ${historyStatusSummary()}
-  <div class="hlist">${S.history.map(s => {
+// Search box and filter chips shared by History (k = 'h') and Contacts (k = 'c'). State lives in ui[k + 'q'] and ui[k + 'f'].
+function findBar(k, placeholder, label, filters, filterLabel){
+  return `<div class="find">
+    <div class="search">${I('search')}<input id="${k}q" data-in="${k}q" value="${esc(ui[k + 'q'])}" placeholder="${placeholder}" aria-label="${label}" autocomplete="off" enterkeyhint="search">
+      <button class="sclear" data-act="fclear" data-k="${k}" data-keep="filter" aria-label="Clear search">${I('x')}</button></div>
+    <div class="fchips" role="group" aria-label="${filterLabel}">${filters.map(([f, name]) =>
+      `<button class="fchip${ui[k + 'f'] === f ? ' on' : ''}" data-act="filter" data-k="${k}" data-f="${f}" aria-pressed="${ui[k + 'f'] === f}">${esc(name)}</button>`).join('')}</div>
+  </div>`;
+}
+const HFILTERS = [['all','All'],['unpaid','Unpaid'],['part','Partly paid'],['paid','Paid']];
+// Everything a split can be found by, with a label for the parts that aren't already visible on its card.
+function historySearchFields(s){
+  return [[s.merchant], [s.eventName], [fmtDate(s.date)], [money(s.you + s.requests.reduce((a, r) => a + r.amount, 0))],
+    ...s.requests.map(r => [r.name, 'Person']),
+    ...s.receipts.flatMap(r => r.line_items.map(li => [li.description || '', 'Item']))];
+}
+// Returns null if the split doesn't match the search, otherwise the hidden fields that matched (people and items).
+function historyMatch(s, q){
+  const fields = historySearchFields(s).map(([text, kind]) => ({text, kind, low:text.toLowerCase()}));
+  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.every(w => fields.some(f => f.low.includes(w)))) return null;
+  return [...new Set(fields.filter(f => f.kind && terms.some(w => f.low.includes(w))).map(f => f.text))];
+}
+function historyList(){
+  const q = ui.hq.trim();
+  const shown = S.history.map(s => ({s, hits:q ? historyMatch(s, q) : []}))
+    .filter(x => x.hits && (ui.hf === 'all' || splitStatus(x.s)[0] === ui.hf));
+  const filtering = q || ui.hf !== 'all';
+  const status = HFILTERS.find(([k]) => k === ui.hf)[1].toLowerCase();
+  if (!S.history.length) return '<p class="fine">No splits yet. Scan a receipt to start one.</p>';
+  if (!shown.length) return `<div class="nofind"><b>No splits found</b><p class="fine">Nothing ${ui.hf === 'all' ? '' : status + ' '}matches${q ? ` "${esc(q)}"` : ''}. Try a person, restaurant or food item.</p>
+    <button class="btn small ghost" data-act="fclear" data-k="h">Clear search and filter</button></div>`;
+  return (filtering ? `<p class="fcount fine" role="status">Showing ${shown.length} of ${S.history.length} split${S.history.length === 1 ? '' : 's'}</p>` : '')
+    + shown.map(({s, hits}) => {
     const [cls, label] = splitStatus(s);
     const total = s.you + s.requests.reduce((a, r) => a + r.amount, 0);
     const open = ui.open === s.id;
@@ -775,22 +832,58 @@ V.history = () => `
         <span class="hside"><span class="mono">${money(total)}</span><span class="pill ${cls}">${label}</span></span>
         <span class="hchev">${I('down')}</span>
       </button>
+      ${hits.length ? `<p class="hmatch">${I('search')}<span>Matches ${hits.map(esc).join(', ')}</span></p>` : ''}
       ${open ? `<div class="hreqs">${s.requests.map((r, i) => reqRow({s, r, i})).join('')}
         <div class="brow" style="cursor:default"><span><b>You</b><small>Paid the bill</small></span><span class="amt mono">${money(s.you)}</span><span></span></div>
         <button class="btn ghost hreq-detail" data-act="sheet" data-s="receipt" data-id="${s.id}">View full receipt split</button></div>` : ''}
     </article></div>`;
-  }).join('') || '<p class="fine">No splits yet. Scan a receipt to start one.</p>'}</div>`;
+  }).join('');
+}
+V.history = () => `
+  <header class="top"><h1 class="h">History</h1><button class="avatar" data-act="sheet" data-s="profile" aria-label="Profile">${I('user')}</button></header>
+  ${historyStatusSummary()}
+  ${findBar('h', 'Search people, places or items', 'Search splits by person, restaurant or item', HFILTERS, 'Filter by payment status')}
+  <div class="hlist" data-live="hlist">${historyList()}</div>`;
 
+// Returns null if the contact doesn't match, otherwise the matched details that aren't already shown in its row.
+function contactMatch(c, q){
+  const digits = s => s.replace(/\D/g, '');
+  const groups = S.groups.filter(g => g.members.includes(c.id)).map(g => g.name);
+  const fields = [[c.name], [c.phone, 'Phone'], ...c.methods.map(m => [m.username || '', m.name]), ...groups.map(g => [g, 'Group'])]
+    .map(([text, kind]) => ({text, kind, low:text.toLowerCase(), num:digits(text)}));
+  const hit = (f, w) => f.low.includes(w) || (digits(w).length >= 3 && digits(w) === w.replace(/[\s().+-]/g, '') && f.num.includes(digits(w)));
+  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.every(w => fields.some(f => hit(f, w)))) return null;
+  const shown = c.pref ? c.pref.username : '';
+  const hits = new Map(); // keyed by text, so a phone number that is also a Zelle username is listed once
+  fields.filter(f => f.kind && f.text !== shown && terms.some(w => hit(f, w))).forEach(f => hits.has(f.text) || hits.set(f.text, `${f.kind}: ${f.text}`));
+  return [...hits.values()];
+}
+const contactFilters = () => [['all','All'], ...S.payMethods.map(m => [String(m.id), m.name]), ['none','No payment method']];
+function contactList(){
+  const q = ui.cq.trim(), f = ui.cf;
+  const shown = S.contacts.map(c => ({c, hits:q ? contactMatch(c, q) : []}))
+    .filter(({c, hits}) => hits && (f === 'all' || (f === 'none' ? !c.methods.length : c.methods.some(m => String(m.id) === f))));
+  if (!S.contacts.length) return '<p class="fine">No contacts yet. Add one below.</p>';
+  if (!shown.length) {
+    const method = (contactFilters().find(([k]) => k === f) || [])[1];
+    return `<div class="nofind"><b>No contacts found</b><p class="fine">Nobody${f === 'all' ? '' : f === 'none' ? ' without a payment method' : ` with ${esc(method)}`}${q ? ` matches "${esc(q)}"` : ''}. Try a name, phone number or username.</p>
+    <button class="btn small ghost" data-act="fclear" data-k="c">Clear search and filter</button></div>`;
+  }
+  return (q || f !== 'all' ? `<p class="fcount fine" role="status">Showing ${shown.length} of ${S.contacts.length} contact${S.contacts.length === 1 ? '' : 's'}</p>` : '')
+    + `<div class="ctable">
+    <div class="chead"><span>Name</span><span>Preferred payment</span></div>
+    ${shown.map(({c, hits}) => `<button class="crow" data-act="sheet" data-s="contact" data-id="${c.id}"><span><b>${esc(c.name)}</b><small>${esc(c.pref ? c.pref.username : 'No payment method saved')}</small>${hits.length ? `<small class="cmatch">${I('search')}${esc(hits.join(' · '))}</small>` : ''}</span><span class="meth">${esc(c.pref ? c.pref.name : 'None')}</span></button>`).join('')}
+  </div>`;
+}
 V.contacts = () => `
   <header class="top"><h1 class="h">Your Contacts</h1><button class="avatar" data-act="sheet" data-s="profile" aria-label="Profile">${I('user')}</button></header>
   <h2 class="eyebrow">Groups</h2>
   <div class="groups">${S.groups.map(g => `<button class="grp" data-act="sheet" data-s="group" data-id="${g.id}"><span class="gc">${esc(ini(g.name))}</span><span>${esc(g.name)}</span><small>${g.members.length} people</small></button>`).join('')}
 </div>
   <h2 class="eyebrow">Contacts</h2>
-  <div class="ctable">
-    <div class="chead"><span>Name</span><span>Preferred payment</span></div>
-    ${S.contacts.map(c => `<button class="crow" data-act="sheet" data-s="contact" data-id="${c.id}"><span><b>${esc(c.name)}</b><small>${esc(c.pref ? c.pref.username : 'No payment method saved')}</small></span><span class="meth">${esc(c.pref ? c.pref.name : 'None')}</span></button>`).join('')}
-  </div>
+  ${findBar('c', 'Search name, phone or username', 'Search contacts by name, phone number, payment username or group', contactFilters(), 'Filter by payment method')}
+  <div class="clist" data-live="clist">${contactList()}</div>
   <button class="addrow" data-act="sheet" data-s="contact">${I('plus')} Add contact</button>
   <p class="fine">Contacts save to Supabase. Groups are edited in Supabase for now.</p>`;
 
@@ -979,6 +1072,8 @@ V.sent = () => {
 
 /* ---------- live regions (updated while typing without losing focus) ---------- */
 const LIVE = {
+  hlist: () => historyList(),
+  clist: () => contactList(),
   subtotal: () => money(calc(S.draft).subtotal),
   tipamt: () => money(calc(S.draft).tip),
   grand: () => money(calc(S.draft).grand),
@@ -1021,6 +1116,17 @@ const LIVE = {
       <button class="btn" data-act="sheet" data-s="confirm" ${globalBlock || !ready.length ? 'disabled' : ''}>${label}</button>`;
   }
 };
+// Greetings use the first name: the saved contact's first name, or the first word of a typed name.
+function firstName(p){
+  const c = p.contactId && S.contacts.find(x => x.id === String(p.contactId));
+  return c ? c.first : p.name.trim().split(/\s+/)[0];
+}
+function autoMessage(p, c){
+  const d = S.draft, amt = money(c.totals[p.id]), when = shortDate(today());
+  return p.method === 'sms'
+    ? `Hi ${firstName(p)}! Your share of ${d.merchant || 'dinner'} (${when}) is ${amt}. See the split: ioya.app/${d.code}`
+    : `Hi ${firstName(p)}! ${d.merchant || 'Dinner'} on ${when}: your share is ${amt}.`;
+}
 function sendPlan(){
   const d = S.draft, c = calc(d);
   const others = d.people.filter(p => !p.me && c.totals[p.id] > 0);
@@ -1044,10 +1150,10 @@ function sheetHTML(){
     const methods = S.payMethods.filter(m => m.name !== 'Cash');  // cash has no username to save
     const has = id => c.methods.find(x => x.id === id);
     const prefId = (c.methods.find(x => x.preferred) || {}).id;
-    body = `<h2 id="sh-t">${s.id ? 'Edit ' + esc(c.first) : 'New contact'}</h2>
+    body = `<h2 id="sh-t">${s.id ? 'Edit ' + esc(c.name) : 'New contact'}</h2>
       <div class="slot-m" style="grid-template-columns:1fr 1fr">
         <label class="field"><span>First name</span><input id="f-first" value="${esc(c.first)}" autocomplete="off"></label>
-        <label class="field"><span>Last name</span><input id="f-last" value="${esc(c.last)}" autocomplete="off"></label>
+        <label class="field"><span>Last name <small>optional</small></span><input id="f-last" value="${esc(c.last)}" autocomplete="off"></label>
       </div>
       <label class="field"><span>Phone</span><input id="f-phone" inputmode="tel" value="${esc(c.phone)}" placeholder="(555) 000-0000" autocomplete="off"></label>
       <p class="eyebrow">Payment methods</p>
@@ -1094,14 +1200,16 @@ function sheetHTML(){
   }
   if (s.type === 'confirm'){
     const {c, ready, blocked} = sendPlan(), d = S.draft;
-    const when = shortDate(today());
+    d.msgs = d.msgs || {};
     body = `<h2 id="sh-t">Send ${ready.length} request${ready.length === 1 ? '' : 's'}?</h2>
+      ${ready.length > 1 ? `<div class="msg-all"><p class="fine">Messages are optional.</p><button class="link" data-act="genmsg" data-pid="all">Auto-generate all</button></div>` : ''}
       <ul class="conf">${ready.map(p => {
-        const amt = money(c.totals[p.id]);
-        const msg = p.method === 'sms'
-          ? `Hi ${esc(p.name)}! Your share of ${esc(d.merchant || 'dinner')} (${when}) is ${amt}. See the split: ioya.app/${esc(d.code)}`
-          : `${esc(d.merchant || 'Dinner')} · ${when} split · ${amt}`;
-        return `<li><div class="ct"><span>${esc(p.name)}</span><span class="mono">${amt}</span></div><div class="cm">${METHODS[p.method].label} ${p.method === 'sms' ? 'to' : 'request to'} ${esc(handleOf(p))}</div><div class="msg">${p.method === 'sms' ? '' : 'Note: '}${msg}</div></li>`;
+        const label = p.method === 'sms' ? 'Message' : `${METHODS[p.method].label} note`;
+        return `<li><div class="ct"><span>${esc(p.name)}</span><span class="mono">${money(c.totals[p.id])}</span></div>
+          <div class="cm">${METHODS[p.method].label} ${p.method === 'sms' ? 'to' : 'request to'} ${esc(handleOf(p))}</div>
+          <div class="msg-h"><label for="msg-${p.id}">${label} <small>optional</small></label>
+            <button class="btn small ghost" data-act="genmsg" data-pid="${p.id}">Auto-generate</button></div>
+          <textarea id="msg-${p.id}" data-in="pmsg" data-id="${p.id}" rows="3" placeholder="Write a message, or tap Auto-generate">${esc(d.msgs[p.id] || '')}</textarea></li>`;
       }).join('')}
       ${blocked.map(p => `<li class="blocked"><div class="ct"><span>${esc(p.name)}</span><span class="mono">${money(c.totals[p.id])}</span></div><div class="cm">Skipped: needs ${METHODS[p.method].need}</div></li>`).join('')}</ul>
       <label class="checkrow"><input type="checkbox" id="faildemo" ${ui.failDemo ? 'checked' : ''}> Prototype: make one request fail</label>
@@ -1142,7 +1250,7 @@ function go(v){
   S.view = v; render();
 }
 function toast(t){ ui.toast = t; render(); clearTimeout(toast.t); toast.t = setTimeout(() => { ui.toast = null; render(); }, 2600); }
-const fill = (p, c) => Object.assign(p, {name:c.short, method:c.method, venmo:c.venmo, phone:c.phone, paypal:c.paypal, zelle:c.zelle, contactId:c.id});
+const fill = (p, c) => Object.assign(p, {name:c.name, method:c.method, venmo:c.venmo, phone:c.phone, paypal:c.paypal, zelle:c.zelle, contactId:c.id});
 function addContact(cid){
   const d = S.draft, c = S.contacts.find(x => x.id === cid);
   if (!c || d.people.some(p => p.contactId === cid)) return;
@@ -1202,6 +1310,8 @@ const A = {
     render(); },
   close: () => { ui.sheet = null; render(); },
   req: ds => { ui.sheet = {type:'req', sid:ds.sid, i:+ds.i}; render(); },
+  filter: ds => { ui[ds.k + 'f'] = ds.f; render(); document.querySelector(`[data-act="filter"][data-k="${ds.k}"][data-f="${ds.f}"]`)?.focus(); },
+  fclear: ds => { ui[ds.k + 'q'] = ''; if (ds.keep !== 'filter') ui[ds.k + 'f'] = 'all'; render(); document.getElementById(ds.k + 'q')?.focus(); },
   hopen: ds => { ui.open = ui.open === ds.id ? null : ds.id; render(); },
   // Vertical slice: "Mark as paid" writes participants.paid_method_id in Supabase, then shows what came back.
   paywith: ds => { ui.sheet.payWith = +ds.m; render(); },
@@ -1212,6 +1322,13 @@ const A = {
   remind: () => { const r = currentRequest(); ui.sheet = null; toast(`Reminder to ${r.name} is simulated. Nothing was sent.`); },
   send: () => { const {c, ready} = sendPlan(); ui.failDemo = !!document.getElementById('faildemo')?.checked;
     S.draft.results = ready.map(p => ({pid:p.id, amount:c.totals[p.id], status:'sending'})); ui.sheet = null; go('sent'); runSend(ready.map(p => p.id)); },
+  genmsg: ds => {
+    const {c, ready} = sendPlan(), d = S.draft; d.msgs = d.msgs || {};
+    // "All" only fills empty boxes so it never overwrites a message someone typed.
+    ready.filter(p => ds.pid === 'all' ? !(d.msgs[p.id] || '').trim() : p.id === ds.pid).forEach(p => d.msgs[p.id] = autoMessage(p, c));
+    save(); render();
+    document.getElementById(`msg-${ds.pid === 'all' ? ready[0].id : ds.pid}`)?.focus();
+  },
   retry: ds => { const r = S.draft.results.find(x => x.pid === ds.pid); r.status = 'sending'; r.retried = true; render(); runSend([ds.pid]); },
   copy: () => { const code = S.draft.code;
     const done = () => toast(`Copied ${code}`);
@@ -1298,6 +1415,8 @@ document.addEventListener('input', e => {
     case 'iprice': item().price = toC(val); break;
     case 'tax': case 'fees': case 'printed': d[k] = toC(val); break;
     case 'q': ui.q = val; break;
+    case 'hq': case 'cq': ui[k] = val; break;
+    case 'pmsg': (d.msgs = d.msgs || {})[el.dataset.id] = val; break;
     case 'pname': person().name = val; person().contactId = null; break;
     case 'phandle': { const p = person(); p[METHODS[p.method].field] = val.trim(); break; }
     case 'pmethod': person().method = val; render(); return;
