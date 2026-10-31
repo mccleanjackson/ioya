@@ -54,6 +54,10 @@ Every other change has to be made in the Supabase dashboard. Never put the `serv
 
 **Receipt scanning:** Start split → Take photo or Upload → Check the items. On supported phones, Take photo opens the rear-camera capture picker; on desktops it usually opens a file picker. This is camera capture through the device picker, not a live in-page camera preview. Choose a JPG/PNG or another browser-readable image under 20 MB. The first scan needs internet to download the OCR reader. Check every item, tax, fees and printed total against the photo before continuing. Photos stay in browser memory and are not retained after a refresh; the editable draft is saved locally. Scanning does not save a receipt to Supabase.
 
+The capture screen uses a photo guide and Take photo / Upload photo / Type items instead actions, without a simulated viewfinder or moving scanner line. The phone's native camera controls flash. The current HTTP LAN preview cannot use embedded live-camera video: [`getUserMedia()` requires a secure context](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia). No HTTPS deployment, tunnel, camera permissions or device settings are changed by this feature.
+
+**Tips:** Check the items starts with no tip selected. Tip is optional; leaving it unselected adds zero. Choose a percentage, choose No tip, or enter a custom dollar amount. Percentage and custom tips replace each other. Dollar amounts must be zero or positive with at most two decimal places; invalid entries block continuing/sending. All tips split proportionally to item shares, with cent rounding preserved. The summary labels custom dollar tips correctly. Older unsubmitted browser drafts keep their receipt/people/assignments but reset their old tip selection once; new explicit selections survive refresh. Past Supabase receipts are unchanged.
+
 This first version recognizes English receipts with explicit US-dollar decimal prices. Blurry photos, multi-line items, discounts, included tips and unfamiliar layouts need manual correction. A missing total stays blank rather than being guessed. Unreadable images and reader/network failures offer another photo or Type it in; cancelling a scan preserves the previous draft. The desktop screen-preview shortcuts still use sample data for empty drafts.
 
 If the first read finds no priced items, misses the total, or its items/tax/fees do not match that total, the reader retries once using a single-column layout, skew correction and Sauvola thresholding for uneven lighting. It selects one complete reading by total reconciliation, then item count; item lists from different reads are never combined. This is a heuristic, not proof of accuracy. The parser also accepts spaces around an explicit decimal price and short store tax flags (for example `3 . 49 FN`).
@@ -120,10 +124,11 @@ Open **http://localhost:3001**. On a laptop the app appears in a phone frame, wi
 
 ### Check the receipt-photo flow
 
-1. Start a split and choose Take photo on a phone or Upload on a computer. Use a clear, straight photo of a receipt with item names and decimal prices.
+1. Start a split and choose Take photo on a phone or Upload photo on a computer. Use a clear, straight photo of a receipt with item names and decimal prices.
 2. Wait for the reader, then compare the extracted item names/prices, tax, service fees and printed total with the photo in Check the items. Correct a price and confirm that the subtotal and mismatch warning update. Add any missed lines and remove any false matches.
-3. Try a blank image and confirm that the app offers retry and Type it in without loading sample items. Cancel a scan and confirm that a previous draft is preserved. Check both phone and laptop widths.
-4. Continue through People → Assign items → Review & send. Payment sending and saving the new split remain simulated. Check Home, History and Contacts too; no Supabase migration is needed for scanning.
+3. Verify no tip starts selected. Enter a custom dollar tip, check the total, switch to a percentage, and then clear the custom field to leave no selection. A negative or invalid amount must block continuing. In the final summary, confirm everyone's shares add up to the bill plus the chosen tip.
+4. Try a blank image and confirm that the app offers retry and Type items instead without loading sample items. Cancel a scan and confirm that a previous draft is preserved. Check both phone and laptop widths.
+5. Continue through People → Assign items → Review & send. Payment sending and saving the new split remain simulated. Check Home, History and Contacts too; no Supabase migration is needed for scanning or tips.
 
 Run `npm test` for deterministic receipt-parser checks. These are software checks, not student-authored usability, accessibility or course-assignment findings. Students should perform and record their own required testing and disclose AI assistance accurately.
 

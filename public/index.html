@@ -151,24 +151,14 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .steps i.on{background:var(--accent)}
 .step-l{font:500 12px var(--f-mono);color:var(--muted);min-width:28px;text-align:right}
 
-/* scan */
-.finder{position:relative;background:var(--finder);border-radius:20px;aspect-ratio:3/4;max-width:100%;overflow:hidden;display:grid;place-items:center}
-.finder .paperhint{width:56%;height:70%;background:linear-gradient(#f4f1e8,#e9e5d9);border-radius:3px;transform:rotate(-3deg);opacity:.18}
-.finder .c{position:absolute;width:34px;height:34px;border:4px solid var(--hi)}
-.finder .tl{top:22px;left:22px;border-right:0;border-bottom:0;border-radius:10px 0 0 0}
-.finder .tr{top:22px;right:22px;border-left:0;border-bottom:0;border-radius:0 10px 0 0}
-.finder .bl{bottom:22px;left:22px;border-right:0;border-top:0;border-radius:0 0 0 10px}
-.finder .br{bottom:22px;right:22px;border-left:0;border-top:0;border-radius:0 0 10px 0}
-.finder.err .c{border-color:var(--bad)}
-.finder-l{position:absolute;top:26px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);color:#fff;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;white-space:nowrap}
-.scanline{position:absolute;left:8%;right:8%;height:2px;background:var(--hi);box-shadow:0 0 14px 3px var(--hi);top:20%;animation:scan 2.4s ease-in-out infinite alternate}
-@keyframes scan{to{top:80%}}
-.cam-ctl{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;justify-items:center}
-.round{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
-.round .ic{width:46px;height:46px;padding:11px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--ink);background:var(--card)}
-.shutter{width:74px;height:74px;border-radius:50%;border:4px solid var(--ink);display:grid;place-items:center}
-.shutter::after{content:"";width:56px;height:56px;border-radius:50%;background:var(--accent);transition:transform .15s}
-.shutter:active::after{transform:scale(.88)}
+/* receipt capture */
+.capture-guide{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:18px}
+.capture-icon{width:56px;height:56px;border-radius:16px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.capture-icon .ic{width:30px;height:30px}
+.capture-guide h2{font-family:var(--f-display);font-size:21px;line-height:1.15;margin:0}
+.capture-guide ol{padding-left:20px;margin:0;color:var(--muted);display:flex;flex-direction:column;gap:10px}
+.capture-actions{display:flex;flex-direction:column;gap:10px}
+.capture-actions .link{align-self:center;padding:8px}
 
 .alert{border-radius:12px;padding:12px 14px;font-size:14px;display:flex;flex-direction:column;gap:4px}
 .alert.bad{background:var(--bad-soft);color:var(--ink);box-shadow:inset 3px 0 0 var(--bad)}
@@ -488,8 +478,14 @@ const SAMPLE = {merchant:"Tony's Pizzeria", tax:375, fees:0, printed:4475, items
 
 function newDraft(){
   const blank = () => ({id:uid('p'), name:'', method:'venmo', venmo:'', phone:'', paypal:'', contactId:null});
-  return {at:'scan', merchant:'', items:[], tax:0, fees:0, printed:0, tipPct:18,
+  return {at:'scan', merchant:'', items:[], tax:0, fees:0, printed:0, tipMode:null, tipPct:null, tipInput:'',
     people:[{id:'me', name:'You', me:true}, blank(), blank(), blank()], assign:{}, msgs:{}, cur:0, results:null, code:null, fromSample:false};
+}
+function normalizeTipDraft(d){
+  // Older drafts cannot distinguish an automatic 18% from a deliberate choice.
+  // Keep the receipt and assignments, and let the user choose under the new UI.
+  if (!Object.prototype.hasOwnProperty.call(d, 'tipMode')) Object.assign(d, {tipMode:null, tipPct:null, tipInput:''});
+  return d;
 }
 function loadSample(d){
   d.merchant = SAMPLE.merchant; d.tax = SAMPLE.tax; d.fees = SAMPLE.fees; d.printed = SAMPLE.printed; d.fromSample = true;
@@ -513,7 +509,7 @@ function demoDraft(){
 const KEY = 'ioya-draft-v1';
 const USER_ID = 1;  // No login yet: the app always acts as user 1 (Demo Payer).
 let S = {view:'home', contacts:[], groups:[], history:[], payMethods:[], selfContactId:null, draft:newDraft(), loading:true, loadError:null};
-try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.draft) Object.assign(S, {view:saved.view, draft:saved.draft}); } catch(e) {}
+try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.draft) Object.assign(S, {view:saved.view, draft:normalizeTipDraft(saved.draft)}); } catch(e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({view:S.view, draft:S.draft})); } catch(e) {} };
 
 const CFG = window.IOYA_CONFIG || {};
@@ -644,6 +640,21 @@ function preferReceiptRead(current, candidate){
 }
 
 /* ---------- math (R7, R9, R10, R11) ---------- */
+function tipState(d, subtotal = d.items.reduce((sum, it) => sum + it.price, 0)){
+  const invalid = {cents:0, valid:false, chosen:true, label:'Invalid tip', error:'Enter 0 or a positive dollar amount with up to two decimal places.'};
+  if (d.tipMode === 'percent'){
+    if (!Number.isFinite(d.tipPct) || d.tipPct < 0 || d.tipPct > 100) return invalid;
+    return {cents:Math.round(subtotal * d.tipPct / 100), valid:true, chosen:true, label:d.tipPct ? `${d.tipPct}% tip` : 'No tip'};
+  }
+  if (d.tipMode === 'amount'){
+    const raw = String(d.tipInput || '').trim();
+    if (raw.length > 20 || !/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/.test(raw)) return invalid;
+    const cents = Math.round(Number(raw) * 100);
+    if (!Number.isSafeInteger(cents) || !Number.isSafeInteger(cents + Math.max(subtotal, d.printed || 0) + d.tax + d.fees)) return invalid;
+    return {cents, valid:true, chosen:true, label:`${money(cents)} tip`};
+  }
+  return {cents:0, valid:true, chosen:false, label:'No tip added'};
+}
 function calc(d){
   const ids = d.people.map(p => p.id);
   const pre = {}, lines = {}; ids.forEach(id => { pre[id] = 0; lines[id] = []; });
@@ -656,7 +667,7 @@ function calc(d){
     const base = Math.floor(it.price / who.length); const rem = it.price - base * who.length;
     who.forEach((id, i) => { const share = base + (i < rem ? 1 : 0); pre[id] += share; lines[id].push({itemId:it.id, name:it.name, share, of:who.length}); });
   });
-  const tip = Math.round(subtotal * d.tipPct / 100);
+  const tipInfo = tipState(d, subtotal), tip = tipInfo.cents;
   const extra = d.tax + d.fees + tip;
   const assigned = ids.reduce((a, id) => a + pre[id], 0);
   const alloc = {}; ids.forEach(id => alloc[id] = 0);
@@ -672,7 +683,7 @@ function calc(d){
   const computed = subtotal + d.tax + d.fees;
   const mismatch = Math.abs(computed - d.printed) > 1;
   const grand = d.printed + tip;
-  return {pre, lines, alloc, totals, unassigned, subtotal, tip, extra, computed, mismatch, grand, sumTotals,
+  return {pre, lines, alloc, totals, unassigned, subtotal, tip, tipValid:tipInfo.valid, extra, computed, mismatch, grand, sumTotals,
     totalsOff: !unassigned.length && Math.abs(sumTotals - (computed + tip)) > 1};
 }
 const handleOf = p => p[METHODS[p.method].field] || '';
@@ -943,33 +954,27 @@ V.contacts = () => `
 
 V.scan = () => `
   ${flowHead(0, 'home')}
-  <h1 class="h">Scan your receipt</h1>
-  <div class="finder ${ui.scanError ? 'err' : ''}">
-    <div class="paperhint"></div>
-    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-    ${ui.scanError ? '' : '<div class="scanline"></div>'}
-    <div class="finder-l">Photograph the whole receipt in good light</div>
-  </div>
+  <h1 class="h">Add your receipt</h1>
+  <p class="sub">Take a photo, then check the items before you split.</p>
   ${ui.scanError ? `<div class="alert bad" role="alert"><b>Couldn't scan this receipt.</b>${esc(ui.scanError)}</div>` : ''}
   ${ui.scanError && ui.scanText ? `<details><summary>Text read from receipt</summary><p class="fine">Compare this with the photo to see which lines were missed. This text stays in this tab and is cleared on the next scan.</p><textarea readonly aria-label="Text read from receipt" style="width:100%;min-height:160px">${esc(ui.scanText)}</textarea></details>` : ''}
-  <div class="cam-ctl">
-    <button class="round" data-act="upload">${I('upload')}<span>Upload</span></button>
-    <button class="shutter" data-act="snap" aria-label="Take photo"></button>
-    <button class="round" data-act="manual">${I('pencil')}<span>Type it in</span></button>
+  <section class="capture-guide" aria-labelledby="capture-title">
+    <div class="capture-icon">${I('history')}</div>
+    <h2 id="capture-title">One clear photo.<br>Every item included.</h2>
+    <ol><li>Lay the receipt flat and fill the photo.</li><li>Turn on flash in the camera if the room is dim. Avoid glare.</li><li>Include all the items, tax and final total.</li></ol>
+  </section>
+  <div class="capture-actions">
+    <button class="btn" data-act="snap">${I('scan')} Take photo</button>
+    <button class="btn ghost" data-act="upload">${I('upload')} Upload photo</button>
+    <button class="link" data-act="manual">Type items instead</button>
   </div>
   <input type="file" id="file-in" accept="image/*" hidden>
   <input type="file" id="camera-in" accept="image/*" capture="environment" hidden>
-  <p class="fine">Take a photo on your phone, or choose an image on your computer. English receipts with dollar prices work best. Your photo is processed in this browser. The first scan needs internet to download the reader.</p>`;
-
-function mockReceipt(){
-  return `<div class="mock"><div class="mh">TONY'S PIZZERIA</div>
-  ${SAMPLE.items.map(([n, p]) => `<div><span>${esc(n)}</span><span>${cIn(p)}</span></div>`).join('')}
-  <hr><div><span>Tax</span><span>${cIn(SAMPLE.tax)}</span></div><div><b>TOTAL</b><b>${cIn(SAMPLE.printed)}</b></div></div>`;
-}
+  <p class="fine">Your photo is read in this browser. English receipts with dollar prices work best. The first scan needs internet to download the reader.</p>`;
 V.scanning = () => {
   return `
   <div class="scanning">
-    <div class="rthumb">${ui.photo ? `<img src="${esc(ui.photo)}" alt="Your receipt photo">` : ''}<div class="scanline"></div></div>
+    <div class="rthumb">${ui.photo ? `<img src="${esc(ui.photo)}" alt="Your receipt photo">` : ''}</div>
     <h1 class="h">Scanning receipt…</h1>
     <p class="sub" role="status" aria-live="polite">${esc(ui.scanStatus)}</p>
     <progress max="100" value="${ui.scanProgress}" aria-label="Reading receipt"></progress>
@@ -1004,11 +1009,13 @@ V.review = () => {
   </div>
   <div data-live="match"></div>
   <div class="tip">
-    <div class="tip-h"><span>Tip</span><span class="mono" data-live="tipamt"></span></div>
-    <div class="seg" role="group" aria-label="Tip percentage">${[0,15,18,20,22].map(p => `<button class="${d.tipPct === p ? 'on' : ''}" data-act="tip" data-p="${p}" aria-pressed="${d.tipPct === p}">${p}%</button>`).join('')}</div>
-    <p class="fine">Tip is figured on the pre-tax subtotal and shared in proportion to what each person ordered.</p>
+    <div class="tip-h"><span>Tip <small>(optional)</small></span><span class="mono" data-live="tipamt"></span></div>
+    <div class="seg" role="group" aria-label="Tip percentage" data-live="tipchoices"></div>
+    <label class="frow" for="tip-amount"><span>Custom tip amount</span><span class="money-in">$<input id="tip-amount" data-in="tipamount" inputmode="decimal" maxlength="20" value="${esc(d.tipInput || '')}" placeholder="0.00" aria-describedby="tip-note"></span></label>
+    <div id="tip-note" data-live="tipnotice"></div>
+    <p class="fine">Percentage tips use the pre-tax subtotal. All tips are shared in proportion to each person's items.</p>
   </div>
-  <div class="grand"><span>Bill with tip</span><span class="mono" data-live="grand"></span></div>
+  <div class="grand"><span>Total to split</span><span class="mono" data-live="grand"></span></div>
   <div class="next" data-live="revnext"></div>`;
 };
 
@@ -1078,10 +1085,11 @@ V.summary = () => {
   const blockers = [];
   if (c.unassigned.length) blockers.push(`<div class="alert bad" role="alert"><b>${c.unassigned.length} item${c.unassigned.length === 1 ? ' is' : 's are'} unassigned.</b>${c.unassigned.map(it => esc(it.name)).join(', ')}. <button class="link" data-act="go" data-v="assign">Assign items</button></div>`);
   if (c.mismatch) blockers.push(`<div class="alert bad" role="alert"><b>Items don't match the receipt total.</b>Items, tax and fees add to ${money(c.computed)}, but the receipt says ${money(d.printed)}. <button class="link" data-act="go" data-v="review">Fix the items</button></div>`);
+  if (!c.tipValid) blockers.push(`<div class="alert bad" role="alert"><b>Check the custom tip.</b><button class="link" data-act="go" data-v="review">Fix the tip amount</button></div>`);
   return `
   ${flowHead(4, 'assign')}
   <h1 class="h">Review & send</h1>
-  <p class="sub">${esc(d.merchant || 'This bill')} · <span class="mono">${money(c.grand)}</span> with ${d.tipPct}% tip</p>
+  <p class="sub">${esc(d.merchant || 'This bill')} · <span class="mono">${money(c.grand)}</span> · ${esc(tipState(d).label)}</p>
   ${blockers.join('')}
   ${d.people.map(p => {
     const nm = p.me ? 'You' : (p.name || 'Unnamed');
@@ -1129,7 +1137,14 @@ const LIVE = {
   hlist: () => historyList(),
   clist: () => contactList(),
   subtotal: () => money(calc(S.draft).subtotal),
-  tipamt: () => money(calc(S.draft).tip),
+  tipamt: () => { const t = tipState(S.draft); return t.chosen && t.valid ? money(t.cents) : '—'; },
+  tipchoices: () => [0,15,18,20,22].map(p => {
+    const selected = S.draft.tipMode === 'percent' && S.draft.tipPct === p;
+    return `<button class="${selected ? 'on' : ''}" data-act="tip" data-p="${p}" aria-pressed="${selected}">${p ? p + '%' : 'No tip'}</button>`;
+  }).join(''),
+  tipnotice: () => { const t = tipState(S.draft); return t.valid
+    ? `<p class="fine">${t.chosen ? '' : 'No tip is added until you choose one.'}</p>`
+    : `<p class="warn-line" role="alert">${t.error}</p>`; },
   grand: () => money(calc(S.draft).grand),
   match: () => {
     const d = S.draft, c = calc(d);
@@ -1140,7 +1155,7 @@ const LIVE = {
   },
   revnext: () => {
     const d = S.draft, c = calc(d);
-    const ok = d.items.some(it => it.price > 0) && d.printed && !c.mismatch;
+    const ok = d.items.some(it => it.price > 0) && d.printed && !c.mismatch && c.tipValid;
     return `<button class="btn" data-act="go" data-v="people" ${ok ? '' : 'disabled'}>Add people</button>`;
   },
   results: () => {
@@ -1184,10 +1199,11 @@ function autoMessage(p, c){
 function sendPlan(){
   const d = S.draft, c = calc(d);
   const others = d.people.filter(p => !p.me && c.totals[p.id] > 0);
-  return {c, ready: others.filter(p => handleOf(p)), blocked: others.filter(p => !handleOf(p)), globalBlock: c.unassigned.length > 0 || c.mismatch || c.totalsOff};
+  return {c, ready: others.filter(p => handleOf(p)), blocked: others.filter(p => !handleOf(p)), globalBlock: c.unassigned.length > 0 || c.mismatch || c.totalsOff || !c.tipValid};
 }
 function refresh(){
   document.querySelectorAll('[data-live]').forEach(el => { const f = LIVE[el.dataset.live]; if (f) el.innerHTML = f(el); });
+  document.getElementById('tip-amount')?.setAttribute('aria-invalid', String(!tipState(S.draft).valid));
 }
 
 /* ---------- sheets ---------- */
@@ -1442,7 +1458,7 @@ const A = {
   manual: () => { cancelScan(); clearPhoto(); ui.scanText = ''; const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = ''; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
   additem: () => { const it = {id:uid('i'), name:'', price:0}; S.draft.items.push(it); render(); document.getElementById('n-' + it.id)?.focus(); },
   delitem: ds => { const d = S.draft; d.items = d.items.filter(it => it.id !== ds.id); delete d.assign[ds.id]; render(); },
-  tip: ds => { S.draft.tipPct = +ds.p; render(); },
+  tip: ds => { Object.assign(S.draft, {tipMode:'percent', tipPct:+ds.p, tipInput:''}); render(); },
   cnt: ds => { const d = S.draft;
     if (+ds.d > 0 && d.people.length < 12) d.people.push({id:uid('p'), name:'', method:'venmo', venmo:'', phone:'', paypal:'', contactId:null});
     if (+ds.d < 0 && d.people.length > 2){ const i = d.people.map(p => !p.me && !p.name.trim()).lastIndexOf(true); d.people.splice(i > 0 ? i : d.people.length - 1, 1); }
@@ -1565,6 +1581,7 @@ document.addEventListener('input', e => {
     case 'iname': item().name = val; break;
     case 'iprice': item().price = toC(val); break;
     case 'tax': case 'fees': case 'printed': d[k] = toC(val); break;
+    case 'tipamount': d.tipInput = val; d.tipMode = val.trim() ? 'amount' : null; d.tipPct = null; break;
     case 'q': ui.q = val; break;
     case 'hq': case 'cq': ui[k] = val; break;
     case 'pmsg': (d.msgs = d.msgs || {})[el.dataset.id] = val; break;
