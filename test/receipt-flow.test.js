@@ -23,7 +23,7 @@ function harness(createWorker){
     console
   };
   // Keep production scanning logic, replace only DOM rendering and app startup.
-  const instrumented=script.replace("if (!V[S.view]", "render = () => {}; globalThis.api = {runScan,cancelScan,go,S,ui,A}; return;\nif (!V[S.view]");
+  const instrumented=script.replace("if (!V[S.view]", "render = () => {}; globalThis.api = {runScan,cancelScan,go,S,ui,A,V}; return;\nif (!V[S.view]");
   vm.runInNewContext(instrumented,context);
   const api=context.api;
   api.S.draft.at='review';
@@ -73,11 +73,48 @@ test('unreadable photo and OCR failure preserve the draft and offer manual entry
     worker.recognize=async()=>{if(mode==='failure')throw Error('Reader unavailable');return {data:{text:''}};};
     await api.runScan(photo);
     assert.equal(api.S.view,'scan'); assert.equal(api.S.draft,draft);
-    assert.match(api.ui.scanError,mode==='blank'?/No priced items/:/Reader unavailable/);
+    assert.match(api.ui.scanError,mode==='blank'?/No readable text/:/Reader unavailable/);
     assert.equal(api.ui.photo,null);
     api.A.manual(); assert.equal(api.S.view,'review');
     assert.equal(api.S.draft.items[0].name,'');
   }
+});
+
+test('retries an alternate receipt layout when the first read finds no prices',async()=>{
+  const {api,worker}=harness();let calls=0;const params=[];
+  worker.setParameters=async p=>params.push(p);
+  worker.recognize=async(_image,options)=>{
+    calls++;
+    if(calls===2)assert.equal(options.rotateAuto,true);
+    return {data:{text:calls===1?'MAPLE CAFE\nUnreadable prices':fixtureText}};
+  };
+  await api.runScan(photo);
+  assert.equal(calls,2);assert.equal(params[1].tessedit_pageseg_mode,'4');
+  assert.equal(api.S.view,'review');assert.equal(api.S.draft.printed,837);
+  assert.equal(api.ui.scanText,'');assert.equal(worker.terminated,1);
+});
+
+test('failed scan distinguishes parsed-text failure and safely displays temporary OCR text',async()=>{
+  const {api,worker}=harness(),draft=api.S.draft;
+  const text='</textarea><img src=x onerror=alert(1)>\nTEA PRICE UNREADABLE';
+  worker.recognize=async()=>({data:{text}});
+  await api.runScan(photo);
+  assert.equal(api.S.draft,draft);assert.match(api.ui.scanError,/Some text was read/);
+  assert.equal(api.ui.scanText,text);
+  const output=api.V.scan();
+  assert.ok(output.includes('&lt;/textarea&gt;&lt;img'));
+  assert.ok(!output.includes(text));assert.ok(!JSON.stringify(api.S).includes(text));
+  api.A.manual();assert.equal(api.ui.scanText,'');
+});
+
+test('cancelling the layout retry discards diagnostic text and ignores its late result',async()=>{
+  const result=deferred(),started=deferred(),{api,worker}=harness();let calls=0;
+  worker.recognize=async()=>{if(++calls===1)return {data:{text:'TEA price unreadable'}};started.resolve();return result.promise;};
+  const draft=api.S.draft,running=api.runScan(photo);await started.promise;
+  assert.equal(calls,2);api.A.cancelScan();
+  result.resolve({data:{text:fixtureText}});await running;
+  assert.equal(api.S.draft,draft);assert.equal(api.ui.scanText,'');
+  assert.equal(api.S.view,'scan');assert.equal(worker.terminated,1);
 });
 
 test('reader startup failure and scan timeout recover without replacing draft',async()=>{

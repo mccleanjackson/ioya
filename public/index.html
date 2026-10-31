@@ -587,7 +587,7 @@ function normContact(c){
     ...m, method:(pref && METHOD_KEY[pref.name]) || 'sms', pref, methods:list};
 }
 const payMethodName = id => (S.payMethods.find(m => m.id === id) || {}).name || 'Unknown';
-const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, failDemo:false, saving:false};
+const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', scanText:'', q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, failDemo:false, saving:false};
 
 /* ---------- receipt text parser ----------
    English / US dollar receipts. Keep only explicit decimal prices; never invent
@@ -938,6 +938,7 @@ V.scan = () => `
     <div class="finder-l">Photograph the whole receipt in good light</div>
   </div>
   ${ui.scanError ? `<div class="alert bad" role="alert"><b>Couldn't scan this receipt.</b>${esc(ui.scanError)}</div>` : ''}
+  ${ui.scanError && ui.scanText ? `<details><summary>Text read from receipt</summary><p class="fine">Compare this with the photo to see which lines were missed. This text stays in this tab and is cleared on the next scan.</p><textarea readonly aria-label="Text read from receipt" style="width:100%;min-height:160px">${esc(ui.scanText)}</textarea></details>` : ''}
   <div class="cam-ctl">
     <button class="round" data-act="upload">${I('upload')}<span>Upload</span></button>
     <button class="shutter" data-act="snap" aria-label="Take photo"></button>
@@ -1342,7 +1343,7 @@ async function receiptImage(){
 async function runScan(file){
   if (!file) return;
   cancelScan();
-  ui.scanError = '';
+  ui.scanError = ''; ui.scanText = '';
   if (!file.type.startsWith('image/') || file.size > 20 * 1024 * 1024){
     ui.scanError = 'Choose an image smaller than 20 MB. JPG and PNG work best.'; S.view = 'scan'; render(); return;
   }
@@ -1366,7 +1367,7 @@ async function runScan(file){
       logger: m => {
         if (!active()) return;
         const progress = m.status === 'recognizing text' ? Math.round((m.progress || 0) * 100) : 0;
-        const status = m.status === 'recognizing text' ? `Reading receipt text… ${progress}%` : 'Loading receipt reader…';
+        const status = m.status === 'recognizing text' ? `${job.retrying ? 'Trying another receipt layout' : 'Reading receipt text'}… ${progress}%` : 'Loading receipt reader…';
         if (progress !== ui.scanProgress || status !== ui.scanStatus){ ui.scanProgress = progress; ui.scanStatus = status; render(); }
       },
       errorHandler: () => fail('The receipt reader stopped. Try again or type the items in.')
@@ -1376,12 +1377,28 @@ async function runScan(file){
     await worker.setParameters({preserve_interword_spaces:'1'});
     const {data} = await worker.recognize(image);
     if (!active()) return;
-    const parsed = parseReceiptText(data.text);
-    if (!parsed.items.length) throw new Error('No priced items were found. Retake the whole receipt in brighter light, upload another image, or type the items in.');
+    ui.scanText = String(data.text || '').slice(0, 16000);
+    let parsed = parseReceiptText(data.text || '');
+    if (!parsed.items.length){
+      // A phone photo may not look like the single uniform text block used by
+      // the default OCR mode. Retry once as a column, with skew correction.
+      job.retrying = true; ui.scanProgress = 0; ui.scanStatus = 'Trying another receipt layout…'; render();
+      await worker.setParameters({tessedit_pageseg_mode:'4'});
+      if (!active()) return;
+      const retry = await worker.recognize(image, {rotateAuto:true});
+      if (!active()) return;
+      const retryText = String(retry.data.text || '');
+      if (retryText.trim()) ui.scanText = retryText.slice(0, 16000);
+      parsed = parseReceiptText(retryText);
+    }
+    if (!parsed.items.length) throw new Error(ui.scanText.trim()
+      ? 'Some text was read, but no priced items were found. Open “Text read from receipt” to check it, try a closer photo, or type the items in.'
+      : 'No readable text was found. Move closer so the receipt fills the photo, keep it upright and in focus, then try again or type the items in.');
     const d = newDraft();
     Object.assign(d, parsed, {items:parsed.items.map(it => ({id:uid('i'), ...it})), fromScan:true, scanWarnings:parsed.warnings, at:'review'});
     delete d.warnings;
     S.draft = d;
+    ui.scanText = ''; // Raw receipt text is diagnostic only, never part of the saved draft.
     cancelScan(); go('review');
   } catch(e) {
     fail(e.message || 'The receipt could not be read. Try another image or type the items in.');
@@ -1406,8 +1423,8 @@ const A = {
   start: () => { ui.sheet = null; const at = S.draft.at && S.draft.at !== 'scanning' ? S.draft.at : 'scan'; go(S.draft.items.length || at === 'sent' ? at : 'scan'); },
   snap: () => document.getElementById('camera-in')?.click(),
   upload: () => document.getElementById('file-in')?.click(),
-  cancelScan: () => { cancelScan(); clearPhoto(); S.view = 'scan'; render(); },
-  manual: () => { cancelScan(); clearPhoto(); const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = ''; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
+  cancelScan: () => { cancelScan(); clearPhoto(); ui.scanText = ''; S.view = 'scan'; render(); },
+  manual: () => { cancelScan(); clearPhoto(); ui.scanText = ''; const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = ''; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
   additem: () => { const it = {id:uid('i'), name:'', price:0}; S.draft.items.push(it); render(); document.getElementById('n-' + it.id)?.focus(); },
   delitem: ds => { const d = S.draft; d.items = d.items.filter(it => it.id !== ds.id); delete d.assign[ds.id]; render(); },
   tip: ds => { S.draft.tipPct = +ds.p; render(); },
@@ -1453,7 +1470,7 @@ const A = {
     const done = () => toast(`Copied ${code}`);
     try { navigator.clipboard.writeText(code).then(done, () => { selectCode(); toast('Press Copy to finish copying the selected code.'); }); }
     catch(e) { selectCode(); } },
-  done: () => { cancelScan(); S.draft = newDraft(); clearPhoto(); go('home'); toast('New splits are not saved yet. This one was a demo.'); }
+  done: () => { cancelScan(); S.draft = newDraft(); clearPhoto(); ui.scanText = ''; go('home'); toast('New splits are not saved yet. This one was a demo.'); }
 };
 // Contacts sync: Supabase functions save_contact / delete_contact (see supabase/contacts-sync.sql).
 async function saveContact(id){

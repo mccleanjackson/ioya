@@ -56,6 +56,8 @@ Every other change has to be made in the Supabase dashboard. Never put the `serv
 
 This first version recognizes English receipts with explicit US-dollar decimal prices. Blurry photos, multi-line items, discounts, included tips and unfamiliar layouts need manual correction. A missing total stays blank rather than being guessed. Unreadable images and reader/network failures offer another photo or Type it in; cancelling a scan preserves the previous draft. The desktop screen-preview shortcuts still use sample data for empty drafts.
 
+If the first read finds no priced items, the reader retries once using a single-column layout with skew correction. If that also fails, the error distinguishes unreadable text from text whose prices could not be identified. Expand **Text read from receipt** to compare the recognized text with the photo. That diagnostic text stays only in the tab's memory; it is not saved to localStorage or Supabase and is cleared on a new scan, cancellation, successful scan or manual entry.
+
 **Simulated for now:** payment requests and reminders are not actually sent, a new split is not saved when you tap Done, and groups can only be edited in the Supabase dashboard.
 
 ## How to Get It Running
