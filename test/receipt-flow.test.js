@@ -46,6 +46,29 @@ test('successful OCR creates editable candidates, releases worker and keeps no s
   assert.equal(timers.size,0);
 });
 
+test('scanned product codes are shortened without changing amounts; originals are transient and restorable',async()=>{
+  const {api,worker}=harness();
+  worker.recognize=async()=>({data:{text:'MARKET\n000123456 CHKN BRST BNLS 4.50\nV8 12OZ 3.25\nTax 0.62\nTOTAL 8.37'}});
+  await api.runScan(photo);
+  const item=api.S.draft.items[0];
+  assert.equal(item.name,'Chicken Breast Boneless');assert.equal(item.price,450);
+  assert.equal(api.S.draft.items[1].name,'V8 12OZ');assert.equal(api.S.draft.printed,837);
+  assert.equal(api.ui.originalNames[item.id],'000123456 CHKN BRST BNLS');
+  assert.equal(JSON.stringify(api.S.draft).includes('000123456'),false);
+  api.A.restoreName({id:item.id});assert.equal(item.name,'000123456 CHKN BRST BNLS');
+  assert.equal(api.ui.originalNames[item.id],undefined);
+  api.A.shortenNames();assert.equal(item.name,'Chicken Breast Boneless');assert.equal(item.price,450);
+});
+
+test('name cleanup retains meaningful short numbers and leaves unknown codes unchanged',async()=>{
+  const {api}=harness();
+  const cases=[['000999999 2% MILK','2% MILK'],['V8 12OZ','V8 12OZ'],['7UP','7UP'],['A1 SAUCE','A1 SAUCE'],['12345ABC CHKN SNDWCH','Chicken Sandwich'],['123456789','123456789']];
+  for(const [original,expected] of cases){
+    api.S.draft.items=[{id:'item',name:original,price:321}];api.A.shortenNames();
+    assert.equal(api.S.draft.items[0].name,expected);assert.equal(api.S.draft.items[0].price,321);
+  }
+});
+
 test('cancel during worker initialization preserves previous draft and terminates late worker',async()=>{
   const ready=deferred();
   const {api,worker}=harness(()=>ready.promise);
