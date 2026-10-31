@@ -16,11 +16,11 @@ function track({torch=false,failLight=false,ignoreLight=false}={}){
 }
 function stream(t){return {getTracks:()=>[t],getVideoTracks:()=>[t]};}
 function harness(options={}){
-  const t=options.track||track(),requests=[],scans=[],events={},timers=new Map();let tid=0;
-  const video={srcObject:null,videoWidth:900,videoHeight:1000,readyState:4,paused:0,addEventListener(){},play:async()=>{},pause(){this.paused++;}};
+  const t=options.track||track(),requests=[],scans=[],events={},draws=[],revoked=[],timers=new Map();let tid=0;
+  const video={srcObject:null,videoWidth:900,videoHeight:1000,readyState:4,paused:0,getBoundingClientRect:()=>({width:300,height:400}),addEventListener(){},play:async()=>{},pause(){this.paused++;}};
   const elements={'receipt-camera':video,'capture-photo':{disabled:true},'camera-in':{clicks:0,click(){this.clicks++;}},'file-in':{click(){}}};
   const document={hidden:false,getElementById:id=>elements[id]||{},addEventListener:(n,f)=>events[n]=f,
-    createElement:()=>({getContext:()=>({drawImage(){if(options.onFrame)options.onFrame(t);}}),toBlob:cb=>{if(options.frameError)throw Error('Frame failed');cb({type:'image/jpeg',size:345});}})};
+    createElement:()=>({getContext:()=>({drawImage(...args){draws.push(args);if(options.onFrame)options.onFrame(t);}}),toBlob:cb=>{if(options.frameError)throw Error('Frame failed');cb({type:'image/jpeg',size:345});}})};
   const window={isSecureContext:options.secure!==false,addEventListener:(n,f)=>events[n]=f,
     navigator:{mediaDevices:{getUserMedia:async c=>{requests.push(c);return options.getUserMedia?options.getUserMedia(c):stream(t);}}}};
   if(options.flash){
@@ -30,11 +30,13 @@ function harness(options={}){
     };
   }
   const context={window,document,console,localStorage:{getItem:()=>null,setItem(){}},
+    URL:{createObjectURL:()=> 'blob:camera-test',revokeObjectURL:url=>revoked.push(url)},
+    Image:class {naturalWidth=options.stillWidth||1800;naturalHeight=options.stillHeight||2000;async decode(){if(options.imageDecode)await options.imageDecode();}},
     File:class {constructor(parts,name,opts){this.name=name;this.type=opts.type;this.size=parts[0].size;}},
     setTimeout:(f,ms)=>{const id=++tid;if(ms===250)Promise.resolve().then(f);else timers.set(id,f);return id;},clearTimeout:id=>timers.delete(id)};
   context.scans=scans;
-  vm.runInNewContext(script.replace("if (!V[S.view]", "render=()=>{};runScan=async file=>scans.push(file);globalThis.api={openCamera,stopCamera,toggleCameraLight,captureCameraPhoto,attachCameraPreview,go,S,ui,A};return;\nif (!V[S.view]"),context);
-  return {api:context.api,t,video,elements,requests,scans,events,document,timers};
+  vm.runInNewContext(script.replace("if (!V[S.view]", "render=()=>{};runScan=async file=>scans.push(file);globalThis.api={openCamera,stopCamera,toggleCameraLight,captureCameraPhoto,attachCameraPreview,cameraPreviewCrop,go,S,ui,A};return;\nif (!V[S.view]"),context);
+  return {api:context.api,t,video,elements,requests,scans,events,draws,revoked,document,timers};
 }
 
 test('opens a portrait rear-camera stream with no audio and keeps the preview light off',async()=>{
@@ -90,6 +92,7 @@ test('a video-frame capture stops the camera before passing a real file to the s
   const h=harness();await h.api.openCamera();await h.api.captureCameraPhoto();
   assert.equal(h.scans.length,1);assert.equal(h.scans[0].type,'image/jpeg');assert.equal(h.scans[0].size,345);
   assert.equal(h.t.stopped,1);assert.equal(h.api.ui.cameraOpen,false);
+  assert.deepEqual(h.draws[0].slice(1),[75,0,750,1000,0,0,750,1000]);
 });
 
 test('still-photo flash fires only at capture and supports a manual off choice',async()=>{
@@ -98,8 +101,40 @@ test('still-photo flash fires only at capture and supports a manual off choice',
     assert.equal(h.api.ui.cameraLightMode,'flash');assert.equal(h.api.ui.cameraFlashEnabled,true);assert.equal(h.t.light,false);
     if(!enabled)await h.api.toggleCameraLight();
     await h.api.captureCameraPhoto();assert.equal(options.photoSettings.fillLightMode,enabled?'flash':'off');
-    assert.equal(h.scans[0].size,123);assert.equal(h.t.stopped,1);
+    assert.equal(h.scans[0].size,345);assert.equal(h.t.stopped,1);
+    assert.deepEqual(h.draws[0].slice(1),[150,0,1500,2000,0,0,1500,2000]);
+    assert.deepEqual(h.revoked,['blob:camera-test']);
   }
+});
+
+test('preview crop excludes hidden edges for wide, tall and matching streams',()=>{
+  const {api}=harness();
+  for(const [width,height,expected] of [[1600,900,[462.5,0,675,900]],[900,1600,[0,200,900,1200]],[900,1200,[0,0,900,1200]]]){
+    const c=api.cameraPreviewCrop(width,height,{videoWidth:width,videoHeight:height,width:300,height:400});
+    assert.deepEqual([c.x,c.y,c.width,c.height],expected);
+  }
+});
+
+test('high-resolution stills match the stream area before applying the visible preview crop',async()=>{
+  const h=harness({flash:true,stillWidth:4000,stillHeight:3000});await h.api.openCamera();await h.api.captureCameraPhoto();
+  assert.deepEqual(h.draws[0].slice(1),[875,0,2250,3000,0,0,2250,3000]);assert.equal(h.scans.length,1);
+});
+
+test('invalid preview bounds and still decode failures never scan an uncropped photo',async()=>{
+  for(const mode of ['bounds','decode']){
+    const h=harness({flash:true,imageDecode:async()=>{if(mode==='decode')throw Error('Could not decode photo');}}),draft=h.api.S.draft;
+    await h.api.openCamera();if(mode==='bounds')h.video.getBoundingClientRect=()=>({width:0,height:0});
+    await h.api.captureCameraPhoto();assert.equal(h.scans.length,0);assert.equal(h.api.S.draft,draft);assert.ok(h.api.ui.cameraError);
+    if(mode==='decode')assert.deepEqual(h.revoked,['blob:camera-test']);h.api.stopCamera();
+  }
+});
+
+test('closing during still-image decoding discards the crop and releases its temporary URL',async()=>{
+  const ready=deferred(),h=harness({flash:true,imageDecode:()=>ready.promise}),draft=h.api.S.draft;
+  await h.api.openCamera();const capturing=h.api.captureCameraPhoto();
+  for(let i=0;i<10;i++)await Promise.resolve();
+  h.api.A.closeCamera();ready.resolve();await capturing;
+  assert.equal(h.scans.length,0);assert.equal(h.draws.length,0);assert.equal(h.api.S.draft,draft);assert.deepEqual(h.revoked,['blob:camera-test']);
 });
 
 test('Start split opens the camera directly even with an existing draft; closing preserves it',async()=>{

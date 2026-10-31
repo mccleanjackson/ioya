@@ -1467,6 +1467,28 @@ async function toggleCameraLight(){
   if (!cameraActive(session) || !ui.cameraLightMode || ui.cameraLoading || ui.capturing) return;
   ui.cameraFlashEnabled = !ui.cameraFlashEnabled; ui.cameraError = ''; render();
 }
+function cameraPreviewCrop(sourceWidth, sourceHeight, frame){
+  if (![sourceWidth, sourceHeight, frame.videoWidth, frame.videoHeight, frame.width, frame.height].every(n => Number.isFinite(n) && n > 0)) throw new Error('The camera frame is not ready. Try again.');
+  // A still can have a different aspect ratio from the stream. First match its
+  // centered stream area, then apply the preview's centered object-fit:cover.
+  const streamRatio = frame.videoWidth / frame.videoHeight;
+  let width = sourceWidth, height = sourceHeight;
+  if (width / height > streamRatio) width = height * streamRatio;
+  else height = width / streamRatio;
+  const streamX = (sourceWidth - width) / 2, streamY = (sourceHeight - height) / 2;
+  const previewRatio = frame.width / frame.height;
+  let cropWidth = width, cropHeight = height;
+  if (cropWidth / cropHeight > previewRatio) cropWidth = cropHeight * previewRatio;
+  else cropHeight = cropWidth / previewRatio;
+  return {x:streamX + (width - cropWidth) / 2, y:streamY + (height - cropHeight) / 2, width:cropWidth, height:cropHeight};
+}
+async function cameraFrameBlob(source, sourceWidth, sourceHeight, frame){
+  const crop = cameraPreviewCrop(sourceWidth, sourceHeight, frame);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(crop.width)); canvas.height = Math.max(1, Math.round(crop.height));
+  canvas.getContext('2d').drawImage(source, crop.x, crop.y, crop.width, crop.height, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('The camera photo could not be captured.')), 'image/jpeg', 0.95));
+}
 async function captureCameraPhoto(){
   const session = cameraSession;
   if (!cameraActive(session) || ui.cameraLoading || ui.capturing) return;
@@ -1477,6 +1499,9 @@ async function captureCameraPhoto(){
   const track = session.stream.getVideoTracks()[0];
   let pulsed = false;
   try {
+    const bounds = video.getBoundingClientRect();
+    const frame = {videoWidth:video.videoWidth, videoHeight:video.videoHeight, width:bounds.width, height:bounds.height};
+    cameraPreviewCrop(frame.videoWidth, frame.videoHeight, frame);
     if (ui.cameraLightMode === 'torch' && ui.cameraFlashEnabled){
       pulsed = true;
       try {
@@ -1498,11 +1523,16 @@ async function captureCameraPhoto(){
       }
     }
     if (!cameraActive(session)) return;
-    if (!blob){
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0);
-      blob = await new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('The camera photo could not be captured.')), 'image/jpeg', 0.95));
+    if (blob){
+      const photoUrl = URL.createObjectURL(blob);
+      try {
+        const image = new Image(); image.src = photoUrl; await cameraOperation(image.decode());
+        if (!cameraActive(session)) return;
+        blob = await cameraFrameBlob(image, image.naturalWidth, image.naturalHeight, frame);
+      } finally { URL.revokeObjectURL(photoUrl); }
+    } else {
+      if (video.videoWidth !== frame.videoWidth || video.videoHeight !== frame.videoHeight) throw new Error('The camera orientation changed. Hold steady and take the photo again.');
+      blob = await cameraFrameBlob(video, frame.videoWidth, frame.videoHeight, frame);
     }
     if (!cameraActive(session)) return;
     if (pulsed){
