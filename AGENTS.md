@@ -117,7 +117,7 @@ Conventions to keep:
 
 **Receipt scanning:** the shutter opens a camera-capture file picker and upload accepts an image. Tesseract.js 7 reads it locally in a browser worker; `parseReceiptText()` creates editable draft candidates. Review against the photo: the parser handles English receipts with explicit dollar prices, not every receipt layout. Cancellation/errors preserve the earlier draft. Photos stay in memory, not Supabase or localStorage. `SAMPLE` remains for desktop screen previews only.
 
-If no priced candidates are found, scanning retries once in single-column mode with skew correction. Failed reads expose escaped OCR text in a collapsible panel. Keep that raw text transient in `ui.scanText`, never in the saved draft, logs, shared data or Notion; distinguish no readable text from no parsed prices.
+Empty reads, missing totals and items that do not reconcile with the printed total trigger one retry in single-column mode with skew correction and Sauvola thresholding. `preferReceiptRead()` selects one complete result by reconciliation; do not merge item arrays across readings, since repeated products are valid. Failed reads expose escaped OCR text in a collapsible panel. Keep that raw text transient in `ui.scanText`, never in the saved draft, logs, shared data or Notion; distinguish no readable text from no parsed prices.
 
 **What is simulated (not real yet):** sending Venmo/SMS/PayPal requests and reminders, and saving a new split (Done shows "New splits are not saved yet"). Groups can only be edited in the Supabase dashboard.
 

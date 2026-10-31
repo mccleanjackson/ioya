@@ -94,6 +94,39 @@ test('retries an alternate receipt layout when the first read finds no prices',a
   assert.equal(api.ui.scanText,'');assert.equal(worker.terminated,1);
 });
 
+test('a partial reading gets a shadow-tolerant retry and can recover a missing item',async()=>{
+  const {api,worker}=harness();let calls=0;const params=[];
+  worker.setParameters=async p=>params.push(p);
+  worker.recognize=async()=>({data:{text:++calls===1?'MAPLE CAFE\nLatte 4.50\nTax 0.62\nTOTAL 8.37':fixtureText}});
+  await api.runScan(photo);
+  assert.equal(calls,2);assert.equal(params[1].thresholding_method,'2');
+  assert.equal(api.S.draft.items.length,2);
+  assert.equal(api.S.draft.items.reduce((sum,it)=>sum+it.price,0)+api.S.draft.tax,api.S.draft.printed);
+});
+
+test('keeps the better first reading when retry produces more lines but a worse total',async()=>{
+  const {api,worker}=harness();let calls=0;
+  worker.recognize=async()=>({data:{text:++calls===1?'CAFE\nTea 2.00\nTOTAL 3.00':'CAFE\nTea 2.00\nNoise 20.00\nTOTAL 3.00'}});
+  await api.runScan(photo);
+  assert.equal(calls,2);assert.equal(api.S.draft.items.length,1);
+  assert.equal(api.S.draft.items[0].price,200);
+});
+
+test('a matching retry replaces a reading as a whole and preserves repeated products',async()=>{
+  const {api,worker}=harness();let calls=0;
+  worker.recognize=async()=>({data:{text:++calls===1?'CAFE\nTea 2.00\nTOTAL 4.00':'CAFE\nTea 2.00\nTea 2.00\nTOTAL 4.00'}});
+  await api.runScan(photo);
+  assert.equal(api.S.draft.items.length,2);
+  assert.equal(api.S.draft.items.reduce((sum,it)=>sum+it.price,0),400);
+});
+
+test('finding some items without the printed total still triggers a second read',async()=>{
+  const {api,worker}=harness();let calls=0;
+  worker.recognize=async()=>({data:{text:++calls===1?'CAFE\nTea 2.00':'CAFE\nTea 2.00\nTOTAL 2.00'}});
+  await api.runScan(photo);
+  assert.equal(calls,2);assert.equal(api.S.draft.printed,200);
+});
+
 test('failed scan distinguishes parsed-text failure and safely displays temporary OCR text',async()=>{
   const {api,worker}=harness(),draft=api.S.draft;
   const text='</textarea><img src=x onerror=alert(1)>\nTEA PRICE UNREADABLE';

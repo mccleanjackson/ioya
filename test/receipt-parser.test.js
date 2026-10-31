@@ -51,3 +51,9 @@ test('hyphenated subtotal is not mistaken for the final total', () => {
   assert.equal(r.tax, 20);
   assert.equal(r.printed, 270);
 });
+
+test('keeps explicit prices with OCR spacing and multi-letter store tax flags', () => {
+  const r = read('MARKET\nMilk 3 . 49 FN\nBread $2. 5 0 TF\nEggs 4.25 N\nTOTAL 10.24');
+  assert.deepEqual(r.items, [{name:'Milk',price:349},{name:'Bread',price:250},{name:'Eggs',price:425}]);
+  assert.equal(r.printed,1024);
+});
