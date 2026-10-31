@@ -52,9 +52,9 @@ Every other change has to be made in the Supabase dashboard. Never put the `serv
 
 **Saved to Supabase:** contacts you add, edit or delete on the Contacts screen, and "Mark as paid." Everyone using the same Supabase project sees the same data.
 
-**Receipt scanning:** Start split → Take photo or Upload → Check the items. On supported phones, Take photo opens the rear-camera capture picker; on desktops it usually opens a file picker. This is camera capture through the device picker, not a live in-page camera preview. Choose a JPG/PNG or another browser-readable image under 20 MB. The first scan needs internet to download the OCR reader. Check every item, tax, fees and printed total against the photo before continuing. Photos stay in browser memory and are not retained after a refresh; the editable draft is saved locally. Scanning does not save a receipt to Supabase.
+**Receipt scanning:** Start split → Take photo or Upload photo → Check the items. On HTTPS or localhost, Take photo opens a live in-page preview when the browser supports it, after the user grants camera permission. It prefers the rear camera and does not request a microphone. Capture photo takes a still (or a video frame where needed) and reads it locally. The camera stops after capture, on closing, on leaving the capture view and when the tab is hidden/unloaded. On HTTP phone LAN addresses or unsupported browsers, Take photo uses the native camera/file picker instead. That fallback is also available explicitly. Choose a browser-readable image under 20 MB. The first scan needs internet to download the OCR reader. Check every item, tax, fees and printed total before continuing. Photos stay in memory; the editable draft is saved locally. Scanning does not save a receipt to Supabase.
 
-The capture screen uses a photo guide and Take photo / Upload photo / Type items instead actions, without a simulated viewfinder or moving scanner line. The phone's native camera controls flash. The current HTTP LAN preview cannot use embedded live-camera video: [`getUserMedia()` requires a secure context](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia). No HTTPS deployment, tunnel, camera permissions or device settings are changed by this feature.
+The capture screen has a photo guide and a real preview, without simulated scanner animation. The live camera enables continuous light (torch) automatically when exposed by the browser, or enables a still-photo flash when only that capability is available. Light/Flash can be switched off. Unsupported light controls do not prevent capture; the phone-camera fallback retains native flash controls. Hardware support varies by browser. [`getUserMedia()` requires a secure context](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia), so use the protected HTTPS preview below for phone testing.
 
 **Tips:** Check the items starts with no tip selected. Tip is optional; leaving it unselected adds zero. Choose a percentage, choose No tip, or enter a custom dollar amount. Percentage and custom tips replace each other. Dollar amounts must be zero or positive with at most two decimal places; invalid entries block continuing/sending. All tips split proportionally to item shares, with cent rounding preserved. The summary labels custom dollar tips correctly. Older unsubmitted browser drafts keep their receipt/people/assignments but reset their old tip selection once; new explicit selections survive refresh. Past Supabase receipts are unchanged.
 
@@ -112,6 +112,18 @@ npm start
 ```
 
 Open **http://localhost:3001**. On a laptop the app appears in a phone frame, with a list of screens on the left.
+
+### 5. Optional protected HTTPS phone preview
+
+Install the official [cloudflared client](https://developers.cloudflare.com/tunnel/downloads/) with protected Quick Tunnel support (`--allowed-mail`). Keep IOYA running, then in PowerShell:
+
+```powershell
+.\scripts\start-https-preview.ps1 -Email "you@example.com" -CloudflaredPath "C:\path\to\cloudflared.exe"
+```
+
+The launcher requires one exact email address and refuses clients without email protection. It uses an explicit empty tunnel configuration so unrelated user tunnel settings are not imported. Cloudflare prints a temporary HTTPS address; open it on the phone and enter the email PIN there. Do not share sign-in codes in chat. This routes app traffic through Cloudflare with access restricted to that email, under [Cloudflare's terms](https://www.cloudflare.com/website-terms/). It is for development, needs the computer awake, changes URL after restart, and ends with Ctrl+C. No router ports, trusted-root certificates or Windows services are installed. [Protected Quick Tunnel documentation](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/).
+
+The HTTPS address is a new browser origin: its local draft and camera permission are separate from the old HTTP page. Old drafts remain on their original address. On the HTTPS page, choose Take photo, grant camera permission, check the Light/Flash indicator, and capture a real receipt. Never use an unprotected public preview for the shared team app.
 
 **Troubleshooting**
 

@@ -159,6 +159,11 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .capture-guide ol{padding-left:20px;margin:0;color:var(--muted);display:flex;flex-direction:column;gap:10px}
 .capture-actions{display:flex;flex-direction:column;gap:10px}
 .capture-actions .link{align-self:center;padding:8px}
+.camera-preview{border-radius:18px;background:var(--bezel);overflow:hidden;position:relative}
+.camera-preview video{display:block;width:100%;height:clamp(180px,32dvh,320px);object-fit:contain}
+.camera-status{position:absolute;bottom:10px;left:10px;right:10px;padding:8px 10px;border-radius:10px;background:var(--card);color:var(--ink);font-size:13px}
+.camera-tools{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.camera-alternatives{display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
 
 .alert{border-radius:12px;padding:12px 14px;font-size:14px;display:flex;flex-direction:column;gap:4px}
 .alert.bad{background:var(--bad-soft);color:var(--ink);box-shadow:inset 3px 0 0 var(--bad)}
@@ -583,7 +588,8 @@ function normContact(c){
     ...m, method:(pref && METHOD_KEY[pref.name]) || 'sms', pref, methods:list};
 }
 const payMethodName = id => (S.payMethods.find(m => m.id === id) || {}).name || 'Unknown';
-const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', scanText:'', q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, failDemo:false, saving:false};
+const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', scanText:'', cameraOpen:false, cameraLoading:false, cameraError:'', cameraLightMode:null, cameraLightOn:false, cameraLightBusy:false, capturing:false, q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, failDemo:false, saving:false};
+let cameraSession = null;
 
 /* ---------- receipt text parser ----------
    English / US dollar receipts. Keep only explicit decimal prices; never invent
@@ -954,23 +960,32 @@ V.contacts = () => `
 
 V.scan = () => `
   ${flowHead(0, 'home')}
-  <h1 class="h">Add your receipt</h1>
-  <p class="sub">Take a photo, then check the items before you split.</p>
+  <h1 class="h">${ui.cameraOpen ? 'Photograph your receipt' : 'Add your receipt'}</h1>
+  <p class="sub">${ui.cameraOpen ? 'Keep the whole receipt in view and hold steady.' : 'Take a photo, then check the items before you split.'}</p>
   ${ui.scanError ? `<div class="alert bad" role="alert"><b>Couldn't scan this receipt.</b>${esc(ui.scanError)}</div>` : ''}
+  ${ui.cameraError ? `<div class="alert bad" role="alert">${esc(ui.cameraError)}</div>` : ''}
   ${ui.scanError && ui.scanText ? `<details><summary>Text read from receipt</summary><p class="fine">Compare this with the photo to see which lines were missed. This text stays in this tab and is cleared on the next scan.</p><textarea readonly aria-label="Text read from receipt" style="width:100%;min-height:160px">${esc(ui.scanText)}</textarea></details>` : ''}
-  <section class="capture-guide" aria-labelledby="capture-title">
+  ${ui.cameraOpen ? `<div class="camera-preview">
+    <video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>
+    ${ui.cameraLoading ? '<p class="camera-status" role="status">Opening camera… Allow camera access when asked.</p>' : ''}
+  </div>
+  <div class="camera-tools">
+    ${ui.cameraLightMode ? `<button class="btn ghost small" data-act="cameraLight" aria-pressed="${ui.cameraLightOn}" ${ui.cameraLightBusy || ui.cameraLoading || ui.capturing ? 'disabled' : ''}>${ui.cameraLightMode === 'flash' ? 'Flash' : 'Light'}: ${ui.cameraLightOn ? 'On' : 'Off'}</button>` : `<span class="fine">${ui.cameraLoading ? 'Checking camera light…' : 'Light control is unavailable in this browser.'}</span>`}
+    <button class="link" data-act="closeCamera">Close camera</button>
+  </div>
+  ${ui.cameraLightMode === 'flash' && ui.cameraLightOn ? '<p class="fine">Flash will fire when you capture the photo.</p>' : ''}` : `<section class="capture-guide" aria-labelledby="capture-title">
     <div class="capture-icon">${I('history')}</div>
     <h2 id="capture-title">One clear photo.<br>Every item included.</h2>
-    <ol><li>Lay the receipt flat and fill the photo.</li><li>Turn on flash in the camera if the room is dim. Avoid glare.</li><li>Include all the items, tax and final total.</li></ol>
-  </section>
+    <ol><li>Lay the receipt flat and fill the photo.</li><li>${cameraAvailable() ? 'The camera light turns on when supported. Avoid glare.' : 'Turn on flash in the camera if the room is dim. Avoid glare.'}</li><li>Include all the items, tax and final total.</li></ol>
+  </section>`}
   <div class="capture-actions">
-    <button class="btn" data-act="snap">${I('scan')} Take photo</button>
-    <button class="btn ghost" data-act="upload">${I('upload')} Upload photo</button>
+    ${ui.cameraOpen ? `<button id="capture-photo" class="btn" data-act="capturePhoto" disabled>${I('scan')} ${ui.capturing ? 'Taking photo…' : 'Capture photo'}</button>` : `<button class="btn" data-act="snap">${I('scan')} Take photo</button>`}
+    ${ui.cameraOpen ? '<div class="camera-alternatives"><button class="link" data-act="upload">Upload photo</button><button class="link" data-act="nativeCamera">Use phone camera</button></div>' : `<button class="btn ghost" data-act="upload">${I('upload')} Upload photo</button>${cameraAvailable() ? '<button class="link" data-act="nativeCamera">Use phone camera instead</button>' : ''}`}
     <button class="link" data-act="manual">Type items instead</button>
   </div>
   <input type="file" id="file-in" accept="image/*" hidden>
   <input type="file" id="camera-in" accept="image/*" capture="environment" hidden>
-  <p class="fine">Your photo is read in this browser. English receipts with dollar prices work best. The first scan needs internet to download the reader.</p>`;
+  <p class="fine">${ui.cameraOpen ? 'Your photo is read in this browser.' : 'Your photo is read in this browser. English receipts with dollar prices work best. The first scan needs internet to download the reader.'}</p>`;
 V.scanning = () => {
   return `
   <div class="scanning">
@@ -1307,6 +1322,7 @@ function render(){
   document.getElementById('jump').innerHTML = [['home','Home','—'],['history','History','—'],['scan','Scan receipt','R1 R4'],['review','Check items','R2 R3 R11'],['people','People','R5'],['assign','Assign items','R6–R8'],['summary','Review & send','R12–R17'],['sent','Requests sent','R18'],['contacts','Contacts','—']]
     .map(([k, label, r]) => `<button class="${k === v ? 'on' : ''}" data-act="jump" data-v="${k}"><span>${label}</span><small>${r}</small></button>`).join('');
   if (v === 'sent') drawQR();
+  if (v === 'scan' && ui.cameraOpen) attachCameraPreview();
   save();
 }
 function drawQR(){
@@ -1315,6 +1331,7 @@ function drawQR(){
   catch(e) { el.innerHTML = '<span class="fine">QR code unavailable</span>'; }
 }
 function go(v){
+  if (v !== 'scan') stopCamera();
   if (S.view === 'scanning' && v !== 'scanning') cancelScan();
   if (FLOW.includes(v)) S.draft.at = v;
   if (['review','people','assign','summary'].includes(v) && !S.draft.items.length && v !== 'review') S.draft = demoDraft();
@@ -1329,6 +1346,133 @@ function addContact(cid){
   if (!slot){ if (d.people.length >= 12) return toast('A split can have up to 12 people.'); slot = {id:uid('p')}; d.people.push(slot); }
   fill(slot, c);
 }
+/* ---------- live receipt camera ---------- */
+function cameraAvailable(){ return !!(window.isSecureContext && window.navigator?.mediaDevices?.getUserMedia); }
+function cameraActive(session){ return cameraSession === session && ui.cameraOpen && S.view === 'scan'; }
+function stopCamera(){
+  const session = cameraSession; cameraSession = null;
+  if (session?.stream){
+    session.stream.getTracks().forEach(track => track.stop());
+    const video = document.getElementById('receipt-camera');
+    if (video?.srcObject === session.stream){ video.pause(); video.srcObject = null; }
+  }
+  Object.assign(ui, {cameraOpen:false, cameraLoading:false, cameraLightMode:null, cameraLightOn:false, cameraLightBusy:false, capturing:false});
+}
+function cameraOperation(promise, timeout = 5000){
+  let timer;
+  return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Camera control timed out.')), timeout); })])
+    .finally(() => clearTimeout(timer));
+}
+function failCamera(session, message){
+  if (!cameraActive(session)) return;
+  stopCamera(); ui.cameraError = message; render();
+}
+function attachCameraPreview(){
+  const session = cameraSession, video = document.getElementById('receipt-camera');
+  if (!session?.stream || !video || video.srcObject === session.stream) return;
+  video.muted = true; video.srcObject = session.stream;
+  const ready = () => {
+    if (!cameraActive(session) || document.getElementById('receipt-camera') !== video) return;
+    const button = document.getElementById('capture-photo');
+    if (button) button.disabled = ui.cameraLoading || ui.capturing || !video.videoWidth || video.readyState < 2;
+  };
+  video.addEventListener('loadeddata', ready, {once:true}); ready();
+  video.play().then(ready).catch(() => {
+    if (document.getElementById('receipt-camera') === video) failCamera(session, 'The camera preview could not start. Use the phone camera or upload a photo instead.');
+  });
+}
+function usePhotoPicker(id){
+  stopCamera(); ui.cameraError = ''; render(); document.getElementById(id)?.click();
+}
+async function openCamera(){
+  if (!cameraAvailable()) return usePhotoPicker('camera-in');
+  stopCamera(); ui.cameraError = ''; ui.scanError = ''; ui.scanText = '';
+  const session = {stream:null, imageCapture:null, flashModes:[]}; cameraSession = session;
+  ui.cameraOpen = true; ui.cameraLoading = true; S.view = 'scan'; render();
+  try {
+    const stream = await window.navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:2560}, height:{ideal:1920}}});
+    if (!cameraActive(session)){ stream.getTracks().forEach(track => track.stop()); return; }
+    session.stream = stream;
+    const track = stream.getVideoTracks()[0];
+    if (!track) throw new Error('No video track');
+    track.addEventListener('ended', () => failCamera(session, 'The camera stopped. Open it again or use the phone camera.'));
+    render();
+    // Prefer a full-resolution still when the browser exposes ImageCapture.
+    if (window.ImageCapture){
+      try {
+        session.imageCapture = new window.ImageCapture(track);
+        const capabilities = await cameraOperation(session.imageCapture.getPhotoCapabilities());
+        session.flashModes = capabilities.fillLightMode || [];
+      } catch(e) { /* A video-frame capture remains available. */ }
+    }
+    if (!cameraActive(session)) return;
+    let torch = false;
+    try { const cap = track.getCapabilities?.().torch; torch = cap === true || Array.isArray(cap) && cap.includes(true); } catch(e) {}
+    if (torch){
+      ui.cameraLightMode = 'torch';
+      try {
+        await cameraOperation(track.applyConstraints({advanced:[{torch:true}]}));
+        if (!cameraActive(session)) return;
+        ui.cameraLightOn = track.getSettings?.().torch !== false;
+      } catch(e) { if (cameraActive(session)) ui.cameraLightOn = false; }
+    }
+    if (!cameraActive(session)) return;
+    if (!ui.cameraLightOn && session.flashModes.includes('flash')){
+      ui.cameraLightMode = 'flash'; ui.cameraLightOn = true;
+    }
+    ui.cameraLoading = false; render();
+  } catch(e) {
+    const denied = e.name === 'NotAllowedError' || e.name === 'SecurityError';
+    failCamera(session, denied ? 'Camera access was not allowed. You can use the phone camera or upload a photo instead.' : 'The camera could not open. Try the phone camera or upload a photo instead.');
+  }
+}
+async function toggleCameraLight(){
+  const session = cameraSession;
+  if (!cameraActive(session) || !ui.cameraLightMode || ui.cameraLightBusy || ui.capturing) return;
+  const next = !ui.cameraLightOn;
+  if (ui.cameraLightMode === 'flash'){ ui.cameraLightOn = next; render(); return; }
+  ui.cameraLightBusy = true; ui.cameraError = ''; render();
+  try {
+    const track = session.stream.getVideoTracks()[0];
+    await cameraOperation(track.applyConstraints({advanced:[{torch:next}]}));
+    if (!cameraActive(session)) return;
+    ui.cameraLightOn = track.getSettings?.().torch ?? next;
+    if (ui.cameraLightOn !== next) ui.cameraError = 'The phone did not change the camera light. Use brighter lighting or the phone camera.';
+  } catch(e) { if (cameraActive(session)) ui.cameraError = 'The light could not be changed. You can still capture a photo or use the phone camera.'; }
+  finally { if (cameraActive(session)){ ui.cameraLightBusy = false; render(); } }
+}
+async function captureCameraPhoto(){
+  const session = cameraSession;
+  if (!cameraActive(session) || ui.cameraLoading || ui.capturing) return;
+  const video = document.getElementById('receipt-camera');
+  if (!video?.videoWidth || video.readyState < 2) return;
+  ui.capturing = true;
+  const button = document.getElementById('capture-photo'); if (button) button.disabled = true;
+  try {
+    let blob;
+    if (session.imageCapture?.takePhoto){
+      try {
+        const settings = ui.cameraLightMode === 'flash' ? {fillLightMode:ui.cameraLightOn ? 'flash' : 'off'} : undefined;
+        blob = await cameraOperation(session.imageCapture.takePhoto(settings), 10000);
+      } catch(e) {
+        if (ui.cameraLightMode === 'flash' && ui.cameraLightOn) throw new Error('Flash capture did not work. Use the phone camera to take a photo with flash.');
+      }
+    }
+    if (!cameraActive(session)) return;
+    if (!blob){
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      blob = await new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('The camera photo could not be captured.')), 'image/jpeg', 0.95));
+    }
+    if (!cameraActive(session)) return;
+    const file = new File([blob], 'receipt.jpg', {type:blob.type || 'image/jpeg'});
+    stopCamera(); await runScan(file);
+  } catch(e) {
+    if (cameraActive(session)){ ui.capturing = false; ui.cameraError = e.message || 'The photo could not be captured. Try again or use the phone camera.'; render(); }
+  }
+}
+
 let scanJob = null, ocrLoader = null;
 function clearPhoto(){
   if (ui.photo) URL.revokeObjectURL(ui.photo);
@@ -1371,6 +1515,7 @@ async function receiptImage(){
 }
 async function runScan(file){
   if (!file) return;
+  stopCamera();
   cancelScan();
   ui.scanError = ''; ui.scanText = '';
   if (!file.type.startsWith('image/') || file.size > 20 * 1024 * 1024){
@@ -1452,10 +1597,14 @@ const A = {
     if (ds.v === 'sent' && !S.draft.results){ S.draft = demoDraft(); S.draft.code = 'TP' + Math.random().toString(36).slice(2,4).toUpperCase() + '-' + Math.random().toString(36).slice(2,4).toUpperCase(); const {c, ready} = sendPlan(); S.draft.results = ready.map(p => ({pid:p.id, amount:c.totals[p.id], status:'sent'})); }
     go(ds.v); },
   start: () => { ui.sheet = null; const at = S.draft.at && S.draft.at !== 'scanning' ? S.draft.at : 'scan'; go(S.draft.items.length || at === 'sent' ? at : 'scan'); },
-  snap: () => document.getElementById('camera-in')?.click(),
-  upload: () => document.getElementById('file-in')?.click(),
+  snap: () => openCamera(),
+  nativeCamera: () => usePhotoPicker('camera-in'),
+  capturePhoto: () => captureCameraPhoto(),
+  cameraLight: () => toggleCameraLight(),
+  closeCamera: () => { stopCamera(); ui.cameraError = ''; render(); },
+  upload: () => usePhotoPicker('file-in'),
   cancelScan: () => { cancelScan(); clearPhoto(); ui.scanText = ''; S.view = 'scan'; render(); },
-  manual: () => { cancelScan(); clearPhoto(); ui.scanText = ''; const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = ''; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
+  manual: () => { stopCamera(); cancelScan(); clearPhoto(); ui.scanText = ''; const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = ''; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
   additem: () => { const it = {id:uid('i'), name:'', price:0}; S.draft.items.push(it); render(); document.getElementById('n-' + it.id)?.focus(); },
   delitem: ds => { const d = S.draft; d.items = d.items.filter(it => it.id !== ds.id); delete d.assign[ds.id]; render(); },
   tip: ds => { Object.assign(S.draft, {tipMode:'percent', tipPct:+ds.p, tipInput:''}); render(); },
@@ -1501,7 +1650,7 @@ const A = {
     const done = () => toast(`Copied ${code}`);
     try { navigator.clipboard.writeText(code).then(done, () => { selectCode(); toast('Press Copy to finish copying the selected code.'); }); }
     catch(e) { selectCode(); } },
-  done: () => { cancelScan(); S.draft = newDraft(); clearPhoto(); ui.scanText = ''; go('home'); toast('New splits are not saved yet. This one was a demo.'); }
+  done: () => { stopCamera(); cancelScan(); S.draft = newDraft(); clearPhoto(); ui.scanText = ''; go('home'); toast('New splits are not saved yet. This one was a demo.'); }
 };
 // Contacts sync: Supabase functions save_contact / delete_contact (see supabase/contacts-sync.sql).
 async function saveContact(id){
@@ -1597,6 +1746,10 @@ document.addEventListener('change', e => {
   if (file) runScan(file);
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.sheet){ ui.sheet = null; render(); } });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && ui.cameraOpen){ stopCamera(); if (S.view === 'scan') render(); }
+});
+window.addEventListener?.('pagehide', () => stopCamera());
 
 if (!V[S.view] || S.view === 'scanning' || S.view === 'sent' && !S.draft.results) S.view = 'home';
 render();

@@ -1,0 +1,2 @@
+# An explicit empty configuration prevents importing a user's unrelated tunnel settings.
+{}
