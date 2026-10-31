@@ -39,6 +39,7 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 | Database + backend | [Supabase](https://supabase.com) (hosted PostgreSQL with an automatic REST API) | Most of our group already knows Supabase, the free tier covers this project, and the Table Editor lets everyone see the data without installing a database. |
 | Frontend | Plain HTML, CSS and JavaScript in [`public/index.html`](public/index.html), using the [`supabase-js`](https://supabase.com/docs/reference/javascript) library | Our screens started as one clickable HTML prototype, so we kept it and connected it to Supabase. There is no build step. |
 | Web server | Node.js 18+ with Express, in [`server.js`](server.js) | Serves the page and passes it the Supabase URL and key from `.env`, so they are never committed to GitHub. |
+| Receipt reader | [Tesseract.js 7.0.0](https://github.com/naptha/tesseract.js), loaded on the first scan | Reads photos in a browser worker without an OCR API key or uploading the photo to a recognition service. Its script, engine and English language data download from public CDNs. |
 | Secrets | A git-ignored `.env` file | [`.env.example`](.env.example) shows the format. |
 
 **Security.** The app has no login yet, so it uses Supabase's public **anon** key and always acts as the sample user, Demo Payer. Row Level Security is on for every table. With the anon key, the app can:
@@ -51,7 +52,11 @@ Every other change has to be made in the Supabase dashboard. Never put the `serv
 
 **Saved to Supabase:** contacts you add, edit or delete on the Contacts screen, and "Mark as paid." Everyone using the same Supabase project sees the same data.
 
-**Simulated for now:** scanning a receipt loads a sample receipt, payment requests and reminders are not actually sent, a new split is not saved when you tap Done, and groups can only be edited in the Supabase dashboard.
+**Receipt scanning:** Start split → Take photo or Upload → Check the items. On supported phones, Take photo opens the rear-camera capture picker; on desktops it usually opens a file picker. This is camera capture through the device picker, not a live in-page camera preview. Choose a JPG/PNG or another browser-readable image under 20 MB. The first scan needs internet to download the OCR reader. Check every item, tax, fees and printed total against the photo before continuing. Photos stay in browser memory and are not retained after a refresh; the editable draft is saved locally. Scanning does not save a receipt to Supabase.
+
+This first version recognizes English receipts with explicit US-dollar decimal prices. Blurry photos, multi-line items, discounts, included tips and unfamiliar layouts need manual correction. A missing total stays blank rather than being guessed. Unreadable images and reader/network failures offer another photo or Type it in; cancelling a scan preserves the previous draft. The desktop screen-preview shortcuts still use sample data for empty drafts.
+
+**Simulated for now:** payment requests and reminders are not actually sent, a new split is not saved when you tap Done, and groups can only be edited in the Supabase dashboard.
 
 ## How to Get It Running
 
@@ -108,6 +113,17 @@ Open **http://localhost:3001**. On a laptop the app appears in a phone frame, wi
 - `permission denied` when saving: you are trying to change something other than a contact or "Mark as paid," which the security rules block on purpose.
 
 ## Verifying the Vertical Slice
+
+### Check the receipt-photo flow
+
+1. Start a split and choose Take photo on a phone or Upload on a computer. Use a clear, straight photo of a receipt with item names and decimal prices.
+2. Wait for the reader, then compare the extracted item names/prices, tax, service fees and printed total with the photo in Check the items. Correct a price and confirm that the subtotal and mismatch warning update. Add any missed lines and remove any false matches.
+3. Try a blank image and confirm that the app offers retry and Type it in without loading sample items. Cancel a scan and confirm that a previous draft is preserved. Check both phone and laptop widths.
+4. Continue through People → Assign items → Review & send. Payment sending and saving the new split remain simulated. Check Home, History and Contacts too; no Supabase migration is needed for scanning.
+
+Run `npm test` for deterministic receipt-parser checks. These are software checks, not student-authored usability, accessibility or course-assignment findings. Students should perform and record their own required testing and disclose AI assistance accurately.
+
+### Existing database vertical slice
 
 **The button:** **Save** when adding a contact on the **Contacts** screen. (This is the action shown in our demo video.)
 

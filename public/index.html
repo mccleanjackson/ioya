@@ -432,7 +432,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
     <p>Scan a receipt, match items to friends, and track who has paid you back.</p>
     <h2>Screens</h2>
     <div class="jump" id="jump"></div>
-    <p class="fine">Contacts, groups, past splits and who has paid are stored in Supabase. Adding or editing a contact and "Mark as paid" save to the database; scanning, sending requests and new splits are still simulated.</p>
+    <p class="fine">Contacts, groups, past splits and who has paid are stored in Supabase. Receipt photos are read in your browser; check the results before splitting. Sending requests and saving new splits are still simulated.</p>
   </aside>
   <div class="phone">
     <div class="app" id="app">
@@ -587,7 +587,48 @@ function normContact(c){
     ...m, method:(pref && METHOD_KEY[pref.name]) || 'sms', pref, methods:list};
 }
 const payMethodName = id => (S.payMethods.find(m => m.id === id) || {}).name || 'Unknown';
-const ui = {sheet:null, toast:null, photo:null, scanStep:0, scanError:false, q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, failDemo:false, saving:false};
+const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, failDemo:false, saving:false};
+
+/* ---------- receipt text parser ----------
+   English / US dollar receipts. Keep only explicit decimal prices; never invent
+   missing amounts. OCR and these heuristics need a human check in Review. */
+function parseReceiptText(text){
+  const lines = String(text).split(/\r?\n/).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const out = {merchant:'', items:[], tax:0, fees:0, printed:0, warnings:[]};
+  let totalFound = false, afterTotal = false;
+  const amountAtEnd = /(?:\$\s*)?(-?(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2})\s*(?:[A-Z*])?$/i;
+  const metadata = /\b(?:tel|phone|www|https?|cashier|server|table|guest|order|check|receipt|invoice|date|time|transaction|terminal)\b/i;
+  for (const line of lines){
+    const m = line.match(amountAtEnd);
+    if (!m){
+      if (!out.merchant && /[a-z]{2}/i.test(line) && !metadata.test(line) && !/\b(?:welcome|thank|subtotal|total|tax|tip|balance)\b/i.test(line) && !/^\d/.test(line)) out.merchant = line.slice(0, 100);
+      continue;
+    }
+    const label = line.slice(0, m.index).trim().replace(/\s*\$$/, '').trim();
+    const value = Math.round(Number(m[1].replace(/,/g, '')) * 100);
+    if (!label || !Number.isSafeInteger(value)) continue;
+    if (/\bsub[\s-]*total\b/i.test(label)) continue;
+    if (/\b(?:suggested|suggestion|recommended|tip|gratuity)\b/i.test(label)){
+      out.warnings.push('A tip or gratuity line was found. Check fees and set the tip yourself to avoid counting it twice.');
+      continue;
+    }
+    if (/\b(?:total|amount due|balance(?: due)?)\b/i.test(label) && !/\b(?:tax|savings|discount|items)\b/i.test(label)){
+      if (!totalFound && value >= 0) { out.printed = value; totalFound = true; }
+      afterTotal = true;
+      continue;
+    }
+    if (afterTotal) continue; // Payment, change, and suggested-tip footer aren't items.
+    if (/\b(?:tax|vat|gst)\b/i.test(label)) { if (value >= 0) out.tax += value; continue; }
+    if (/\b(?:fee|fees|service charge|surcharge)\b/i.test(label)) { if (value >= 0) out.fees += value; continue; }
+    if (metadata.test(label) || /\b(?:cash|change|tender|visa|mastercard|amex|debit|credit|paid|payment|savings|discount|coupon)\b/i.test(label)) continue;
+    if (value < 0 || /[-(]\s*\$?\s*$/.test(label)) { out.warnings.push('A discount or refund needs manual adjustment.'); continue; }
+    if (/[a-z]/i.test(label)) out.items.push({name:label.slice(0, 150), price:value});
+  }
+  if (!totalFound) out.warnings.push('The printed total was not found. Enter it from your receipt.');
+  out.warnings = [...new Set(out.warnings)];
+  return out;
+}
+/* ---------- end receipt text parser ---------- */
 
 /* ---------- math (R7, R9, R10, R11) ---------- */
 function calc(d){
@@ -894,16 +935,17 @@ V.scan = () => `
     <div class="paperhint"></div>
     <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
     ${ui.scanError ? '' : '<div class="scanline"></div>'}
-    <div class="finder-l">Hold receipt in view</div>
+    <div class="finder-l">Photograph the whole receipt in good light</div>
   </div>
-  ${ui.scanError ? `<div class="alert bad" role="alert"><b>We couldn't read any items on that receipt.</b>Retake the photo in brighter light, upload a different image, or type the items in yourself.</div>` : ''}
+  ${ui.scanError ? `<div class="alert bad" role="alert"><b>Couldn't scan this receipt.</b>${esc(ui.scanError)}</div>` : ''}
   <div class="cam-ctl">
-    <label class="round" for="file-in">${I('upload')}<span>Upload</span></label>
+    <button class="round" data-act="upload">${I('upload')}<span>Upload</span></button>
     <button class="shutter" data-act="snap" aria-label="Take photo"></button>
     <button class="round" data-act="manual">${I('pencil')}<span>Type it in</span></button>
   </div>
   <input type="file" id="file-in" accept="image/*" hidden>
-  <p class="fine">Prototype: the shutter and upload both load a sample receipt. <button class="link" data-act="unreadable">Show the unreadable-receipt error</button></p>`;
+  <input type="file" id="camera-in" accept="image/*" capture="environment" hidden>
+  <p class="fine">Take a photo on your phone, or choose an image on your computer. English receipts with dollar prices work best. Your photo is processed in this browser. The first scan needs internet to download the reader.</p>`;
 
 function mockReceipt(){
   return `<div class="mock"><div class="mh">TONY'S PIZZERIA</div>
@@ -911,19 +953,15 @@ function mockReceipt(){
   <hr><div><span>Tax</span><span>${cIn(SAMPLE.tax)}</span></div><div><b>TOTAL</b><b>${cIn(SAMPLE.printed)}</b></div></div>`;
 }
 V.scanning = () => {
-  const st = ui.scanStep;
-  const tick = (n, label) => `<li class="${st >= n ? 'done' : ''}"><span class="dot">${st >= n ? I('check') : ''}</span>${label}</li>`;
   return `
   <div class="scanning">
-    <div class="rthumb">${ui.photo ? `<img src="${ui.photo}" alt="Your receipt photo">` : mockReceipt()}<div class="scanline"></div></div>
-    <h1 class="h">${st >= 3 ? 'Receipt read' : 'Scanning receipt…'}</h1>
-    <ul class="ticks">
-      ${tick(1, `${SAMPLE.items.length} items found`)}
-      ${tick(2, `<span class="mono">${money(SAMPLE.printed)}</span>&nbsp;total bill`)}
-      ${tick(3, 'Calculating tip')}
-    </ul>
+    <div class="rthumb">${ui.photo ? `<img src="${esc(ui.photo)}" alt="Your receipt photo">` : ''}<div class="scanline"></div></div>
+    <h1 class="h">Scanning receipt…</h1>
+    <p class="sub" role="status" aria-live="polite">${esc(ui.scanStatus)}</p>
+    <progress max="100" value="${ui.scanProgress}" aria-label="Reading receipt"></progress>
+    <p class="fine">This may take a minute on your first scan. You can correct the results next.</p>
   </div>
-  <div class="next"><button class="btn" data-act="go" data-v="review" ${st >= 3 ? '' : 'disabled'}>Check the items</button></div>`;
+  <div class="next"><button class="btn ghost" data-act="cancelScan">Cancel scan</button></div>`;
 };
 
 V.review = () => {
@@ -933,6 +971,8 @@ V.review = () => {
   <h1 class="h">Check the items</h1>
   <p class="sub">Fix anything the scan got wrong before you split.</p>
   ${d.fromSample ? '<p class="fine">Prototype: these items come from a sample receipt.</p>' : ''}
+  ${d.fromScan ? `<div class="alert warn"><b>Check every item and amount against your receipt.</b>Scans can miss or misread lines. Check the printed total, tax, fees and tip before continuing.${(d.scanWarnings || []).map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
+  ${d.fromScan && ui.photo ? `<details><summary>Compare with receipt photo</summary><img src="${esc(ui.photo)}" alt="Receipt used for this scan" style="max-width:100%;height:auto"></details>` : ''}
   <label class="field"><span>Where did you eat?</span><input id="merchant" data-in="merchant" value="${esc(d.merchant)}" placeholder="Restaurant name"></label>
   <div class="items" id="items">
     ${d.items.map(it => `<div class="irow">
@@ -1245,6 +1285,7 @@ function drawQR(){
   catch(e) { el.innerHTML = '<span class="fine">QR code unavailable</span>'; }
 }
 function go(v){
+  if (S.view === 'scanning' && v !== 'scanning') cancelScan();
   if (FLOW.includes(v)) S.draft.at = v;
   if (['review','people','assign','summary'].includes(v) && !S.draft.items.length && v !== 'review') S.draft = demoDraft();
   S.view = v; render();
@@ -1258,15 +1299,93 @@ function addContact(cid){
   if (!slot){ if (d.people.length >= 12) return toast('A split can have up to 12 people.'); slot = {id:uid('p')}; d.people.push(slot); }
   fill(slot, c);
 }
-function runScan(){
-  ui.scanStep = 0; ui.scanError = false; go('scanning');
-  const fast = matchMedia('(prefers-reduced-motion: reduce)').matches ? 150 : 700;
-  [1,2,3].forEach(n => setTimeout(() => {
-    if (S.view !== 'scanning') return;
-    ui.scanStep = n;
-    if (n === 3) { const d = newDraft(); loadSample(d); d.at = 'scanning'; S.draft = d; setTimeout(() => { if (S.view === 'scanning') go('review'); }, fast); }
-    render();
-  }, fast * n));
+let scanJob = null, ocrLoader = null;
+function clearPhoto(){
+  if (ui.photo) URL.revokeObjectURL(ui.photo);
+  ui.photo = null;
+}
+function cancelScan(){
+  const job = scanJob;
+  scanJob = null;
+  if (!job) return;
+  clearTimeout(job.timer);
+  if (job.worker) job.worker.terminate().catch(() => {});
+}
+function loadOCR(){
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  if (ocrLoader) return ocrLoader;
+  ocrLoader = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    const fail = () => { clearTimeout(timer); script.remove(); ocrLoader = null; reject(new Error('The receipt reader could not download. Check your connection, then try again or type the items in.')); };
+    const timer = setTimeout(fail, 30000);
+    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js';
+    script.onload = () => { clearTimeout(timer); if (window.Tesseract) resolve(window.Tesseract); else fail(); };
+    script.onerror = fail;
+    document.head.appendChild(script);
+  });
+  return ocrLoader;
+}
+async function receiptImage(){
+  const img = new Image();
+  img.src = ui.photo;
+  await img.decode().catch(() => { throw new Error('This image could not be opened. Try a JPG or PNG photo, or type the items in.'); });
+  // Limit work/memory for large phone photos; fill transparency with white.
+  const scale = Math.min(1, 2400 / Math.max(img.naturalWidth, img.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+async function runScan(file){
+  if (!file) return;
+  cancelScan();
+  ui.scanError = '';
+  if (!file.type.startsWith('image/') || file.size > 20 * 1024 * 1024){
+    ui.scanError = 'Choose an image smaller than 20 MB. JPG and PNG work best.'; S.view = 'scan'; render(); return;
+  }
+  clearPhoto(); ui.photo = URL.createObjectURL(file);
+  const job = {worker:null, timer:null}; scanJob = job;
+  const active = () => scanJob === job && S.view === 'scanning';
+  const fail = message => {
+    if (!active()) return;
+    cancelScan(); clearPhoto(); ui.scanError = message; S.view = 'scan'; render();
+  };
+  ui.scanProgress = 0; ui.scanStatus = 'Preparing receipt reader…';
+  // Don't change the previous draft (including its last step) until OCR succeeds.
+  S.view = 'scanning'; render();
+  job.timer = setTimeout(() => fail('Reading took too long. Try a smaller, sharper photo, or type the items in.'), 120000);
+  try {
+    const image = await receiptImage();
+    if (!active()) return;
+    const OCR = await loadOCR();
+    if (!active()) return;
+    const worker = await OCR.createWorker('eng', 1, {
+      logger: m => {
+        if (!active()) return;
+        const progress = m.status === 'recognizing text' ? Math.round((m.progress || 0) * 100) : 0;
+        const status = m.status === 'recognizing text' ? `Reading receipt text… ${progress}%` : 'Loading receipt reader…';
+        if (progress !== ui.scanProgress || status !== ui.scanStatus){ ui.scanProgress = progress; ui.scanStatus = status; render(); }
+      },
+      errorHandler: () => fail('The receipt reader stopped. Try again or type the items in.')
+    });
+    if (!active()) { await worker.terminate(); return; }
+    job.worker = worker;
+    await worker.setParameters({preserve_interword_spaces:'1'});
+    const {data} = await worker.recognize(image);
+    if (!active()) return;
+    const parsed = parseReceiptText(data.text);
+    if (!parsed.items.length) throw new Error('No priced items were found. Retake the whole receipt in brighter light, upload another image, or type the items in.');
+    const d = newDraft();
+    Object.assign(d, parsed, {items:parsed.items.map(it => ({id:uid('i'), ...it})), fromScan:true, scanWarnings:parsed.warnings, at:'review'});
+    delete d.warnings;
+    S.draft = d;
+    cancelScan(); go('review');
+  } catch(e) {
+    fail(e.message || 'The receipt could not be read. Try another image or type the items in.');
+  }
 }
 function runSend(pids){
   const d = S.draft, delay = matchMedia('(prefers-reduced-motion: reduce)').matches ? 100 : 650;
@@ -1283,12 +1402,12 @@ const A = {
   go: ds => { ui.sheet = null; go(ds.v); },
   jump: ds => { ui.sheet = null;
     if (ds.v === 'sent' && !S.draft.results){ S.draft = demoDraft(); S.draft.code = 'TP' + Math.random().toString(36).slice(2,4).toUpperCase() + '-' + Math.random().toString(36).slice(2,4).toUpperCase(); const {c, ready} = sendPlan(); S.draft.results = ready.map(p => ({pid:p.id, amount:c.totals[p.id], status:'sent'})); }
-    if (ds.v === 'scanning') return runScan();
     go(ds.v); },
   start: () => { ui.sheet = null; const at = S.draft.at && S.draft.at !== 'scanning' ? S.draft.at : 'scan'; go(S.draft.items.length || at === 'sent' ? at : 'scan'); },
-  snap: () => runScan(),
-  unreadable: () => { ui.scanError = true; render(); },
-  manual: () => { const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = false; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
+  snap: () => document.getElementById('camera-in')?.click(),
+  upload: () => document.getElementById('file-in')?.click(),
+  cancelScan: () => { cancelScan(); clearPhoto(); S.view = 'scan'; render(); },
+  manual: () => { cancelScan(); clearPhoto(); const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = ''; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
   additem: () => { const it = {id:uid('i'), name:'', price:0}; S.draft.items.push(it); render(); document.getElementById('n-' + it.id)?.focus(); },
   delitem: ds => { const d = S.draft; d.items = d.items.filter(it => it.id !== ds.id); delete d.assign[ds.id]; render(); },
   tip: ds => { S.draft.tipPct = +ds.p; render(); },
@@ -1334,7 +1453,7 @@ const A = {
     const done = () => toast(`Copied ${code}`);
     try { navigator.clipboard.writeText(code).then(done, () => { selectCode(); toast('Press Copy to finish copying the selected code.'); }); }
     catch(e) { selectCode(); } },
-  done: () => { S.draft = newDraft(); ui.photo = null; go('home'); toast('New splits are not saved yet. This one was a demo.'); }
+  done: () => { cancelScan(); S.draft = newDraft(); clearPhoto(); go('home'); toast('New splits are not saved yet. This one was a demo.'); }
 };
 // Contacts sync: Supabase functions save_contact / delete_contact (see supabase/contacts-sync.sql).
 async function saveContact(id){
@@ -1424,10 +1543,9 @@ document.addEventListener('input', e => {
   refresh(); save();
 });
 document.addEventListener('change', e => {
-  if (e.target.id !== 'file-in' || !e.target.files[0]) return;
-  const r = new FileReader();
-  r.onload = () => { ui.photo = r.result; runScan(); };
-  r.readAsDataURL(e.target.files[0]);
+  if (!['file-in', 'camera-in'].includes(e.target.id)) return;
+  const file = e.target.files[0]; e.target.value = '';
+  if (file) runScan(file);
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.sheet){ ui.sheet = null; render(); } });
 

@@ -115,11 +115,13 @@ Conventions to keep:
 - `.screen > *` has `flex-shrink: 0` on purpose, so long lists scroll instead of being clipped. Don't remove it.
 - Keep visible states for loading, empty, error and invalid input; the course grades them.
 
-**What is simulated (not real yet):** receipt scanning/OCR (the shutter loads `SAMPLE`), sending Venmo/SMS/PayPal requests and reminders, and saving a new split (Done shows "New splits are not saved yet"). Groups can only be edited in the Supabase dashboard.
+**Receipt scanning:** the shutter opens a camera-capture file picker and upload accepts an image. Tesseract.js 7 reads it locally in a browser worker; `parseReceiptText()` creates editable draft candidates. Review against the photo: the parser handles English receipts with explicit dollar prices, not every receipt layout. Cancellation/errors preserve the earlier draft. Photos stay in memory, not Supabase or localStorage. `SAMPLE` remains for desktop screen previews only.
+
+**What is simulated (not real yet):** sending Venmo/SMS/PayPal requests and reminders, and saving a new split (Done shows "New splits are not saved yet"). Groups can only be edited in the Supabase dashboard.
 
 ## Testing your change
 
-There is no automated test suite. Before handing work back:
+`npm test` runs receipt parser and scan-lifecycle checks with isolated data; it does not replace browser/real-phone checks. Before handing work back:
 
 1. Check the script parses (or just load the page and check the browser console for errors).
 2. Run `npm start`, open http://localhost:3001, and click through what you changed **and** Home → History → Contacts → one split flow.
