@@ -4,6 +4,8 @@ Scan a receipt, match items to friends, and make sure you get paid back.
 
 **Team:** Jackson, Tye, Nick, Tanner
 
+**Live app:** https://ioya.onrender.com (hosted on Render; it can take up to a minute to wake after sitting idle)
+
 ## App Summary
 
 When one person pays a shared restaurant bill, they are left doing math on a receipt, splitting shared appetizers, spreading tax and tip fairly, and then chasing each friend for their share. That process is slow, easy to get wrong, and makes it easy to forget who still owes money. IOYA is for the person who picks up the tab for a group of friends, roommates, or family. The app turns a receipt into line items, lets the payer tap which friend had which item (including shared items), and splits tax, tip, and fees in proportion to what each person ordered. Each outing is saved as an event, so the Home screen's Paid / Unpaid board and the History screen show exactly who has paid you back and how. Saved contacts with their preferred payment method (Venmo, PayPal, Zelle, or cash) and friend groups like "Family" or "Lunch crew" make the next split faster.

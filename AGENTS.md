@@ -16,6 +16,8 @@ IOYA is a bill-splitting web app built by a four-person student team (Jackson, T
 
 Port: **3001** (3000 is used by another project on Jackson's machine).
 
+Hosting: the live app is at https://ioya.onrender.com, on Render's free tier. Render runs `npm install` and `npm start`, reads `SUPABASE_URL` and `SUPABASE_ANON_KEY` from its own environment settings, and supplies `PORT` itself. The live site uses the same shared Supabase project as local development. **The app has no login yet, so anyone with the link can read and change its data. Keep only fake data in it and do not share the link publicly.**
+
 ## Getting it running
 
 1. Requirements: Node.js 18+ and Git. Check with `node -v`.
