@@ -171,24 +171,33 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .steps i.on{background:var(--accent)}
 .step-l{font:500 12px var(--f-mono);color:var(--muted);min-width:28px;text-align:right}
 
-/* scan */
-.finder{position:relative;background:var(--finder);border-radius:20px;aspect-ratio:3/4;max-width:100%;overflow:hidden;display:grid;place-items:center}
-.finder .paperhint{width:56%;height:70%;background:linear-gradient(#f4f1e8,#e9e5d9);border-radius:3px;transform:rotate(-3deg);opacity:.18}
-.finder .c{position:absolute;width:34px;height:34px;border:4px solid var(--hi)}
-.finder .tl{top:22px;left:22px;border-right:0;border-bottom:0;border-radius:10px 0 0 0}
-.finder .tr{top:22px;right:22px;border-left:0;border-bottom:0;border-radius:0 10px 0 0}
-.finder .bl{bottom:22px;left:22px;border-right:0;border-top:0;border-radius:0 0 0 10px}
-.finder .br{bottom:22px;right:22px;border-left:0;border-top:0;border-radius:0 0 10px 0}
-.finder.err .c{border-color:var(--bad)}
-.finder-l{position:absolute;top:26px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);color:#fff;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;white-space:nowrap}
-.scanline{position:absolute;left:8%;right:8%;height:2px;background:var(--hi);box-shadow:0 0 14px 3px var(--hi);top:20%;animation:scan 2.4s ease-in-out infinite alternate}
-@keyframes scan{to{top:80%}}
-.cam-ctl{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;justify-items:center}
-.round{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
-.round .ic{width:46px;height:46px;padding:11px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--ink);background:var(--card)}
-.shutter{width:74px;height:74px;border-radius:50%;border:4px solid var(--ink);display:grid;place-items:center}
-.shutter::after{content:"";width:56px;height:56px;border-radius:50%;background:var(--accent);transition:transform .15s}
-.shutter:active::after{transform:scale(.88)}
+/* receipt capture */
+.capture-guide{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:18px}
+.capture-icon{width:56px;height:56px;border-radius:16px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.capture-icon .ic{width:30px;height:30px}
+.capture-guide h2{font-family:var(--f-display);font-size:21px;line-height:1.15;margin:0}
+.capture-guide ol{padding-left:20px;margin:0;color:var(--muted);display:flex;flex-direction:column;gap:10px}
+.capture-actions{display:flex;flex-direction:column;gap:10px}
+.capture-actions .link{align-self:center;padding:8px}
+.screen.camera-screen{min-height:0;padding:12px 14px;gap:10px;overflow-y:auto}
+.camera-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.camera-heading .h{font-size:21px}
+.camera-heading button{min-height:44px;padding:0 8px}
+.camera-stage{flex:1 1 0;min-height:120px;display:grid;place-items:center;overflow:hidden;container-type:size}
+.camera-preview{height:100%;height:min(100cqh,133.333cqw);aspect-ratio:3/4;max-width:100%;border-radius:18px;background:var(--finder);overflow:hidden;position:relative}
+.camera-preview video{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center}
+.camera-status{position:absolute;bottom:10px;left:10px;right:10px;padding:8px 10px;border-radius:10px;background:var(--card);color:var(--ink);font-size:13px}
+.camera-controls{margin-top:auto;display:flex;flex-direction:column;gap:4px}
+.camera-tools{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;text-align:center}
+.camera-tools button{min-height:44px;padding:4px 8px;font-size:12px;border-radius:12px}
+.camera-tools .shutter{width:64px;height:64px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;box-shadow:inset 0 0 0 4px var(--paper),0 0 0 2px var(--accent)}
+.camera-tools .shutter:disabled{opacity:.4;cursor:not-allowed}
+.camera-tools .fine{font-size:11px}
+.camera-alternatives{display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+.camera-alternatives button{font-size:12px;min-height:44px}
+.original-name{grid-column:1/-1;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.original-name p{margin:6px 0}
+.original-name button{min-height:32px}
 
 .alert{border-radius:12px;padding:12px 14px;font-size:14px;display:flex;flex-direction:column;gap:4px}
 .alert.bad{background:var(--bad-soft);color:var(--ink);box-shadow:inset 3px 0 0 var(--bad)}
@@ -463,7 +472,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
     <p>Scan a receipt, match items to friends, and track who has paid you back.</p>
     <h2>Screens</h2>
     <div class="jump" id="jump"></div>
-    <p class="fine">Contacts, groups, past splits and who has paid are stored in Supabase. Adding or editing a contact and "Mark as paid" save to the database; scanning, sending requests and new splits are still simulated.</p>
+    <p class="fine">Contacts, groups, past splits and who has paid are stored in Supabase. Receipt photos are read in your browser; check the results before splitting. Sending requests and saving new splits are still simulated.</p>
   </aside>
   <div class="phone">
     <div class="app" id="app">
@@ -519,8 +528,14 @@ const SAMPLE = {merchant:"Tony's Pizzeria", tax:375, fees:0, printed:4475, items
 
 function newDraft(){
   const blank = () => ({id:uid('p'), name:'', method:'venmo', venmo:'', phone:'', paypal:'', contactId:null});
-  return {at:'scan', merchant:'', items:[], tax:0, fees:0, printed:0, tipPct:18,
+  return {at:'scan', merchant:'', items:[], tax:0, fees:0, printed:0, tipMode:null, tipPct:null, tipInput:'',
     people:[{id:'me', name:'You', me:true}, blank(), blank(), blank()], assign:{}, msgs:{}, cur:0, results:null, code:null, fromSample:false};
+}
+function normalizeTipDraft(d){
+  // Older drafts cannot distinguish an automatic 18% from a deliberate choice.
+  // Keep the receipt and assignments, and let the user choose under the new UI.
+  if (!Object.prototype.hasOwnProperty.call(d, 'tipMode')) Object.assign(d, {tipMode:null, tipPct:null, tipInput:''});
+  return d;
 }
 function loadSample(d){
   d.merchant = SAMPLE.merchant; d.tax = SAMPLE.tax; d.fees = SAMPLE.fees; d.printed = SAMPLE.printed; d.fromSample = true;
@@ -544,7 +559,7 @@ function demoDraft(){
 const KEY = 'ioya-draft-v1';
 const USER_ID = 1;  // No login yet: the app always acts as user 1 (Demo Payer).
 let S = {view:'home', contacts:[], groups:[], history:[], payMethods:[], selfContactId:null, draft:newDraft(), loading:true, loadError:null};
-try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.draft) Object.assign(S, {view:saved.view, draft:saved.draft}); } catch(e) {}
+try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.draft) Object.assign(S, {view:saved.view, draft:normalizeTipDraft(saved.draft)}); } catch(e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({view:S.view, draft:S.draft})); } catch(e) {} };
 
 const CFG = window.IOYA_CONFIG || {};
@@ -618,9 +633,98 @@ function normContact(c){
     ...m, method:(pref && METHOD_KEY[pref.name]) || 'sms', pref, methods:list};
 }
 const payMethodName = id => (S.payMethods.find(m => m.id === id) || {}).name || 'Unknown';
-const ui = {sheet:null, toast:null, photo:null, scanStep:0, scanError:false, q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, failDemo:false, saving:false};
+const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', scanText:'', originalNames:{}, cameraOpen:false, cameraLoading:false, cameraError:'', cameraLightMode:null, cameraFlashEnabled:true, capturing:false, q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, failDemo:false, saving:false};
+let cameraSession = null;
+
+/* ---------- receipt text parser ----------
+   English / US dollar receipts. Keep only explicit decimal prices; never invent
+   missing amounts. OCR and these heuristics need a human check in Review. */
+function parseReceiptText(text){
+  const lines = String(text).split(/\r?\n/).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const out = {merchant:'', items:[], tax:0, fees:0, printed:0, warnings:[]};
+  let totalFound = false, afterTotal = false;
+  const amountAtEnd = /(?:\$\s*)?(-?(?:\d{1,3}(?:,\d{3})+|\d+)\s*\.\s*\d\s*\d)\s*(?:[A-Z*]{1,3})?$/i;
+  const metadata = /\b(?:tel|phone|www|https?|cashier|server|table|guest|order|check|receipt|invoice|date|time|transaction|terminal)\b/i;
+  for (const line of lines){
+    const m = line.match(amountAtEnd);
+    if (!m){
+      if (!out.merchant && /[a-z]{2}/i.test(line) && !metadata.test(line) && !/\b(?:welcome|thank|subtotal|total|tax|tip|balance)\b/i.test(line) && !/^\d/.test(line)) out.merchant = line.slice(0, 100);
+      continue;
+    }
+    const label = line.slice(0, m.index).trim().replace(/\s*\$$/, '').trim();
+    const value = Math.round(Number(m[1].replace(/[,\s]/g, '')) * 100);
+    if (!label || !Number.isSafeInteger(value)) continue;
+    if (/\bsub[\s-]*total\b/i.test(label)) continue;
+    if (/\b(?:suggested|suggestion|recommended|tip|gratuity)\b/i.test(label)){
+      out.warnings.push('A tip or gratuity line was found. Check fees and set the tip yourself to avoid counting it twice.');
+      continue;
+    }
+    if (/\b(?:total|amount due|balance(?: due)?)\b/i.test(label) && !/\b(?:tax|savings|discount|items)\b/i.test(label)){
+      if (!totalFound && value >= 0) { out.printed = value; totalFound = true; }
+      afterTotal = true;
+      continue;
+    }
+    if (afterTotal) continue; // Payment, change, and suggested-tip footer aren't items.
+    if (/\b(?:tax|vat|gst)\b/i.test(label)) { if (value >= 0) out.tax += value; continue; }
+    if (/\b(?:fee|fees|service charge|surcharge)\b/i.test(label)) { if (value >= 0) out.fees += value; continue; }
+    if (metadata.test(label) || /\b(?:cash|change|tender|visa|mastercard|amex|debit|credit|paid|payment|savings|discount|coupon)\b/i.test(label)) continue;
+    if (value < 0 || /[-(]\s*\$?\s*$/.test(label)) { out.warnings.push('A discount or refund needs manual adjustment.'); continue; }
+    if (/[a-z]/i.test(label)) out.items.push({name:label.slice(0, 150), price:value});
+  }
+  if (!totalFound) out.warnings.push('The printed total was not found. Enter it from your receipt.');
+  out.warnings = [...new Set(out.warnings)];
+  return out;
+}
+/* ---------- end receipt text parser ---------- */
+
+// Local, conservative label cleanup: never infer a product from an unknown code.
+function shortReceiptName(label){
+  const original = String(label).trim();
+  const expansions = {CHKN:'Chicken',CHK:'Chicken',BRST:'Breast',SNDWCH:'Sandwich',SANDW:'Sandwich',CHZ:'Cheese',CHED:'Cheddar',MOZZ:'Mozzarella',TURKY:'Turkey',VEG:'Veggie',ORG:'Organic',BNLS:'Boneless',GRLD:'Grilled',FRZ:'Frozen',STRAWB:'Strawberry'};
+  const words = original.split(/\s+/).filter(word => {
+    const code = word.replace(/^[#*]+|[*,;]+$/g, '');
+    return !/^\d{5,}$/.test(code) && !/^(?=[A-Z0-9-]{7,}$)(?=(?:\D*\d){4})[A-Z0-9-]+$/i.test(code);
+  }).map(word => expansions[word.replace(/[.,]$/, '').toUpperCase()] || word);
+  // Preserve a wholly unknown label rather than inventing a name or removing it.
+  if (!words.some(word => /[a-z]/i.test(word))) return original;
+  return words.slice(0, 3).join(' ') || original;
+}
+function shortenDraftNames(){
+  for (const item of S.draft.items){
+    const short = shortReceiptName(item.name);
+    if (short !== item.name){ ui.originalNames[item.id] ??= item.name; item.name = short; }
+  }
+}
+
+function receiptGap(r){
+  return r.printed > 0 ? Math.abs(r.items.reduce((sum, it) => sum + it.price, 0) + r.tax + r.fees - r.printed) : Infinity;
+}
+function preferReceiptRead(current, candidate){
+  if (!candidate.items.length) return current;
+  if (!current.items.length) return candidate;
+  // Compare complete readings; combining their item arrays could double-charge
+  // repeated products. A matching printed total beats simply finding more lines.
+  const a = receiptGap(current), b = receiptGap(candidate);
+  if (b !== a) return b < a ? candidate : current;
+  return candidate.items.length > current.items.length ? candidate : current;
+}
 
 /* ---------- math (R7, R9, R10, R11) ---------- */
+function tipState(d, subtotal = d.items.reduce((sum, it) => sum + it.price, 0)){
+  const invalid = {cents:0, valid:false, chosen:true, label:'Invalid tip', error:'Enter 0 or a positive dollar amount with up to two decimal places.'};
+  if (d.tipMode === 'percent'){
+    if (!Number.isFinite(d.tipPct) || d.tipPct < 0 || d.tipPct > 100) return invalid;
+    return {cents:Math.round(subtotal * d.tipPct / 100), valid:true, chosen:true, label:d.tipPct ? `${d.tipPct}% tip` : 'No tip'};
+  }
+  if (d.tipMode === 'amount'){
+    const raw = String(d.tipInput || '').trim();
+    if (raw.length > 20 || !/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/.test(raw)) return invalid;
+    const cents = Math.round(Number(raw) * 100);
+    if (!Number.isSafeInteger(cents) || !Number.isSafeInteger(cents + Math.max(subtotal, d.printed || 0) + d.tax + d.fees)) return invalid;
+    return {cents, valid:true, chosen:true, label:`${money(cents)} tip`};
+  }
+  return {cents:0, valid:true, chosen:false, label:'No tip added'};
+}
 function calc(d){
   const ids = d.people.map(p => p.id);
   const pre = {}, lines = {}; ids.forEach(id => { pre[id] = 0; lines[id] = []; });
@@ -633,7 +737,7 @@ function calc(d){
     const base = Math.floor(it.price / who.length); const rem = it.price - base * who.length;
     who.forEach((id, i) => { const share = base + (i < rem ? 1 : 0); pre[id] += share; lines[id].push({itemId:it.id, name:it.name, share, of:who.length}); });
   });
-  const tip = Math.round(subtotal * d.tipPct / 100);
+  const tipInfo = tipState(d, subtotal), tip = tipInfo.cents;
   const extra = d.tax + d.fees + tip;
   const assigned = ids.reduce((a, id) => a + pre[id], 0);
   const alloc = {}; ids.forEach(id => alloc[id] = 0);
@@ -649,7 +753,7 @@ function calc(d){
   const computed = subtotal + d.tax + d.fees;
   const mismatch = Math.abs(computed - d.printed) > 1;
   const grand = d.printed + tip;
-  return {pre, lines, alloc, totals, unassigned, subtotal, tip, extra, computed, mismatch, grand, sumTotals,
+  return {pre, lines, alloc, totals, unassigned, subtotal, tip, tipValid:tipInfo.valid, extra, computed, mismatch, grand, sumTotals,
     totalsOff: !unassigned.length && Math.abs(sumTotals - (computed + tip)) > 1};
 }
 const handleOf = p => p[METHODS[p.method].field] || '';
@@ -801,6 +905,7 @@ V.home = () => {
   </header>
   <p class="tag">Make sure <em>you</em> get <mark>paid</mark>.</p>
   <button class="cta" data-act="start">${I('scan')}<span><b>Pay the tab</b><small>Scan a receipt and split it</small></span></button>
+  ${S.draft.items.length ? '<button class="link" data-act="resume">Resume current split</button>' : ''}
   <div class="chips">
     <button class="chip" data-act="go" data-v="history">${I('history')}History</button>
     <button class="chip" data-act="go" data-v="contacts">${I('contacts')}Contacts</button>
@@ -921,42 +1026,46 @@ V.contacts = () => `
   <p class="fine">Contacts save to Supabase. Groups are edited in Supabase for now.</p>`;
 
 V.scan = () => `
-  ${flowHead(0, 'home')}
-  <h1 class="h">Scan your receipt</h1>
-  <div class="finder ${ui.scanError ? 'err' : ''}">
-    <div class="paperhint"></div>
-    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-    ${ui.scanError ? '' : '<div class="scanline"></div>'}
-    <div class="finder-l">Hold receipt in view</div>
+  ${ui.cameraOpen ? '<div class="camera-heading"><h1 class="h">Scan receipt</h1><button class="link" data-act="closeCamera">Close camera</button></div>' : `${flowHead(0, 'home')}<h1 class="h">Add your receipt</h1><p class="sub">Take a photo, then check the items before you split.</p>`}
+  ${ui.scanError ? `<div class="alert bad" role="alert"><b>Couldn't scan this receipt.</b>${esc(ui.scanError)}</div>` : ''}
+  ${ui.cameraError ? `<div class="alert bad" role="alert">${esc(ui.cameraError)}</div>` : ''}
+  ${ui.scanError && ui.scanText ? `<details><summary>Text read from receipt</summary><p class="fine">Compare this with the photo to see which lines were missed. This text stays in this tab and is cleared on the next scan.</p><textarea readonly aria-label="Text read from receipt" style="width:100%;min-height:160px">${esc(ui.scanText)}</textarea></details>` : ''}
+  ${ui.cameraOpen ? `<p class="fine">Keep the whole receipt in view and hold steady.</p><div class="camera-stage"><div class="camera-preview">
+    <video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>
+    ${ui.cameraLoading ? '<p class="camera-status" role="status">Opening camera… Allow camera access when asked.</p>' : ''}
+  </div></div>
+  <div class="camera-controls">
+  <p class="fine" role="status">${ui.capturing ? 'Taking photo…' : ui.cameraLoading ? 'Checking flash support…' : ui.cameraLightMode ? (ui.cameraFlashEnabled ? 'Light stays off until capture.' : 'Flash is off.') : 'Flash unavailable here. Use brighter light or the phone camera.'}</p>
+  <div class="camera-tools">
+    <button class="btn ghost" data-act="upload">${I('upload')} Upload</button>
+    <button id="capture-photo" class="shutter" data-act="capturePhoto" aria-label="Capture photo" disabled>${I('scan')}</button>
+    ${ui.cameraLightMode ? `<button class="btn ghost" data-act="cameraLight" aria-label="Flash at capture" aria-pressed="${ui.cameraFlashEnabled}" ${ui.cameraLoading || ui.capturing ? 'disabled' : ''}>Flash: ${ui.cameraFlashEnabled ? 'At capture' : 'Off'}</button>` : '<span class="fine">Flash unavailable</span>'}
   </div>
-  ${ui.scanError ? `<div class="alert bad" role="alert"><b>We couldn't read any items on that receipt.</b>Retake the photo in brighter light, upload a different image, or type the items in yourself.</div>` : ''}
-  <div class="cam-ctl">
-    <label class="round" for="file-in">${I('upload')}<span>Upload</span></label>
-    <button class="shutter" data-act="snap" aria-label="Take photo"></button>
-    <button class="round" data-act="manual">${I('pencil')}<span>Type it in</span></button>
-  </div>
+  <div class="camera-alternatives"><button class="link" data-act="nativeCamera">Phone camera</button><button class="link" data-act="manual">Type items</button></div>
+  </div>` : `<section class="capture-guide" aria-labelledby="capture-title">
+    <div class="capture-icon">${I('history')}</div>
+    <h2 id="capture-title">One clear photo.<br>Every item included.</h2>
+    <ol><li>Lay the receipt flat and fill the photo.</li><li>${cameraAvailable() ? 'Flash fires at capture when supported. Avoid glare.' : 'Turn on flash in the camera if the room is dim. Avoid glare.'}</li><li>Include all the items, tax and final total.</li></ol>
+  </section>`}
+  ${!ui.cameraOpen ? `<div class="capture-actions">
+    ${S.draft.items.length ? '<button class="link" data-act="resume">Resume current split</button>' : ''}
+    <button class="btn" data-act="snap">${I('scan')} Take photo</button>
+    <button class="btn ghost" data-act="upload">${I('upload')} Upload photo</button>${cameraAvailable() ? '<button class="link" data-act="nativeCamera">Use phone camera instead</button>' : ''}
+    <button class="link" data-act="manual">Type items instead</button>
+  </div>` : ''}
   <input type="file" id="file-in" accept="image/*" hidden>
-  <p class="fine">Prototype: the shutter and upload both load a sample receipt. <button class="link" data-act="unreadable">Show the unreadable-receipt error</button></p>`;
-
-function mockReceipt(){
-  return `<div class="mock"><div class="mh">TONY'S PIZZERIA</div>
-  ${SAMPLE.items.map(([n, p]) => `<div><span>${esc(n)}</span><span>${cIn(p)}</span></div>`).join('')}
-  <hr><div><span>Tax</span><span>${cIn(SAMPLE.tax)}</span></div><div><b>TOTAL</b><b>${cIn(SAMPLE.printed)}</b></div></div>`;
-}
+  <input type="file" id="camera-in" accept="image/*" capture="environment" hidden>
+  ${!ui.cameraOpen ? '<p class="fine">Your photo is read in this browser. English receipts with dollar prices work best. The first scan needs internet to download the reader.</p>' : ''}`;
 V.scanning = () => {
-  const st = ui.scanStep;
-  const tick = (n, label) => `<li class="${st >= n ? 'done' : ''}"><span class="dot">${st >= n ? I('check') : ''}</span>${label}</li>`;
   return `
   <div class="scanning">
-    <div class="rthumb">${ui.photo ? `<img src="${ui.photo}" alt="Your receipt photo">` : mockReceipt()}<div class="scanline"></div></div>
-    <h1 class="h">${st >= 3 ? 'Receipt read' : 'Scanning receipt…'}</h1>
-    <ul class="ticks">
-      ${tick(1, `${SAMPLE.items.length} items found`)}
-      ${tick(2, `<span class="mono">${money(SAMPLE.printed)}</span>&nbsp;total bill`)}
-      ${tick(3, 'Calculating tip')}
-    </ul>
+    <div class="rthumb">${ui.photo ? `<img src="${esc(ui.photo)}" alt="Your receipt photo">` : ''}</div>
+    <h1 class="h">Scanning receipt…</h1>
+    <p class="sub" role="status" aria-live="polite">${esc(ui.scanStatus)}</p>
+    <progress max="100" value="${ui.scanProgress}" aria-label="Reading receipt"></progress>
+    <p class="fine">This may take a minute on your first scan. You can correct the results next.</p>
   </div>
-  <div class="next"><button class="btn" data-act="go" data-v="review" ${st >= 3 ? '' : 'disabled'}>Check the items</button></div>`;
+  <div class="next"><button class="btn ghost" data-act="cancelScan">Cancel scan</button></div>`;
 };
 
 V.review = () => {
@@ -966,12 +1075,17 @@ V.review = () => {
   <h1 class="h">Check the items</h1>
   <p class="sub">Fix anything the scan got wrong before you split.</p>
   ${d.fromSample ? '<p class="fine">Prototype: these items come from a sample receipt.</p>' : ''}
+  ${d.fromScan ? `<div class="alert warn"><b>Check every item and amount against your receipt.</b>Scans can miss or misread lines. Check the printed total, tax, fees and tip before continuing.${(d.scanWarnings || []).map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
+  ${d.fromScan && ui.photo ? `<details><summary>Compare with receipt photo</summary><img src="${esc(ui.photo)}" alt="Receipt used for this scan" style="max-width:100%;height:auto"></details>` : ''}
   <label class="field"><span>Where did you eat?</span><input id="merchant" data-in="merchant" value="${esc(d.merchant)}" placeholder="Restaurant name"></label>
+  ${d.fromScan && d.items.some(it => shortReceiptName(it.name) !== it.name) ? '<button class="link" data-act="shortenNames">Shorten item names</button>' : ''}
+  ${d.items.some(it => ui.originalNames[it.id]) ? '<p class="fine">Names were shortened. Check them; original labels are available below until you refresh.</p>' : ''}
   <div class="items" id="items">
     ${d.items.map(it => `<div class="irow">
       <input id="n-${it.id}" data-in="iname" data-id="${it.id}" value="${esc(it.name)}" placeholder="Item name" aria-label="Item name">
       <span class="money-in">$<input id="p-${it.id}" data-in="iprice" data-id="${it.id}" inputmode="decimal" value="${it.price ? cIn(it.price) : ''}" placeholder="0.00" aria-label="Price of ${esc(it.name || 'item')}"></span>
       <button class="iconbtn sm" data-act="delitem" data-id="${it.id}" aria-label="Delete ${esc(it.name || 'item')}">${I('x')}</button>
+      ${ui.originalNames[it.id] ? `<details class="original-name"><summary>Original receipt label</summary><p>${esc(ui.originalNames[it.id])}</p><button class="link" data-act="restoreName" data-id="${it.id}">Use original name</button></details>` : ''}
     </div>`).join('') || '<div class="empty">No items yet. Add each line from the receipt.</div>'}
   </div>
   <button class="addrow" data-act="additem">${I('plus')} Add item</button>
@@ -983,11 +1097,13 @@ V.review = () => {
   </div>
   <div data-live="match"></div>
   <div class="tip">
-    <div class="tip-h"><span>Tip</span><span class="mono" data-live="tipamt"></span></div>
-    <div class="seg" role="group" aria-label="Tip percentage">${[0,15,18,20,22].map(p => `<button class="${d.tipPct === p ? 'on' : ''}" data-act="tip" data-p="${p}" aria-pressed="${d.tipPct === p}">${p}%</button>`).join('')}</div>
-    <p class="fine">Tip is figured on the pre-tax subtotal and shared in proportion to what each person ordered.</p>
+    <div class="tip-h"><span>Tip <small>(optional)</small></span><span class="mono" data-live="tipamt"></span></div>
+    <div class="seg" role="group" aria-label="Tip percentage" data-live="tipchoices"></div>
+    <label class="frow" for="tip-amount"><span>Custom tip amount</span><span class="money-in">$<input id="tip-amount" data-in="tipamount" inputmode="decimal" maxlength="20" value="${esc(d.tipInput || '')}" placeholder="0.00" aria-describedby="tip-note"></span></label>
+    <div id="tip-note" data-live="tipnotice"></div>
+    <p class="fine">Percentage tips use the pre-tax subtotal. All tips are shared in proportion to each person's items.</p>
   </div>
-  <div class="grand"><span>Bill with tip</span><span class="mono" data-live="grand"></span></div>
+  <div class="grand"><span>Total to split</span><span class="mono" data-live="grand"></span></div>
   <div class="next" data-live="revnext"></div>`;
 };
 
@@ -1057,10 +1173,11 @@ V.summary = () => {
   const blockers = [];
   if (c.unassigned.length) blockers.push(`<div class="alert bad" role="alert"><b>${c.unassigned.length} item${c.unassigned.length === 1 ? ' is' : 's are'} unassigned.</b>${c.unassigned.map(it => esc(it.name)).join(', ')}. <button class="link" data-act="go" data-v="assign">Assign items</button></div>`);
   if (c.mismatch) blockers.push(`<div class="alert bad" role="alert"><b>Items don't match the receipt total.</b>Items, tax and fees add to ${money(c.computed)}, but the receipt says ${money(d.printed)}. <button class="link" data-act="go" data-v="review">Fix the items</button></div>`);
+  if (!c.tipValid) blockers.push(`<div class="alert bad" role="alert"><b>Check the custom tip.</b><button class="link" data-act="go" data-v="review">Fix the tip amount</button></div>`);
   return `
   ${flowHead(4, 'assign')}
   <h1 class="h">Review & send</h1>
-  <p class="sub">${esc(d.merchant || 'This bill')} · <span class="mono">${money(c.grand)}</span> with ${d.tipPct}% tip</p>
+  <p class="sub">${esc(d.merchant || 'This bill')} · <span class="mono">${money(c.grand)}</span> · ${esc(tipState(d).label)}</p>
   ${blockers.join('')}
   ${d.people.map(p => {
     const nm = p.me ? 'You' : (p.name || 'Unnamed');
@@ -1108,7 +1225,14 @@ const LIVE = {
   hlist: () => historyList(),
   clist: () => contactList(),
   subtotal: () => money(calc(S.draft).subtotal),
-  tipamt: () => money(calc(S.draft).tip),
+  tipamt: () => { const t = tipState(S.draft); return t.chosen && t.valid ? money(t.cents) : '—'; },
+  tipchoices: () => [0,15,18,20,22].map(p => {
+    const selected = S.draft.tipMode === 'percent' && S.draft.tipPct === p;
+    return `<button class="${selected ? 'on' : ''}" data-act="tip" data-p="${p}" aria-pressed="${selected}">${p ? p + '%' : 'No tip'}</button>`;
+  }).join(''),
+  tipnotice: () => { const t = tipState(S.draft); return t.valid
+    ? `<p class="fine">${t.chosen ? '' : 'No tip is added until you choose one.'}</p>`
+    : `<p class="warn-line" role="alert">${t.error}</p>`; },
   grand: () => money(calc(S.draft).grand),
   match: () => {
     const d = S.draft, c = calc(d);
@@ -1119,7 +1243,7 @@ const LIVE = {
   },
   revnext: () => {
     const d = S.draft, c = calc(d);
-    const ok = d.items.some(it => it.price > 0) && d.printed && !c.mismatch;
+    const ok = d.items.some(it => it.price > 0) && d.printed && !c.mismatch && c.tipValid;
     return `<button class="btn" data-act="go" data-v="people" ${ok ? '' : 'disabled'}>Add people</button>`;
   },
   results: () => {
@@ -1163,10 +1287,11 @@ function autoMessage(p, c){
 function sendPlan(){
   const d = S.draft, c = calc(d);
   const others = d.people.filter(p => !p.me && c.totals[p.id] > 0);
-  return {c, ready: others.filter(p => handleOf(p)), blocked: others.filter(p => !handleOf(p)), globalBlock: c.unassigned.length > 0 || c.mismatch || c.totalsOff};
+  return {c, ready: others.filter(p => handleOf(p)), blocked: others.filter(p => !handleOf(p)), globalBlock: c.unassigned.length > 0 || c.mismatch || c.totalsOff || !c.tipValid};
 }
 function refresh(){
   document.querySelectorAll('[data-live]').forEach(el => { const f = LIVE[el.dataset.live]; if (f) el.innerHTML = f(el); });
+  document.getElementById('tip-amount')?.setAttribute('aria-invalid', String(!tipState(S.draft).valid));
 }
 
 /* ---------- sheets ---------- */
@@ -1256,6 +1381,7 @@ const scr = document.getElementById('screen');
 let lastView = null;
 function render(){
   const v = S.view;
+  scr.classList.toggle('camera-screen', v === 'scan' && ui.cameraOpen);
   const keepScroll = v === lastView ? scr.scrollTop : 0;
   const needsData = !FLOW.includes(v) || v === 'people';
   scr.innerHTML = needsData && S.loading ? '<p class="fine" role="status">Loading your splits…</p>'
@@ -1270,6 +1396,7 @@ function render(){
   document.getElementById('jump').innerHTML = [['home','Home','—'],['history','History','—'],['scan','Scan receipt','R1 R4'],['review','Check items','R2 R3 R11'],['people','People','R5'],['assign','Assign items','R6–R8'],['summary','Review & send','R12–R17'],['sent','Requests sent','R18'],['contacts','Contacts','—']]
     .map(([k, label, r]) => `<button class="${k === v ? 'on' : ''}" data-act="jump" data-v="${k}"><span>${label}</span><small>${r}</small></button>`).join('');
   if (v === 'sent') drawQR();
+  if (v === 'scan' && ui.cameraOpen) attachCameraPreview();
   save();
 }
 function drawQR(){
@@ -1278,6 +1405,8 @@ function drawQR(){
   catch(e) { el.innerHTML = '<span class="fine">QR code unavailable</span>'; }
 }
 function go(v){
+  if (v !== 'scan') stopCamera();
+  if (S.view === 'scanning' && v !== 'scanning') cancelScan();
   if (FLOW.includes(v)) S.draft.at = v;
   if (['review','people','assign','summary'].includes(v) && !S.draft.items.length && v !== 'review') S.draft = demoDraft();
   S.view = v; render();
@@ -1291,15 +1420,283 @@ function addContact(cid){
   if (!slot){ if (d.people.length >= 12) return toast('A split can have up to 12 people.'); slot = {id:uid('p')}; d.people.push(slot); }
   fill(slot, c);
 }
-function runScan(){
-  ui.scanStep = 0; ui.scanError = false; go('scanning');
-  const fast = matchMedia('(prefers-reduced-motion: reduce)').matches ? 150 : 700;
-  [1,2,3].forEach(n => setTimeout(() => {
-    if (S.view !== 'scanning') return;
-    ui.scanStep = n;
-    if (n === 3) { const d = newDraft(); loadSample(d); d.at = 'scanning'; S.draft = d; setTimeout(() => { if (S.view === 'scanning') go('review'); }, fast); }
+/* ---------- live receipt camera ---------- */
+function cameraAvailable(){ return !!(window.isSecureContext && window.navigator?.mediaDevices?.getUserMedia); }
+function cameraActive(session){ return cameraSession === session && ui.cameraOpen && S.view === 'scan'; }
+function stopCamera(){
+  const session = cameraSession; cameraSession = null;
+  if (session?.stream){
+    session.stream.getTracks().forEach(track => track.stop());
+    const video = document.getElementById('receipt-camera');
+    if (video?.srcObject === session.stream){ video.pause(); video.srcObject = null; }
+  }
+  Object.assign(ui, {cameraOpen:false, cameraLoading:false, cameraLightMode:null, cameraFlashEnabled:true, capturing:false});
+}
+function cameraOperation(promise, timeout = 5000){
+  let timer;
+  return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Camera control timed out.')), timeout); })])
+    .finally(() => clearTimeout(timer));
+}
+function failCamera(session, message){
+  if (!cameraActive(session)) return;
+  stopCamera(); ui.cameraError = message; render();
+}
+function attachCameraPreview(){
+  const session = cameraSession, video = document.getElementById('receipt-camera');
+  if (!session?.stream || !video || video.srcObject === session.stream) return;
+  video.muted = true; video.srcObject = session.stream;
+  const ready = () => {
+    if (!cameraActive(session) || document.getElementById('receipt-camera') !== video) return;
+    const button = document.getElementById('capture-photo');
+    if (button) button.disabled = ui.cameraLoading || ui.capturing || !video.videoWidth || video.readyState < 2;
+  };
+  video.addEventListener('loadeddata', ready, {once:true}); ready();
+  video.play().then(ready).catch(() => {
+    if (document.getElementById('receipt-camera') === video) failCamera(session, 'The camera preview could not start. Use the phone camera or upload a photo instead.');
+  });
+}
+function usePhotoPicker(id){
+  stopCamera(); ui.cameraError = ''; render(); document.getElementById(id)?.click();
+}
+async function openCamera(){
+  if (!cameraAvailable()) return usePhotoPicker('camera-in');
+  stopCamera(); ui.cameraError = ''; ui.scanError = ''; ui.scanText = '';
+  const session = {stream:null, imageCapture:null, flashModes:[]}; cameraSession = session;
+  ui.cameraOpen = true; ui.cameraLoading = true; S.view = 'scan'; render();
+  try {
+    const stream = await window.navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:2560}, aspectRatio:{ideal:3/4}}});
+    if (!cameraActive(session)){ stream.getTracks().forEach(track => track.stop()); return; }
+    session.stream = stream;
+    const track = stream.getVideoTracks()[0];
+    if (!track) throw new Error('No video track');
+    track.addEventListener('ended', () => failCamera(session, 'The camera stopped. Open it again or use the phone camera.'));
     render();
-  }, fast * n));
+    // Prefer a full-resolution still when the browser exposes ImageCapture.
+    if (window.ImageCapture){
+      try {
+        session.imageCapture = new window.ImageCapture(track);
+        const capabilities = await cameraOperation(session.imageCapture.getPhotoCapabilities());
+        session.flashModes = capabilities.fillLightMode || [];
+      } catch(e) { /* A video-frame capture remains available. */ }
+    }
+    if (!cameraActive(session)) return;
+    let torch = false;
+    try { const cap = track.getCapabilities?.().torch; torch = cap === true || Array.isArray(cap) && cap.includes(true); } catch(e) {}
+    // Arm capture-time flash without lighting the preview. Prefer real still flash.
+    if (session.flashModes.includes('flash')) ui.cameraLightMode = 'flash';
+    else if (torch) ui.cameraLightMode = 'torch';
+    if (torch && track.getSettings?.().torch){
+      await cameraOperation(track.applyConstraints({advanced:[{torch:false}]}));
+    }
+    if (!cameraActive(session)) return;
+    ui.cameraLoading = false; render();
+  } catch(e) {
+    const denied = e.name === 'NotAllowedError' || e.name === 'SecurityError';
+    failCamera(session, denied ? 'Camera access was not allowed. You can use the phone camera or upload a photo instead.' : 'The camera could not open. Try the phone camera or upload a photo instead.');
+  }
+}
+async function toggleCameraLight(){
+  const session = cameraSession;
+  if (!cameraActive(session) || !ui.cameraLightMode || ui.cameraLoading || ui.capturing) return;
+  ui.cameraFlashEnabled = !ui.cameraFlashEnabled; ui.cameraError = ''; render();
+}
+function cameraPreviewCrop(sourceWidth, sourceHeight, frame){
+  if (![sourceWidth, sourceHeight, frame.videoWidth, frame.videoHeight, frame.width, frame.height].every(n => Number.isFinite(n) && n > 0)) throw new Error('The camera frame is not ready. Try again.');
+  // A still can have a different aspect ratio from the stream. First match its
+  // centered stream area, then apply the preview's centered object-fit:cover.
+  const streamRatio = frame.videoWidth / frame.videoHeight;
+  let width = sourceWidth, height = sourceHeight;
+  if (width / height > streamRatio) width = height * streamRatio;
+  else height = width / streamRatio;
+  const streamX = (sourceWidth - width) / 2, streamY = (sourceHeight - height) / 2;
+  const previewRatio = frame.width / frame.height;
+  let cropWidth = width, cropHeight = height;
+  if (cropWidth / cropHeight > previewRatio) cropWidth = cropHeight * previewRatio;
+  else cropHeight = cropWidth / previewRatio;
+  return {x:streamX + (width - cropWidth) / 2, y:streamY + (height - cropHeight) / 2, width:cropWidth, height:cropHeight};
+}
+async function cameraFrameBlob(source, sourceWidth, sourceHeight, frame){
+  const crop = cameraPreviewCrop(sourceWidth, sourceHeight, frame);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(crop.width)); canvas.height = Math.max(1, Math.round(crop.height));
+  canvas.getContext('2d').drawImage(source, crop.x, crop.y, crop.width, crop.height, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('The camera photo could not be captured.')), 'image/jpeg', 0.95));
+}
+async function captureCameraPhoto(){
+  const session = cameraSession;
+  if (!cameraActive(session) || ui.cameraLoading || ui.capturing) return;
+  const video = document.getElementById('receipt-camera');
+  if (!video?.videoWidth || video.readyState < 2) return;
+  ui.capturing = true;
+  const button = document.getElementById('capture-photo'); if (button) button.disabled = true;
+  const track = session.stream.getVideoTracks()[0];
+  let pulsed = false;
+  try {
+    const bounds = video.getBoundingClientRect();
+    const frame = {videoWidth:video.videoWidth, videoHeight:video.videoHeight, width:bounds.width, height:bounds.height};
+    cameraPreviewCrop(frame.videoWidth, frame.videoHeight, frame);
+    if (ui.cameraLightMode === 'torch' && ui.cameraFlashEnabled){
+      pulsed = true;
+      try {
+        await cameraOperation(track.applyConstraints({advanced:[{torch:true}]}));
+        if (!cameraActive(session)) return;
+        if (track.getSettings?.().torch === false) throw new Error('Light unavailable');
+        // Allow the video exposure to settle before capturing the lit frame.
+        await new Promise(resolve => setTimeout(resolve, 250));
+      } catch(e) { throw new Error('Flash capture did not work. Use the phone camera, turn flash off, or try brighter lighting.'); }
+      if (!cameraActive(session)) return;
+    }
+    let blob;
+    if (session.imageCapture?.takePhoto){
+      try {
+        const settings = session.flashModes.includes('off') || ui.cameraLightMode === 'flash' ? {fillLightMode:ui.cameraLightMode === 'flash' && ui.cameraFlashEnabled ? 'flash' : 'off'} : undefined;
+        blob = await cameraOperation(session.imageCapture.takePhoto(settings), 10000);
+      } catch(e) {
+        if (ui.cameraLightMode === 'flash' && ui.cameraFlashEnabled) throw new Error('Flash capture did not work. Use the phone camera to take a photo with flash.');
+      }
+    }
+    if (!cameraActive(session)) return;
+    if (blob){
+      const photoUrl = URL.createObjectURL(blob);
+      try {
+        const image = new Image(); image.src = photoUrl; await cameraOperation(image.decode());
+        if (!cameraActive(session)) return;
+        blob = await cameraFrameBlob(image, image.naturalWidth, image.naturalHeight, frame);
+      } finally { URL.revokeObjectURL(photoUrl); }
+    } else {
+      if (video.videoWidth !== frame.videoWidth || video.videoHeight !== frame.videoHeight) throw new Error('The camera orientation changed. Hold steady and take the photo again.');
+      blob = await cameraFrameBlob(video, frame.videoWidth, frame.videoHeight, frame);
+    }
+    if (!cameraActive(session)) return;
+    if (pulsed){
+      try { await cameraOperation(track.applyConstraints({advanced:[{torch:false}]})); }
+      catch(e) { failCamera(session, 'The camera light could not turn off. Reopen the camera or use the phone camera.'); return; }
+      pulsed = false;
+    }
+    if (!cameraActive(session)) return;
+    const file = new File([blob], 'receipt.jpg', {type:blob.type || 'image/jpeg'});
+    stopCamera(); await runScan(file);
+  } catch(e) {
+    if (pulsed){
+      try { await cameraOperation(track.applyConstraints({advanced:[{torch:false}]})); pulsed = false; }
+      catch(offError) { failCamera(session, 'The camera stopped to turn the light off. Reopen it or use the phone camera.'); return; }
+    }
+    if (cameraActive(session)){ ui.capturing = false; ui.cameraError = e.message || 'The photo could not be captured. Try again or use the phone camera.'; render(); }
+  } finally {
+    if (pulsed){
+      try { await cameraOperation(track.applyConstraints({advanced:[{torch:false}]})); }
+      catch(e) { failCamera(session, 'The camera stopped to turn the light off. Reopen it or use the phone camera.'); }
+    }
+  }
+}
+
+let scanJob = null, ocrLoader = null;
+function clearPhoto(){
+  if (ui.photo) URL.revokeObjectURL(ui.photo);
+  ui.photo = null;
+}
+function cancelScan(){
+  const job = scanJob;
+  scanJob = null;
+  if (!job) return;
+  clearTimeout(job.timer);
+  if (job.worker) job.worker.terminate().catch(() => {});
+}
+function loadOCR(){
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  if (ocrLoader) return ocrLoader;
+  ocrLoader = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    const fail = () => { clearTimeout(timer); script.remove(); ocrLoader = null; reject(new Error('The receipt reader could not download. Check your connection, then try again or type the items in.')); };
+    const timer = setTimeout(fail, 30000);
+    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js';
+    script.onload = () => { clearTimeout(timer); if (window.Tesseract) resolve(window.Tesseract); else fail(); };
+    script.onerror = fail;
+    document.head.appendChild(script);
+  });
+  return ocrLoader;
+}
+async function receiptImage(){
+  const img = new Image();
+  img.src = ui.photo;
+  await img.decode().catch(() => { throw new Error('This image could not be opened. Try a JPG or PNG photo, or type the items in.'); });
+  // Limit work/memory for large phone photos; fill transparency with white.
+  const scale = Math.min(1, 2400 / Math.max(img.naturalWidth, img.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+async function runScan(file){
+  if (!file) return;
+  stopCamera();
+  cancelScan();
+  ui.scanError = ''; ui.scanText = '';
+  if (!file.type.startsWith('image/') || file.size > 20 * 1024 * 1024){
+    ui.scanError = 'Choose an image smaller than 20 MB. JPG and PNG work best.'; S.view = 'scan'; render(); return;
+  }
+  clearPhoto(); ui.photo = URL.createObjectURL(file);
+  const job = {worker:null, timer:null}; scanJob = job;
+  const active = () => scanJob === job && S.view === 'scanning';
+  const fail = message => {
+    if (!active()) return;
+    cancelScan(); clearPhoto(); ui.scanError = message; S.view = 'scan'; render();
+  };
+  ui.scanProgress = 0; ui.scanStatus = 'Preparing receipt reader…';
+  // Don't change the previous draft (including its last step) until OCR succeeds.
+  S.view = 'scanning'; render();
+  job.timer = setTimeout(() => fail('Reading took too long. Try a smaller, sharper photo, or type the items in.'), 120000);
+  try {
+    const image = await receiptImage();
+    if (!active()) return;
+    const OCR = await loadOCR();
+    if (!active()) return;
+    const worker = await OCR.createWorker('eng', 1, {
+      logger: m => {
+        if (!active()) return;
+        const progress = m.status === 'recognizing text' ? Math.round((m.progress || 0) * 100) : 0;
+        const status = m.status === 'recognizing text' ? `${job.retrying ? 'Trying another receipt layout' : 'Reading receipt text'}… ${progress}%` : 'Loading receipt reader…';
+        if (progress !== ui.scanProgress || status !== ui.scanStatus){ ui.scanProgress = progress; ui.scanStatus = status; render(); }
+      },
+      errorHandler: () => fail('The receipt reader stopped. Try again or type the items in.')
+    });
+    if (!active()) { await worker.terminate(); return; }
+    job.worker = worker;
+    await worker.setParameters({preserve_interword_spaces:'1'});
+    const {data} = await worker.recognize(image);
+    if (!active()) return;
+    ui.scanText = String(data.text || '').slice(0, 16000);
+    let parsed = parseReceiptText(data.text || '');
+    if (!parsed.items.length || !parsed.printed || receiptGap(parsed) > 1){
+      // Partial reads also need another attempt. Sauvola thresholding is more
+      // tolerant of uneven paper brightness; retain the original photo to compare.
+      job.retrying = true; ui.scanProgress = 0; ui.scanStatus = 'Trying another receipt layout…'; render();
+      await worker.setParameters({tessedit_pageseg_mode:'4', thresholding_method:'2'});
+      if (!active()) return;
+      const retry = await worker.recognize(image, {rotateAuto:true});
+      if (!active()) return;
+      const retryText = String(retry.data.text || '');
+      const candidate = parseReceiptText(retryText);
+      const best = preferReceiptRead(parsed, candidate);
+      if (best === candidate || !ui.scanText.trim()) ui.scanText = retryText.slice(0, 16000);
+      parsed = best;
+    }
+    if (!parsed.items.length) throw new Error(ui.scanText.trim()
+      ? 'Some text was read, but no priced items were found. Open “Text read from receipt” to check it, try a closer photo, or type the items in.'
+      : 'No readable text was found. Move closer so the receipt fills the photo, keep it upright and in focus, then try again or type the items in.');
+    const d = newDraft();
+    Object.assign(d, parsed, {items:parsed.items.map(it => ({id:uid('i'), ...it})), fromScan:true, scanWarnings:parsed.warnings, at:'review'});
+    delete d.warnings;
+    S.draft = d;
+    ui.originalNames = {}; shortenDraftNames();
+    ui.scanText = ''; // Raw receipt text is diagnostic only, never part of the saved draft.
+    cancelScan(); go('review');
+  } catch(e) {
+    fail(e.message || 'The receipt could not be read. Try another image or type the items in.');
+  }
 }
 function runSend(pids){
   const d = S.draft, delay = matchMedia('(prefers-reduced-motion: reduce)').matches ? 100 : 650;
@@ -1316,15 +1713,22 @@ const A = {
   go: ds => { ui.sheet = null; go(ds.v); },
   jump: ds => { ui.sheet = null;
     if (ds.v === 'sent' && !S.draft.results){ S.draft = demoDraft(); S.draft.code = 'TP' + Math.random().toString(36).slice(2,4).toUpperCase() + '-' + Math.random().toString(36).slice(2,4).toUpperCase(); const {c, ready} = sendPlan(); S.draft.results = ready.map(p => ({pid:p.id, amount:c.totals[p.id], status:'sent'})); }
-    if (ds.v === 'scanning') return runScan();
     go(ds.v); },
-  start: () => { ui.sheet = null; const at = S.draft.at && S.draft.at !== 'scanning' ? S.draft.at : 'scan'; go(S.draft.items.length || at === 'sent' ? at : 'scan'); },
-  snap: () => runScan(),
-  unreadable: () => { ui.scanError = true; render(); },
-  manual: () => { const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = false; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
+  start: () => { ui.sheet = null; if (S.view === 'scanning') cancelScan(); S.view = 'scan'; render(); return openCamera(); },
+  resume: () => { ui.sheet = null; const at = S.draft.at && S.draft.at !== 'scanning' && S.draft.at !== 'scan' ? S.draft.at : 'review'; go(at); },
+  snap: () => openCamera(),
+  nativeCamera: () => usePhotoPicker('camera-in'),
+  capturePhoto: () => captureCameraPhoto(),
+  cameraLight: () => toggleCameraLight(),
+  closeCamera: () => { stopCamera(); ui.cameraError = ''; render(); },
+  shortenNames: () => { shortenDraftNames(); render(); },
+  restoreName: ds => { const it = S.draft.items.find(it => it.id === ds.id); if (it && ui.originalNames[it.id]){ it.name = ui.originalNames[it.id]; delete ui.originalNames[it.id]; render(); } },
+  upload: () => usePhotoPicker('file-in'),
+  cancelScan: () => { cancelScan(); clearPhoto(); ui.scanText = ''; S.view = 'scan'; render(); },
+  manual: () => { stopCamera(); cancelScan(); clearPhoto(); ui.scanText = ''; const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = ''; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
   additem: () => { const it = {id:uid('i'), name:'', price:0}; S.draft.items.push(it); render(); document.getElementById('n-' + it.id)?.focus(); },
   delitem: ds => { const d = S.draft; d.items = d.items.filter(it => it.id !== ds.id); delete d.assign[ds.id]; render(); },
-  tip: ds => { S.draft.tipPct = +ds.p; render(); },
+  tip: ds => { Object.assign(S.draft, {tipMode:'percent', tipPct:+ds.p, tipInput:''}); render(); },
   cnt: ds => { const d = S.draft;
     if (+ds.d > 0 && d.people.length < 12) d.people.push({id:uid('p'), name:'', method:'venmo', venmo:'', phone:'', paypal:'', contactId:null});
     if (+ds.d < 0 && d.people.length > 2){ const i = d.people.map(p => !p.me && !p.name.trim()).lastIndexOf(true); d.people.splice(i > 0 ? i : d.people.length - 1, 1); }
@@ -1367,7 +1771,7 @@ const A = {
     const done = () => toast(`Copied ${code}`);
     try { navigator.clipboard.writeText(code).then(done, () => { selectCode(); toast('Press Copy to finish copying the selected code.'); }); }
     catch(e) { selectCode(); } },
-  done: () => { S.draft = newDraft(); ui.photo = null; go('home'); toast('New splits are not saved yet. This one was a demo.'); }
+  done: () => { stopCamera(); cancelScan(); S.draft = newDraft(); clearPhoto(); ui.scanText = ''; go('home'); toast('New splits are not saved yet. This one was a demo.'); }
 };
 // Contacts sync: Supabase functions save_contact / delete_contact (see supabase/contacts-sync.sql).
 async function saveContact(id){
@@ -1447,6 +1851,7 @@ document.addEventListener('input', e => {
     case 'iname': item().name = val; break;
     case 'iprice': item().price = toC(val); break;
     case 'tax': case 'fees': case 'printed': d[k] = toC(val); break;
+    case 'tipamount': d.tipInput = val; d.tipMode = val.trim() ? 'amount' : null; d.tipPct = null; break;
     case 'q': ui.q = val; break;
     case 'hq': case 'cq': ui[k] = val; break;
     case 'pmsg': (d.msgs = d.msgs || {})[el.dataset.id] = val; break;
@@ -1457,12 +1862,15 @@ document.addEventListener('input', e => {
   refresh(); save();
 });
 document.addEventListener('change', e => {
-  if (e.target.id !== 'file-in' || !e.target.files[0]) return;
-  const r = new FileReader();
-  r.onload = () => { ui.photo = r.result; runScan(); };
-  r.readAsDataURL(e.target.files[0]);
+  if (!['file-in', 'camera-in'].includes(e.target.id)) return;
+  const file = e.target.files[0]; e.target.value = '';
+  if (file) runScan(file);
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.sheet){ ui.sheet = null; render(); } });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && ui.cameraOpen){ stopCamera(); if (S.view === 'scan') render(); }
+});
+window.addEventListener?.('pagehide', () => stopCamera());
 
 if (!V[S.view] || S.view === 'scanning' || S.view === 'sent' && !S.draft.results) S.view = 'home';
 render();
