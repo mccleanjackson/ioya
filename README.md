@@ -34,6 +34,12 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 
 **The payer is also a contact.** Each user has one row in `contacts` with the same name and phone as their `users` row. That lets the payer be a participant and be assigned items like everyone else, and the app shows that contact as "You."
 
+## System Architecture
+
+![IOYA system architecture](docs/ioya-architecture.png)
+
+This diagram shows the technologies we use now and the ones we plan to use. Payment links, text requests, saving new splits and login are planned, not built yet.
+
 ## Tech Stack
 
 | Layer | What we used | Why |
