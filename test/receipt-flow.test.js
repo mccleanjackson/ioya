@@ -40,7 +40,7 @@ test('successful OCR creates editable candidates, releases worker and keeps no s
   assert.equal(api.S.draft.merchant,'MAPLE CAFE');
   assert.equal(api.S.draft.items.length,2);
   assert.equal(api.S.draft.printed,837);
-  assert.equal(api.S.draft.fromSample,false);
+  assert.ok(!api.S.draft.items.some(it=>it.name==='Pepperoni pizza'));
   assert.equal(api.S.draft.fromScan,true);
   assert.equal(worker.terminated,1);
   assert.equal(timers.size,0);

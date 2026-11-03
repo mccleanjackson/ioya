@@ -522,34 +522,15 @@ const ICONS = {
 const I = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
 
 /* ---------- data ---------- */
-const SAMPLE = {merchant:"Tony's Pizzeria", tax:375, fees:0, printed:4475, items:[
-  ['Pepperoni pizza',1350],['French fries',425],['Side salad',550],['Tomato soup',475],
-  ['Garlic knots',350],['Lemonade',275],['Iced tea',250],['Brownie',425]]};
-
 function newDraft(){
   const blank = () => ({id:uid('p'), name:'', method:'venmo', venmo:'', phone:'', paypal:'', contactId:null});
   return {at:'scan', merchant:'', items:[], tax:0, fees:0, printed:0, tipMode:null, tipPct:null, tipInput:'',
-    people:[{id:'me', name:'You', me:true}, blank(), blank(), blank()], assign:{}, msgs:{}, cur:0, results:null, code:null, fromSample:false};
+    people:[{id:'me', name:'You', me:true}, blank(), blank(), blank()], assign:{}, msgs:{}, cur:0, results:null, code:null};
 }
 function normalizeTipDraft(d){
   // Older drafts cannot distinguish an automatic 18% from a deliberate choice.
   // Keep the receipt and assignments, and let the user choose under the new UI.
   if (!Object.prototype.hasOwnProperty.call(d, 'tipMode')) Object.assign(d, {tipMode:null, tipPct:null, tipInput:''});
-  return d;
-}
-function loadSample(d){
-  d.merchant = SAMPLE.merchant; d.tax = SAMPLE.tax; d.fees = SAMPLE.fees; d.printed = SAMPLE.printed; d.fromSample = true;
-  d.items = SAMPLE.items.map(([name, price]) => ({id:uid('i'), name, price}));
-  d.assign = {};
-}
-// Fill a complete example split so any screen can be previewed directly.
-function demoDraft(){
-  const d = newDraft(); loadSample(d);
-  const pick = name => { const c = S.contacts.find(x => x.first === name); return c ? {id:uid('p'), name:c.name, method:c.method, venmo:c.venmo, phone:c.phone, paypal:c.paypal, contactId:c.id} : null; };
-  d.people = [d.people[0], pick('Joe'), pick('Fred'), pick('Priya')].filter(Boolean);
-  const [me, joe, fred, priya] = d.people.map(p => p.id);
-  const plan = [[joe,fred,priya],[me,joe,fred,priya],[priya],[me],[joe],[fred],[priya],[me,joe]];
-  d.items.forEach((it, i) => d.assign[it.id] = plan[i] || []);
   return d;
 }
 
@@ -558,7 +539,8 @@ function demoDraft(){
    and the current screen are kept in this browser's localStorage. */
 const KEY = 'ioya-draft-v1';
 let S = {view:'home', userId:null, contacts:[], groups:[], history:[], payMethods:[], selfContactId:null, draft:newDraft(), loading:true, loadError:null};
-try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.draft) Object.assign(S, {view:saved.view, draft:normalizeTipDraft(saved.draft)}); } catch(e) {}
+// Older versions filled empty drafts with a sample receipt (fromSample); drop those instead of resuming them.
+try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.draft && !saved.draft.fromSample) Object.assign(S, {view:saved.view, draft:normalizeTipDraft(saved.draft)}); } catch(e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({view:S.view, draft:S.draft})); } catch(e) {} };
 
 const CFG = window.IOYA_CONFIG || {};
@@ -1102,7 +1084,6 @@ V.review = () => {
   ${flowHead(1, 'scan')}
   <h1 class="h">Check the items</h1>
   <p class="sub">Fix anything the scan got wrong before you split.</p>
-  ${d.fromSample ? '<p class="fine">Prototype: these items come from a sample receipt.</p>' : ''}
   ${d.fromScan ? `<div class="alert warn"><b>Check every item and amount against your receipt.</b>Scans can miss or misread lines. Check the printed total, tax, fees and tip before continuing.${(d.scanWarnings || []).map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
   ${d.fromScan && ui.photo ? `<details><summary>Compare with receipt photo</summary><img src="${esc(ui.photo)}" alt="Receipt used for this scan" style="max-width:100%;height:auto"></details>` : ''}
   <label class="field"><span>Where did you eat?</span><input id="merchant" data-in="merchant" value="${esc(d.merchant)}" placeholder="Restaurant name"></label>
@@ -1435,8 +1416,10 @@ function drawQR(){
 function go(v){
   if (v !== 'scan') stopCamera();
   if (S.view === 'scanning' && v !== 'scanning') cancelScan();
+  // Later split screens need items first; with an empty split, start at Check the items.
+  if (['people','assign','summary','sent'].includes(v) && !S.draft.items.length) v = 'review';
+  if (v === 'sent' && !S.draft.results) v = 'summary';
   if (FLOW.includes(v)) S.draft.at = v;
-  if (['review','people','assign','summary'].includes(v) && !S.draft.items.length && v !== 'review') S.draft = demoDraft();
   S.view = v; render();
 }
 function toast(t){ ui.toast = t; render(); clearTimeout(toast.t); toast.t = setTimeout(() => { ui.toast = null; render(); }, 2600); }
@@ -1739,9 +1722,7 @@ function runSend(pids){
 const A = {
   reload: () => { S.loading = true; S.loadError = null; render(); loadAll(); },
   go: ds => { ui.sheet = null; go(ds.v); },
-  jump: ds => { ui.sheet = null;
-    if (ds.v === 'sent' && !S.draft.results){ S.draft = demoDraft(); S.draft.code = 'TP' + Math.random().toString(36).slice(2,4).toUpperCase() + '-' + Math.random().toString(36).slice(2,4).toUpperCase(); const {c, ready} = sendPlan(); S.draft.results = ready.map(p => ({pid:p.id, amount:c.totals[p.id], status:'sent'})); }
-    go(ds.v); },
+  jump: ds => { ui.sheet = null; go(ds.v); },
   start: () => { ui.sheet = null; if (S.view === 'scanning') cancelScan(); S.view = 'scan'; render(); return openCamera(); },
   resume: () => { ui.sheet = null; const at = S.draft.at && S.draft.at !== 'scanning' && S.draft.at !== 'scan' ? S.draft.at : 'review'; go(at); },
   snap: () => openCamera(),
@@ -1900,7 +1881,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener?.('pagehide', () => stopCamera());
 
-if (!V[S.view] || S.view === 'scanning' || S.view === 'sent' && !S.draft.results) S.view = 'home';
+if (!V[S.view] || S.view === 'scanning' || S.view === 'sent' && !S.draft.results || ['people','assign','summary'].includes(S.view) && !S.draft.items.length) S.view = 'home';
 render();
 loadAll();
 })();
