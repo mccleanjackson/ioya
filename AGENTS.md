@@ -16,7 +16,7 @@ IOYA is a bill-splitting web app built by a four-person student team (Jackson, T
 
 Port: **3001** (3000 is used by another project on Jackson's machine).
 
-Hosting: the live app is at https://ioya.onrender.com, on Render's free tier. Render runs `npm install` and `npm start`, reads `SUPABASE_URL` and `SUPABASE_ANON_KEY` from its own environment settings, and supplies `PORT` itself. The live site uses the same shared Supabase project as local development. **The app has no login yet, so anyone with the link can read and change its data. Keep only fake data in it and do not share the link publicly.**
+Hosting: the live app is at https://ioya.onrender.com, on Render's free tier. Render runs `npm install` and `npm start`, reads `SUPABASE_URL` and `SUPABASE_ANON_KEY` from its own environment settings, and supplies `PORT` itself. The live site uses the same shared Supabase project as local development. **Every visitor gets a guest account, but data is not private yet: anyone with the anon key can read every table. Keep only fake data in it and do not share the link publicly.**
 
 ## Getting it running
 
@@ -54,7 +54,8 @@ server.js                   Express: static files + /config.js (reads .env)
 public/index.html           The entire frontend (~1,150 lines)
 supabase/schema.sql         Creates all 11 tables, RLS policies and the contact functions. DROPS tables first.
 supabase/seed.sql           Sample rows for every table (run after schema.sql)
-supabase/contacts-sync.sql  Migration that adds save_contact/delete_contact to an older project
+supabase/contacts-sync.sql  Older migration that added save_contact/delete_contact (superseded; don't re-run)
+supabase/anonymous-accounts.sql  Guest accounts: users.auth_user_id, ensure_my_user(), per-user contact functions
 docs/ioya-erd.pdf / .png    The team's ERD (the source of truth for the data model)
 README.md                   Human setup guide + course deliverable (graded; keep its 5 sections)
 .env.example                Template for .env
@@ -66,7 +67,7 @@ The schema follows the team's ERD (`docs/ioya-erd.pdf`). ERD names are PascalCas
 
 | Table | Key | Notes |
 |---|---|---|
-| `users` | `user_id` | No login yet: the app always acts as `user_id = 1` ("Demo Payer"). |
+| `users` | `user_id` | `auth_user_id` (uuid, unique) links a row to its Supabase Auth user; it is NULL for the seed users. The app acts as the signed-in user (`S.userId`). Seed user 1 ("Demo Payer") owns the sample data, and no account signs in as it. New users start with blank names. |
 | `contacts` | `contact_id` | `user_id` FK. The payer also has a contact row with the **same first name, last name and phone** as their `users` row; the app finds it by that match and shows it as "You". Don't break that match. |
 | `friend_groups` / `group_members` | `group_id` / (`group_id`, `contact_id`) | Groups ↔ contacts, many-to-many |
 | `payment_methods` | `pay_method_id` | Lookup: 1 Venmo, 2 PayPal, 3 Zelle, 4 Cash |
@@ -81,11 +82,11 @@ Amount owed is **not stored**; it is computed from `item_assignments` plus a pro
 
 ## Security rules (Row Level Security): read before adding any write
 
-The browser uses the public **anon** key, so RLS is the only protection. Current rules (defined at the bottom of `schema.sql` and in `contacts-sync.sql`):
+The browser uses the public **anon** key, so RLS is the only protection. On startup the app signs in with Supabase **anonymous sign-in** (session kept in localStorage by supabase-js) and calls `ensure_my_user()`, which creates the caller's `users` row and "You" contact if missing. Signed-in requests run as the Postgres role **`authenticated`**, not `anon`, so every policy and grant must cover `authenticated`. Current rules (bottom of `schema.sql`, and `anonymous-accounts.sql`):
 
-- anon can **SELECT** every table;
-- anon can **UPDATE only `participants.paid_method_id`** (the "Mark as paid" button);
-- anon can add/edit/delete contacts **only** through two `SECURITY DEFINER` functions: `save_contact(p_contact_id, p_first_name, p_last_name, p_phone, p_methods jsonb)` and `delete_contact(p_contact_id)`. Direct INSERT/DELETE on tables is revoked. `delete_contact` refuses contacts who are on a past split.
+- anon and authenticated can **SELECT** every table (not private yet);
+- they can **UPDATE only `participants.paid_method_id`** (the "Mark as paid" button);
+- they can add/edit/delete contacts **only** through two `SECURITY DEFINER` functions: `save_contact(p_contact_id, p_first_name, p_last_name, p_phone, p_methods jsonb)` and `delete_contact(p_contact_id)`. Both act on `app_user_id()` (the caller's `users` row; signed-out callers temporarily fall back to user 1). Direct INSERT/UPDATE/DELETE on tables is revoked. `delete_contact` refuses contacts who are on a past split.
 
 **Any new feature that writes data needs a database change first.** The preferred pattern is a new `SECURITY DEFINER` function (validated, one transaction) granted to `anon`, not broad table grants. To ship it:
 
@@ -101,7 +102,7 @@ Never run `schema.sql` against the shared project without the team agreeing. It 
 Single global state, string-template rendering, event delegation. No framework.
 
 - **State:** `S` holds data loaded from Supabase plus the current `view` and the in-progress split `draft`. `ui` holds transient UI state (open sheet, toast, flags). Only `S.view` and `S.draft` are saved to `localStorage` (`ioya-draft-v1`).
-- **Loading:** `loadAll()` fetches users, payment methods, contacts (`CONTACT_SELECT`), groups and events (nested receipts → line_items → item_assignments, plus participants) and rebuilds `S`. `normContact()` normalizes a contact row.
+- **Loading:** `loadAll()` first runs `signIn()` (anonymous sign-in + `ensure_my_user()`, sets `S.userId`), then fetches users, payment methods, contacts (`CONTACT_SELECT`), groups and events (nested receipts → line_items → item_assignments, plus participants) and rebuilds `S`. `normContact()` normalizes a contact row.
 - **Views:** `V.home`, `V.history`, `V.contacts`, and the split flow `V.scan → V.scanning → V.review → V.people → V.assign → V.summary → V.sent` return HTML strings. `render()` draws the current view, tab bar, sheets and toast.
 - **Live regions:** `LIVE[name]` functions fill `[data-live="name"]` elements via `refresh()`, so totals can update while the user types without re-rendering (which would steal focus).
 - **Bottom sheets:** `sheetHTML()` switches on `ui.sheet.type` (`profile`, `contact`, `group`, `req`, `receipt`, `confirm`). The `receipt` sheet (History → "View full receipt split") is built by `receiptSplitDetail()`.
@@ -128,6 +129,8 @@ The real camera stream is transient in `cameraSession`; never store streams/devi
 **Draft tips:** `tipMode` is null (unselected), `percent`, or `amount`. `tipPct` holds a selected preset; `tipInput` holds the raw custom dollar input so invalid edits remain visible. `tipState()` validates and converts money; `calc()` allocates its cents proportionally. No tip is added by default. Invalid custom amounts must block both Review → People and Send. `normalizeTipDraft()` clears old tip choices once while preserving all receipt work; explicit new choices persist. This is local draft behavior, not a database migration or new-split persistence.
 
 Empty reads, missing totals and items that do not reconcile with the printed total trigger one retry in single-column mode with skew correction and Sauvola thresholding. `preferReceiptRead()` selects one complete result by reconciliation; do not merge item arrays across readings, since repeated products are valid. Failed reads expose escaped OCR text in a collapsible panel. Keep that raw text transient in `ui.scanText`, never in the saved draft, logs, shared data or Notion; distinguish no readable text from no parsed prices.
+
+Groups have no owner column yet; `loadAll()` hides groups with none of the user's contacts.
 
 **What is simulated (not real yet):** sending Venmo/SMS/PayPal requests and reminders, and saving a new split (Done shows "New splits are not saved yet"). Groups can only be edited in the Supabase dashboard.
 
