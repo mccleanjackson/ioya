@@ -32,13 +32,15 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 
 **How the diagram becomes tables.** The SQL in [`supabase/schema.sql`](supabase/schema.sql) uses the same 11 tables and columns, written in Postgres's lowercase snake_case style: `Users.UserFirstName` becomes `users.user_first_name`, `Contacts_Payment_Method` becomes `contacts_payment_method`, and so on. `IsPreffered` is spelled `is_preferred` in the database. Money is stored as whole cents, so `1959` means $19.59.
 
+**Accounts.** `users` has one column that is not in the ERD, `auth_user_id`, which links a row to its Supabase Auth account. It is empty for the sample users in `seed.sql`.
+
 **The payer is also a contact.** Each user has one row in `contacts` with the same name and phone as their `users` row. That lets the payer be a participant and be assigned items like everyone else, and the app shows that contact as "You."
 
 ## System Architecture
 
 ![IOYA system architecture](docs/ioya-architecture.png)
 
-This diagram shows the technologies we use now and the ones we plan to use. Payment links, text requests, saving new splits and login are planned, not built yet.
+This diagram shows the technologies we use now and the ones we plan to use. Payment links, text requests, saving new splits and email sign-in are planned, not built yet. Each browser already gets its own guest account.
 
 ## Tech Stack
 
@@ -50,15 +52,17 @@ This diagram shows the technologies we use now and the ones we plan to use. Paym
 | Receipt reader | [Tesseract.js 7.0.0](https://github.com/naptha/tesseract.js), loaded on the first scan | Reads photos in a browser worker without an OCR API key or uploading the photo to a recognition service. Its script, engine and English language data download from public CDNs. |
 | Secrets | A git-ignored `.env` file | [`.env.example`](.env.example) shows the format. |
 
-**Security.** The app has no login yet, so it uses Supabase's public **anon** key and always acts as the sample user, Demo Payer. Row Level Security is on for every table. With the anon key, the app can:
+**Accounts.** There is no login screen. The first time a browser opens IOYA, it signs in to Supabase anonymously, which creates a guest account, and the database function `ensure_my_user` creates that person's `users` row and their own "You" contact. The browser keeps the session, so the same person gets the same account on later visits. Clearing the browser's data or using a private window starts a new, empty account. A new account doesn't see the sample data in `seed.sql`, which belongs to the sample user, Demo Payer.
 
-- **read** every table;
+**Security.** The browser uses Supabase's public **anon** key. Row Level Security is on for every table. Today, the app (signed in or not) can:
+
+- **read** every table. **Data is not private between accounts yet**, so keep only fake data in the project;
 - **update only `participants.paid_method_id`**, which is the "Mark as paid" button;
-- **add, edit and delete contacts** only through two database functions, `save_contact` and `delete_contact` (in [`supabase/contacts-sync.sql`](supabase/contacts-sync.sql)). They check the input and save a contact and its payment methods together in one transaction. A contact who is on a past split can't be deleted, because that would erase their items from the receipt.
+- **add, edit and delete contacts** only through two database functions, `save_contact` and `delete_contact` (in [`supabase/anonymous-accounts.sql`](supabase/anonymous-accounts.sql)). They check the input, act only on the signed-in person's own contacts, and save a contact and its payment methods together in one transaction. A contact who is on a past split can't be deleted, because that would erase their items from the receipt.
 
 Every other change has to be made in the Supabase dashboard. Never put the `service_role` key or the database password in `.env` or in the code.
 
-**Saved to Supabase:** contacts you add, edit or delete on the Contacts screen, and "Mark as paid." Everyone using the same Supabase project sees the same data.
+**Saved to Supabase:** your guest account, contacts you add, edit or delete on the Contacts screen, and "Mark as paid." Each account's screens show only its own contacts and splits, but the data itself is still readable by anyone with the anon key (see Security).
 
 **Receipt scanning:** Start split → Take photo or Upload photo → Check the items. On HTTPS or localhost, Take photo opens a live in-page preview when the browser supports it, after the user grants camera permission. It prefers the rear camera and does not request a microphone. Capture photo takes a still (or a video frame where needed) and reads it locally. The camera stops after capture, on closing, on leaving the capture view and when the tab is hidden/unloaded. On HTTP phone LAN addresses or unsupported browsers, Take photo uses the native camera/file picker instead. That fallback is also available explicitly. Choose a browser-readable image under 20 MB. The first scan needs internet to download the OCR reader. Check every item, tax, fees and printed total before continuing. Photos stay in memory; the editable draft is saved locally. Scanning does not save a receipt to Supabase.
 
@@ -99,8 +103,10 @@ npm install
 1. Sign in at [supabase.com](https://supabase.com) and create a new project (the free plan is fine).
 2. Open **SQL Editor** → **New query**, paste the whole contents of [`supabase/schema.sql`](supabase/schema.sql), and click **Run**. You should see "Success. No rows returned."
 3. Open another **New query**, paste all of [`supabase/seed.sql`](supabase/seed.sql), and click **Run**. The result shows a `setval` column; that is expected.
-4. In **Table Editor** you should now see 11 tables, each with sample rows. (`schema.sql` already includes the contact functions, so you don't need to run `contacts-sync.sql` separately.)
-5. Find your **Project URL** and **anon public key** under **Project Settings → API** (or the **Connect** button).
+4. In **Table Editor** you should now see 11 tables, each with sample rows. (`schema.sql` already includes the contact and account functions, so you don't need to run `contacts-sync.sql` or `anonymous-accounts.sql` separately.)
+5. Open **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**, then click **Save**. Without it, the app shows "Guest accounts are turned off."
+6. Open **Authentication → URL Configuration**. Set **Site URL** to your live address (ours is `https://ioya.onrender.com`) and add `http://localhost:3001/**` under **Redirect URLs**.
+7. Find your **Project URL** and **anon public key** under **Project Settings → API** (or the **Connect** button).
 
 ### 3. Create your `.env` file
 
@@ -141,7 +147,9 @@ The HTTPS address is a new browser origin: its local draft and camera permission
 
 - `Missing SUPABASE_URL or SUPABASE_ANON_KEY`: `.env` is missing, misnamed, or not in the project folder.
 - "Couldn't load your data" in the app: check that the URL and key in `.env` match your project, that you ran both SQL files, and that your internet connection works. Restart `npm start` after editing `.env`.
-- `Could not find the function public.save_contact` when saving a contact: the project was set up before contact syncing was added. Run [`supabase/contacts-sync.sql`](supabase/contacts-sync.sql) once in the SQL Editor.
+- "Guest accounts are turned off": turn on **Allow anonymous sign-ins** (step 2, item 5).
+- "The database is missing the accounts update", or `Could not find the function public.save_contact`: the project was set up before accounts were added. Run [`supabase/anonymous-accounts.sql`](supabase/anonymous-accounts.sql) once in the SQL Editor.
+- "Too many new accounts were created from this network": Supabase limits how many guest accounts one network can create per hour. Wait, or reuse a browser that already has an account.
 - `permission denied` when saving: you are trying to change something other than a contact or "Mark as paid," which the security rules block on purpose.
 
 ## Verifying the Vertical Slice
@@ -178,7 +186,7 @@ Run `npm test` for deterministic receipt-parser checks. These are software check
 
 **To clean up:** tap Alex Johnson on the Contacts screen and choose **Delete**.
 
-**A second working example: "Mark as paid."** On the **Home** screen, tap someone in the **Unpaid** column (for example **Mom, $19.59, Top Cafe**), choose how they paid, and tap **Mark as paid**. The app updates `participants.paid_method_id` in Supabase and moves them to the **Paid** column, and they stay there after a refresh. Tap them again and choose **Mark as unpaid** to undo it.
+**A second working example: "Mark as paid."** This needs a saved split, so it only works for an account that has one. A new guest account has none, because the sample splits belong to Demo Payer and new splits aren't saved yet. On the **Home** screen, tap someone in the **Unpaid** column, choose how they paid, and tap **Mark as paid**. The app updates `participants.paid_method_id` in Supabase and moves them to the **Paid** column, and they stay there after a refresh. Tap them again and choose **Mark as unpaid** to undo it.
 
 ## Project Layout
 
@@ -186,7 +194,8 @@ Run `npm test` for deterministic receipt-parser checks. These are software check
 server.js              Serves public/ and /config.js (Supabase URL + anon key from .env)
 public/index.html      The whole frontend: screens, styles, and Supabase calls
 supabase/schema.sql    Creates the 11 tables, security rules and contact functions (drops existing tables first)
-supabase/contacts-sync.sql  Adds just the contact functions to a project set up before they existed
+supabase/contacts-sync.sql  Adds just the contact functions to a project set up before they existed (older version)
+supabase/anonymous-accounts.sql  Guest accounts: links users to Supabase Auth and updates the contact functions
 supabase/seed.sql      Sample rows for every table
 docs/ioya-erd.pdf      Our ERD (docs/ioya-erd.png is the same diagram for this README)
 .env.example           Template for your .env file

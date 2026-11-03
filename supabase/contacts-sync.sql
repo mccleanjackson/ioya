@@ -1,6 +1,8 @@
 -- IOYA: let the app add, edit and delete contacts.
 -- Paste into Supabase → SQL Editor → New query → Run. Safe to run more than once.
 -- (schema.sql already includes this, so a brand-new project doesn't need it separately.)
+-- Don't run this after anonymous-accounts.sql: that file replaces these two functions, and running
+-- this one again would make every new contact belong to the demo user. Re-run anonymous-accounts.sql to fix it.
 --
 -- The anon key still cannot write to the contact tables directly. Instead it may call these
 -- two functions, which check the input and make all their changes in one transaction.

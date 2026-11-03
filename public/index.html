@@ -557,8 +557,7 @@ function demoDraft(){
    Contacts, groups and history are read from Supabase. Only the in-progress draft
    and the current screen are kept in this browser's localStorage. */
 const KEY = 'ioya-draft-v1';
-const USER_ID = 1;  // No login yet: the app always acts as user 1 (Demo Payer).
-let S = {view:'home', contacts:[], groups:[], history:[], payMethods:[], selfContactId:null, draft:newDraft(), loading:true, loadError:null};
+let S = {view:'home', userId:null, contacts:[], groups:[], history:[], payMethods:[], selfContactId:null, draft:newDraft(), loading:true, loadError:null};
 try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.draft) Object.assign(S, {view:saved.view, draft:normalizeTipDraft(saved.draft)}); } catch(e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({view:S.view, draft:S.draft})); } catch(e) {} };
 
@@ -583,14 +582,41 @@ function owedByContact(receipt){
   return out;
 }
 
+/* Every browser gets its own account without a login screen: Supabase anonymous sign-in.
+   supabase-js keeps the session in localStorage, so the same person gets the same account next time.
+   ensure_my_user() finds or creates their users row and "You" contact. */
+const authMessage = msg => /anonymous sign-ins are disabled/i.test(msg) ? 'Guest accounts are turned off. In Supabase, turn on Authentication → Sign In / Providers → Allow anonymous sign-ins.'
+  : /rate limit/i.test(msg) ? 'Too many new accounts were created from this network. Try again in an hour.'
+  : /ensure_my_user/.test(msg) ? 'The database is missing the accounts update. Run supabase/anonymous-accounts.sql in the Supabase SQL Editor.'
+  : msg;
+async function signIn(){
+  const {data:{session}, error} = await sb.auth.getSession();
+  if (error) throw new Error(error.message);
+  if (!session){
+    const r = await sb.auth.signInAnonymously();
+    if (r.error) throw new Error(authMessage(r.error.message));
+  }
+  let r = await sb.rpc('ensure_my_user');
+  if (r.error && r.error.code === '23503'){
+    // The saved session belongs to an account that was deleted in Supabase; start a new one.
+    await sb.auth.signOut({scope:'local'});
+    const again = await sb.auth.signInAnonymously();
+    if (again.error) throw new Error(authMessage(again.error.message));
+    r = await sb.rpc('ensure_my_user');
+  }
+  if (r.error) throw new Error(authMessage(r.error.message));
+  S.userId = r.data;
+}
+
 async function loadAll(){
   try {
     if (!sb) throw new Error(window.IOYA_CONFIG ? 'The Supabase library did not load. Check your internet connection.' : 'Supabase settings are missing. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env and restart npm start.');
+    if (S.userId == null) await signIn();
     const [user, methods, contacts, groups, events] = await Promise.all([
-      sb.from('users').select('user_id, user_first_name, user_last_name, phone').eq('user_id', USER_ID).single().then(need),
+      sb.from('users').select('user_id, user_first_name, user_last_name, phone').eq('user_id', S.userId).single().then(need),
       sb.from('payment_methods').select('pay_method_id, pay_method_name').order('pay_method_id').then(need),
       sb.from('contacts').select(CONTACT_SELECT)
-        .eq('user_id', USER_ID).order('contact_id').then(need),
+        .eq('user_id', S.userId).order('contact_id').then(need),
       sb.from('friend_groups').select('group_id, group_name, group_members(contact_id)').order('group_id').then(need),
       sb.from('events').select(`event_id, event_name,
           participants(contact_id, paid_method_id),
@@ -603,8 +629,10 @@ async function loadAll(){
     S.selfContactId = self ? String(self.contact_id) : null;
     S.contacts = contacts.filter(c => c !== self).map(normContact);
     const byId = Object.fromEntries(S.contacts.map(c => [c.id, c]));
-    S.groups = groups.map(g => ({id:String(g.group_id), name:g.group_name, members:g.group_members.map(m => String(m.contact_id)).filter(id => byId[id])}));
-    S.history = events.filter(e => e.receipts.some(r => r.payer_user_id === USER_ID)).map(e => {
+    // Groups have no owner column yet, so show only groups that contain this user's contacts.
+    S.groups = groups.map(g => ({id:String(g.group_id), name:g.group_name, members:g.group_members.map(m => String(m.contact_id)).filter(id => byId[id])}))
+      .filter(g => g.members.length);
+    S.history = events.filter(e => e.receipts.some(r => r.payer_user_id === S.userId)).map(e => {
       const owed = {};
       e.receipts.forEach(r => Object.entries(owedByContact(r)).forEach(([cid, v]) => owed[cid] = (owed[cid] || 0) + v));
       const r0 = e.receipts[0];
@@ -916,11 +944,11 @@ V.home = () => {
       <div class="col"><div class="col-h paid">Paid <span>${paid.length}</span></div>
         ${paid.slice(0, 6).map(x => reqRow(x, true)).join('') || '<div class="empty">No payments yet</div>'}</div>
       <div class="col"><div class="col-h unpaid">Unpaid <span>${unpaid.length}</span></div>
-        ${unpaid.slice(0, 6).map(x => reqRow(x, true)).join('') || '<div class="empty">Everyone has paid you back.</div>'}</div>
+        ${unpaid.slice(0, 6).map(x => reqRow(x, true)).join('') || `<div class="empty">${S.history.length ? 'Everyone has paid you back.' : 'No splits yet'}</div>`}</div>
     </div>
     <p class="owed"><span>Friends owe you</span><span class="mono">${money(owed)}</span></p>
   </section>
-  <p class="fine">Tap anyone to mark them paid.</p>`;
+  <p class="fine">${all.length ? 'Tap anyone to mark them paid.' : 'Tap Pay the tab to scan a receipt and split it.'}</p>`;
 };
 
 // Search box and filter chips shared by History (k = 'h') and Contacts (k = 'c'). State lives in ui[k + 'q'] and ui[k + 'f'].
@@ -1301,7 +1329,7 @@ function sheetHTML(){
   if (s.type === 'profile') body = `<h2 id="sh-t">Profile</h2>
     <div class="kv"><span>Events</span><span class="mono">${S.history.length}</span></div>
     <div class="kv"><span>Contacts</span><span class="mono">${S.contacts.length}</span></div>
-    <p class="fine">Signed in as the demo user. Data comes from the IOYA Supabase project.</p>
+    <p class="fine">You're using a guest account that lives in this browser. If you clear this browser's data or use a private window, you'll start over with a new, empty account.</p>
     <div class="next"><button class="btn" data-act="close">Close</button></div>`;
   if (s.type === 'contact'){
     const c = S.contacts.find(x => x.id === s.id) || {first:'', last:'', phone:'', methods:[]};
@@ -1384,7 +1412,7 @@ function render(){
   scr.classList.toggle('camera-screen', v === 'scan' && ui.cameraOpen);
   const keepScroll = v === lastView ? scr.scrollTop : 0;
   const needsData = !FLOW.includes(v) || v === 'people';
-  scr.innerHTML = needsData && S.loading ? '<p class="fine" role="status">Loading your splits…</p>'
+  scr.innerHTML = needsData && S.loading ? `<p class="fine" role="status">${S.userId == null ? 'Setting up your account…' : 'Loading your splits…'}</p>`
     : needsData && S.loadError ? `<div class="alert bad" role="alert"><b>Couldn't load your data.</b>${esc(S.loadError)}<button class="link" data-act="reload">Try again</button></div>`
     : V[v]();
   scr.scrollTop = keepScroll; lastView = v;
