@@ -16,7 +16,7 @@ IOYA is a bill-splitting web app built by a four-person student team (Jackson, T
 
 Port: **3001** (3000 is used by another project on Jackson's machine).
 
-Hosting: the live app is at https://ioya.onrender.com, on Render's free tier. Render runs `npm install` and `npm start`, reads `SUPABASE_URL` and `SUPABASE_ANON_KEY` from its own environment settings, and supplies `PORT` itself. The live site uses the same shared Supabase project as local development. **Every visitor gets a guest account, but data is not private yet: anyone with the anon key can read every table. Keep only fake data in it and do not share the link publicly.**
+Hosting: the live app is at https://ioya.onrender.com, on Render's free tier. Render runs `npm install` and `npm start`, reads `SUPABASE_URL` and `SUPABASE_ANON_KEY` from its own environment settings, and supplies `PORT` itself. The live site uses the same shared Supabase project as local development. **Every visitor gets a guest account, and each account can read only its own data (see Security rules). It is still a class project: keep only fake data in it and do not share the link publicly.**
 
 ## Getting it running
 
@@ -52,10 +52,11 @@ Hosting: the live app is at https://ioya.onrender.com, on Render's free tier. Re
 ```
 server.js                   Express: static files + /config.js (reads .env)
 public/index.html           The entire frontend (~1,150 lines)
-supabase/schema.sql         Creates all 11 tables, RLS policies and the contact functions. DROPS tables first.
+supabase/schema.sql         Creates all 11 tables, RLS policies and the contact/group functions. DROPS tables first.
 supabase/seed.sql           Sample rows for every table (run after schema.sql)
 supabase/contacts-sync.sql  Older migration that added save_contact/delete_contact (superseded; don't re-run)
 supabase/anonymous-accounts.sql  Guest accounts: users.auth_user_id, ensure_my_user(), per-user contact functions
+supabase/private-data.sql   Private-data RLS rules, friend_groups.user_id owner, save_group()/delete_group()
 docs/ioya-erd.pdf / .png    The team's ERD (the source of truth for the data model)
 README.md                   Human setup guide + course deliverable (graded; keep its 5 sections)
 .env.example                Template for .env
@@ -69,7 +70,7 @@ The schema follows the team's ERD (`docs/ioya-erd.pdf`). ERD names are PascalCas
 |---|---|---|
 | `users` | `user_id` | `auth_user_id` (uuid, unique) links a row to its Supabase Auth user; it is NULL for the seed users. The app acts as the signed-in user (`S.userId`). Seed user 1 ("Demo Payer") owns the sample data, and no account signs in as it. New users start with blank names. |
 | `contacts` | `contact_id` | `user_id` FK. The payer also has a contact row with the **same first name, last name and phone** as their `users` row; the app finds it by that match and shows it as "You". Don't break that match. |
-| `friend_groups` / `group_members` | `group_id` / (`group_id`, `contact_id`) | Groups ↔ contacts, many-to-many |
+| `friend_groups` / `group_members` | `group_id` / (`group_id`, `contact_id`) | Groups ↔ contacts, many-to-many. `friend_groups.user_id` (not in the ERD yet) is the owner. |
 | `payment_methods` | `pay_method_id` | Lookup: 1 Venmo, 2 PayPal, 3 Zelle, 4 Cash |
 | `contacts_payment_method` | (`contact_id`, `pay_method_id`) | Username per method; `is_preferred` (at most one per contact, enforced by a partial unique index) |
 | `events` | `event_id` | One outing; can hold several receipts |
@@ -82,18 +83,20 @@ Amount owed is **not stored**; it is computed from `item_assignments` plus a pro
 
 ## Security rules (Row Level Security): read before adding any write
 
-The browser uses the public **anon** key, so RLS is the only protection. On startup the app signs in with Supabase **anonymous sign-in** (session kept in localStorage by supabase-js) and calls `ensure_my_user()`, which creates the caller's `users` row and "You" contact if missing. Signed-in requests run as the Postgres role **`authenticated`**, not `anon`, so every policy and grant must cover `authenticated`. Current rules (bottom of `schema.sql`, and `anonymous-accounts.sql`):
+The browser uses the public **anon** key, so RLS is the only protection. On startup the app signs in with Supabase **anonymous sign-in** (session kept in localStorage by supabase-js) and calls `ensure_my_user()`, which creates the caller's `users` row and "You" contact if missing. Signed-in requests run as the Postgres role **`authenticated`**, not `anon`, so every policy and grant must cover `authenticated`. Current rules (`private-data.sql`, also at the bottom of `schema.sql`):
 
-- anon and authenticated can **SELECT** every table (not private yet);
-- they can **UPDATE only `participants.paid_method_id`** (the "Mark as paid" button);
-- they can add/edit/delete contacts **only** through two `SECURITY DEFINER` functions: `save_contact(p_contact_id, p_first_name, p_last_name, p_phone, p_methods jsonb)` and `delete_contact(p_contact_id)`. Both act on `app_user_id()` (the caller's `users` row; signed-out callers temporarily fall back to user 1). Direct INSERT/UPDATE/DELETE on tables is revoked. `delete_contact` refuses contacts who are on a past split.
+- **anon (no session) gets nothing**: no SELECT policies and no function grants. Everything below is for `authenticated` only.
+- authenticated can **SELECT only their own rows**. "Own" is defined through `app_user_id()` (the caller's `users` row, NULL when signed out) and the `SECURITY DEFINER` helpers `owns_contact`, `owns_group`, `owns_event`, `owns_receipt`, `owns_item`: own `users` row, `contacts.user_id`, `friend_groups.user_id`, group members where both the group and the contact are yours, receipts you paid, and events/line items/participants/assignments hanging off those receipts. `payment_methods` is readable by everyone signed in.
+- they can **UPDATE only `participants.paid_method_id`**, and only on their own events ("Mark as paid").
+- they can add/edit/delete contacts and groups **only** through `SECURITY DEFINER` functions: `save_contact(p_contact_id, p_first_name, p_last_name, p_phone, p_methods jsonb)`, `delete_contact(p_contact_id)`, `save_group(p_group_id, p_name, p_contact_ids integer[])` (null id = create; the array is the full member list and replaces the old one; returns the group_id) and `delete_group(p_group_id)` (keeps the contacts). All act only on the caller's own rows. Direct INSERT/UPDATE/DELETE on tables is revoked. `delete_contact` refuses contacts who are on a past split.
+- New tables need RLS enabled and an "own rows" SELECT policy for `authenticated`, or they will either leak or return nothing.
 
-**Any new feature that writes data needs a database change first.** The preferred pattern is a new `SECURITY DEFINER` function (validated, one transaction) granted to `anon`, not broad table grants. To ship it:
+**Any new feature that writes data needs a database change first.** The preferred pattern is a new `SECURITY DEFINER` function (validated, one transaction, acting on `app_user_id()`) granted to `authenticated` only, not broad table grants. To ship it:
 
 1. Write the SQL in a new file, `supabase/<feature>.sql`, written so it is safe to run more than once (`CREATE OR REPLACE`, `IF NOT EXISTS`).
 2. Append the same SQL to `supabase/schema.sql` so fresh setups get it.
 3. **A human must run it** in Supabase → SQL Editor. You cannot do it with the anon key. Tell your human exactly what to paste.
-4. Check it from the app (or `curl` the REST API with the anon key) before calling it done.
+4. Check it from the app before calling it done. (A bare `curl` with the anon key now sees nothing; it needs a signed-in user's access token.)
 
 Never run `schema.sql` against the shared project without the team agreeing. It drops every table and all real data.
 
@@ -108,7 +111,7 @@ Single global state, string-template rendering, event delegation. No framework.
 - **Bottom sheets:** `sheetHTML()` switches on `ui.sheet.type` (`profile`, `contact`, `group`, `req`, `receipt`, `confirm`). The `receipt` sheet (History → "View full receipt split") is built by `receiptSplitDetail()`.
 - **Search and filters:** History and Contacts share `findBar(k, ...)` (search box + filter chips). State is `ui[k + 'q']` / `ui[k + 'f']` (`k` is `'h'` or `'c'`); the lists are live regions (`hlist`, `clist`) so typing doesn't lose focus. Reuse it for any new searchable list.
 - **Actions:** clicks on any `[data-act="x"]` element call `A.x(dataset, element)`. Inputs with `data-in="..."` are handled in the single `input` listener. Add new buttons the same way.
-- **Writes:** `setPaid()` (participants update), `saveContact()` / `deleteContact()` (RPCs). Pattern: set `ui.saving`, call Supabase, check `error` with the `need()` helper, update `S` from **what Supabase returned**, then `toast()`. On error, keep the user's typed input and show the message.
+- **Writes:** `setPaid()` (participants update), `saveContact()` / `deleteContact()` (RPCs; `save_group` / `delete_group` exist in the database for the upcoming group editor). Pattern: set `ui.saving`, call Supabase, check `error` with the `need()` helper, update `S` from **what Supabase returned**, then `toast()`. On error, keep the user's typed input and show the message.
 - **Split math:** `calc(draft)` handles per-person pre-tax shares, proportional tax/tip/fees, unassigned items and the receipt-total mismatch check. All in cents.
 
 Conventions to keep:
@@ -130,9 +133,9 @@ The real camera stream is transient in `cameraSession`; never store streams/devi
 
 Empty reads, missing totals and items that do not reconcile with the printed total trigger one retry in single-column mode with skew correction and Sauvola thresholding. `preferReceiptRead()` selects one complete result by reconciliation; do not merge item arrays across readings, since repeated products are valid. Failed reads expose escaped OCR text in a collapsible panel. Keep that raw text transient in `ui.scanText`, never in the saved draft, logs, shared data or Notion; distinguish no readable text from no parsed prices.
 
-Groups have no owner column yet; `loadAll()` hides groups with none of the user's contacts.
+Groups are owned through `friend_groups.user_id`; the database returns only the user's own groups, including empty ones, so `loadAll()` doesn't filter them.
 
-**What is simulated (not real yet):** sending Venmo/SMS/PayPal requests and reminders, and saving a new split (Done shows "New splits are not saved yet"). Groups can only be edited in the Supabase dashboard.
+**What is simulated (not real yet):** sending Venmo/SMS/PayPal requests and reminders, and saving a new split (Done shows "New splits are not saved yet"). Groups can't be created or edited in the app yet, but `save_group`/`delete_group` are ready: the UI only needs to call them (same write pattern as `saveContact()`), then update `S.groups` from what Supabase returns.
 
 ## Testing your change
 

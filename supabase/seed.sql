@@ -1,5 +1,6 @@
 -- IOYA sample data. Run AFTER schema.sql (it expects empty tables).
--- The app always acts as user 1 (Demo Payer); contact 1 is that user's own row and shows as "You".
+-- User 1 (Demo Payer) owns the sample data; contact 1 is that user's own row ("You"). No account signs in
+-- as user 1, so with the security rules in private-data.sql this data shows only in the Supabase dashboard.
 -- Participants with an empty paid_method_id still owe money: Mom and Bro (Sunday brunch) and Fred (Grocery run).
 
 INSERT INTO users (user_id, user_first_name, user_last_name, phone) VALUES
@@ -19,10 +20,10 @@ INSERT INTO contacts (contact_id, cont_first_name, cont_last_name, phone, user_i
   (9, 'Sam', 'Rivera', '(555) 100-2001', 2),
   (10, 'Casey', 'Nguyen', '(555) 100-2002', 3);
 
-INSERT INTO friend_groups (group_id, group_name) VALUES
-  (1, 'Family'),
-  (2, 'Lunch crew'),
-  (3, 'Roommates');
+INSERT INTO friend_groups (group_id, group_name, user_id) VALUES
+  (1, 'Family', 1),
+  (2, 'Lunch crew', 1),
+  (3, 'Roommates', 1);
 
 INSERT INTO group_members (group_id, contact_id) VALUES
   (1, 3),

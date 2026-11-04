@@ -611,9 +611,9 @@ async function loadAll(){
     S.selfContactId = self ? String(self.contact_id) : null;
     S.contacts = contacts.filter(c => c !== self).map(normContact);
     const byId = Object.fromEntries(S.contacts.map(c => [c.id, c]));
-    // Groups have no owner column yet, so show only groups that contain this user's contacts.
-    S.groups = groups.map(g => ({id:String(g.group_id), name:g.group_name, members:g.group_members.map(m => String(m.contact_id)).filter(id => byId[id])}))
-      .filter(g => g.members.length);
+    // The database returns only this user's own groups, including empty ones. Members are limited
+    // to contacts on the list (this drops the user's own "You" contact if a group includes it).
+    S.groups = groups.map(g => ({id:String(g.group_id), name:g.group_name, members:g.group_members.map(m => String(m.contact_id)).filter(id => byId[id])}));
     S.history = events.filter(e => e.receipts.some(r => r.payer_user_id === S.userId)).map(e => {
       const owed = {};
       e.receipts.forEach(r => Object.entries(owedByContact(r)).forEach(([cid, v]) => owed[cid] = (owed[cid] || 0) + v));

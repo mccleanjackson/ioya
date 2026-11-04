@@ -8,13 +8,15 @@ const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8
 const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][0][1];
 
 // A fake Supabase: auth calls are recorded, table reads return the rows below.
-function fakeSupabase({session = null, signInError = null, ensure = [{data:7}]} = {}){
+// Like the real database's security rules, it returns only the signed-in user's own groups
+// (none by default; pass groups to add some).
+function fakeSupabase({session = null, signInError = null, ensure = [{data:7}], groups = []} = {}){
   const calls = [];
   const tables = {
     users:[{user_id:7, user_first_name:'', user_last_name:'', phone:null}],
     payment_methods:[{pay_method_id:1, pay_method_name:'Venmo'}],
     contacts:[{contact_id:50, cont_first_name:'', cont_last_name:'', phone:null, contacts_payment_method:[]}],
-    friend_groups:[{group_id:1, group_name:'Family', group_members:[{contact_id:3}]}],  // the demo user's group
+    friend_groups:groups,
     events:[{event_id:1, event_name:'Sunday brunch', participants:[], receipts:[{payer_user_id:1, receipt_date:'2026-09-16', line_items:[]}]}]
   };
   const query = rows => {
@@ -58,6 +60,15 @@ test('a first visit signs in anonymously and acts as the new user, not the demo 
   assert.equal(api.S.contacts.length, 0);
   assert.equal(api.S.history.length, 0, "the demo user's splits are not shown");
   assert.equal(api.S.groups.length, 0, "the demo user's groups are not shown");
+});
+
+test("the user's own groups are shown, including a new empty one", async () => {
+  const fake = fakeSupabase({groups:[{group_id:5, group_name:'Roommates', group_members:[{contact_id:50}]},
+    {group_id:6, group_name:'New group', group_members:[]}]});
+  const api = load(fake);
+  await api.loadAll();
+  assert.deepEqual(api.S.groups.map(g => [g.id, g.name, g.members.length]), [['5', 'Roommates', 0], ['6', 'New group', 0]],
+    'both groups are kept; the "You" contact is not listed as a member');
 });
 
 test('a returning visitor keeps their saved session instead of getting a new account', async () => {
