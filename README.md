@@ -32,7 +32,7 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 
 **How the diagram becomes tables.** The SQL in [`supabase/schema.sql`](supabase/schema.sql) uses the same 11 tables and columns, written in Postgres's lowercase snake_case style: `Users.UserFirstName` becomes `users.user_first_name`, `Contacts_Payment_Method` becomes `contacts_payment_method`, and so on. `IsPreffered` is spelled `is_preferred` in the database. Money is stored as whole cents, so `1959` means $19.59.
 
-**Accounts.** `users` has one column that is not in the ERD, `auth_user_id`, which links a row to its Supabase Auth account. It is empty for the sample users in `seed.sql`.
+**Accounts.** Two columns are not in the ERD yet. `users.auth_user_id` links a row to its Supabase Auth account; it is empty for the sample users in `seed.sql`. `friend_groups.user_id` records which user owns a group, so each person can create and edit only their own groups.
 
 **The payer is also a contact.** Each user has one row in `contacts` with the same name and phone as their `users` row. That lets the payer be a participant and be assigned items like everyone else, and the app shows that contact as "You."
 
@@ -54,15 +54,17 @@ This diagram shows the technologies we use now and the ones we plan to use. Paym
 
 **Accounts.** There is no login screen. The first time a browser opens IOYA, it signs in to Supabase anonymously, which creates a guest account, and the database function `ensure_my_user` creates that person's `users` row and their own "You" contact. The browser keeps the session, so the same person gets the same account on later visits. Clearing the browser's data or using a private window starts a new, empty account. A new account doesn't see the sample data in `seed.sql`, which belongs to the sample user, Demo Payer.
 
-**Security.** The browser uses Supabase's public **anon** key. Row Level Security is on for every table. Today, the app (signed in or not) can:
+**Security.** The browser uses Supabase's public **anon** key. Row Level Security is on for every table, and the rules are in [`supabase/private-data.sql`](supabase/private-data.sql). Each account's data is private: a signed-in person can
 
-- **read** every table. **Data is not private between accounts yet**, so keep only fake data in the project;
-- **update only `participants.paid_method_id`**, which is the "Mark as paid" button;
-- **add, edit and delete contacts** only through two database functions, `save_contact` and `delete_contact` (in [`supabase/anonymous-accounts.sql`](supabase/anonymous-accounts.sql)). They check the input, act only on the signed-in person's own contacts, and save a contact and its payment methods together in one transaction. A contact who is on a past split can't be deleted, because that would erase their items from the receipt.
+- **read only their own rows**: their user row, their contacts and those contacts' payment usernames, their groups, and the splits they paid for (with those splits' items, participants and assignments). Everyone signed in can read the list of payment methods;
+- **update only `participants.paid_method_id`** ("Mark as paid"), and only on their own splits;
+- **add, edit and delete contacts** only through the database functions `save_contact` and `delete_contact`, and **groups** only through `save_group` and `delete_group`. They check the input, act only on the signed-in person's own contacts and groups, and make all their changes in one transaction. A contact who is on a past split can't be deleted, because that would erase their items from the receipt.
+
+Someone with only the anon key and no session can't read or change anything.
 
 Every other change has to be made in the Supabase dashboard. Never put the `service_role` key or the database password in `.env` or in the code.
 
-**Saved to Supabase:** your guest account, contacts you add, edit or delete on the Contacts screen, and "Mark as paid." Each account's screens show only its own contacts and splits, but the data itself is still readable by anyone with the anon key (see Security).
+**Saved to Supabase:** your guest account, contacts you add, edit or delete on the Contacts screen, and "Mark as paid." Each account can read only its own data (see Security).
 
 **Receipt scanning:** Start split → Take photo or Upload photo → Check the items. On HTTPS or localhost, Take photo opens a live in-page preview when the browser supports it, after the user grants camera permission. It prefers the rear camera and does not request a microphone. Capture photo takes a still (or a video frame where needed) and reads it locally. The camera stops after capture, on closing, on leaving the capture view and when the tab is hidden/unloaded. On HTTP phone LAN addresses or unsupported browsers, Take photo uses the native camera/file picker instead. That fallback is also available explicitly. Choose a browser-readable image under 20 MB. The first scan needs internet to download the OCR reader. Check every item, tax, fees and printed total before continuing. Photos stay in memory; the editable draft is saved locally. Scanning does not save a receipt to Supabase.
 
@@ -80,7 +82,7 @@ If the first read finds no priced items, misses the total, or its items/tax/fees
 
 If no items can be identified, the error distinguishes unreadable text from text whose prices could not be parsed. Expand **Text read from receipt** to compare the recognized text with the photo. That diagnostic text stays only in the tab's memory; it is not saved to localStorage or Supabase and is cleared on a new scan, cancellation, successful scan or manual entry. Fill the frame with a straight, focused receipt in bright, even light; flash can help but glare or motion blur still needs a better photo.
 
-**Simulated for now:** payment requests and reminders are not actually sent, a new split is not saved when you tap Done, and groups can only be edited in the Supabase dashboard.
+**Simulated for now:** payment requests and reminders are not actually sent, a new split is not saved when you tap Done, and groups can't be created or edited in the app yet (the database functions for it, `save_group` and `delete_group`, are ready).
 
 ## How to Get It Running
 
@@ -193,9 +195,10 @@ Run `npm test` for deterministic receipt-parser checks. These are software check
 ```
 server.js              Serves public/ and /config.js (Supabase URL + anon key from .env)
 public/index.html      The whole frontend: screens, styles, and Supabase calls
-supabase/schema.sql    Creates the 11 tables, security rules and contact functions (drops existing tables first)
+supabase/schema.sql    Creates the 11 tables, security rules and contact/group functions (drops existing tables first)
 supabase/contacts-sync.sql  Adds just the contact functions to a project set up before they existed (older version)
 supabase/anonymous-accounts.sql  Guest accounts: links users to Supabase Auth and updates the contact functions
+supabase/private-data.sql  Makes each account's data private, gives groups an owner, adds save_group/delete_group
 supabase/seed.sql      Sample rows for every table
 docs/ioya-erd.pdf      Our ERD (docs/ioya-erd.png is the same diagram for this README)
 .env.example           Template for your .env file
