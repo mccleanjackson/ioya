@@ -137,6 +137,53 @@ Groups are owned through `friend_groups.user_id`; the database returns only the 
 
 **What is simulated (not real yet):** sending Venmo/SMS/PayPal requests and reminders, and saving a new split (Done shows "New splits are not saved yet"). Groups can't be created or edited in the app yet, but `save_group`/`delete_group` are ready: the UI only needs to call them (same write pattern as `saveContact()`), then update `S.groups` from what Supabase returns.
 
+## Building the group editor (next task): read this first
+
+A teammate is adding "create, edit and delete groups" to the Contacts page. **The database side is already done and live on the shared Supabase project** (`supabase/private-data.sql`). Do not write new SQL, table grants or policies for this feature, and do not ask your human to run any SQL. If something seems to need a database change, stop and ask Jackson first.
+
+**What already exists in the database**
+
+- `friend_groups.user_id`: the owner of each group. The security rules return only the signed-in user's own groups (empty ones too), and `group_members` rows only where both the group and the contact are the user's.
+- `save_group(p_group_id integer, p_name text, p_contact_ids integer[])` returns the group's id.
+  - `p_group_id = null` creates a group; a number edits that group.
+  - `p_contact_ids` is the **complete** member list. It replaces the old list; it is not "add these". An empty array `[]` is allowed (an empty group). Duplicates are ignored.
+  - It trims the name and refuses a blank one. It refuses contacts that aren't the user's, and groups that aren't the user's. Error messages are written for users: "Add a group name.", "One of those contacts no longer exists. Refresh the page and try again.", "That group no longer exists."
+- `delete_group(p_group_id integer)` deletes the group and its member list. The contacts themselves are kept. Groups aren't linked to past splits, so deleting one never changes History.
+- Deleting a contact already removes them from every group (the database does it, and `deleteContact()` updates `S.groups`).
+
+**Frontend steps (`public/index.html`)**
+
+1. Call the functions from the browser, following the same pattern as `saveContact()` / `deleteContact()`:
+
+   ```js
+   const id = need(await sb.rpc('save_group', {p_group_id: groupId ? Number(groupId) : null, p_name: name, p_contact_ids: memberIds.map(Number)}));
+   const row = need(await sb.from('friend_groups').select('group_id, group_name, group_members(contact_id)').eq('group_id', id).single());
+   ```
+
+   Then update `S.groups` from `row` (shape: `{id:String, name, members:[String contact ids]}`, same as `loadAll()`), close the sheet and `toast()`. For delete: `need(await sb.rpc('delete_group', {p_group_id: Number(groupId)}))`, then remove it from `S.groups`.
+2. The group sheet (`s.type === 'group'` in `sheetHTML()`) is read-only today, and the group bubbles on Contacts open it (`data-act="sheet" data-s="group"`). Add the "New group" button, the name field and the member picker (checkboxes from `S.contacts`) there. Use `data-act` / `A.x` for buttons, `esc()` for names and the existing CSS tokens.
+3. Keep the visible states the course grades: saving (`ui.saving`, disabled buttons), errors shown in the sheet with the user's typed name and selections kept, an empty state when there are no groups yet, and a confirm step before delete (the `confirm` sheet type exists).
+4. The user's own "You" contact is not in `S.contacts`, so it can't be picked as a member. Keep it that way unless the team decides otherwise.
+5. Remove the "Groups can't be created or edited in the app yet" notes: in this file ("What is simulated"), in README "Simulated for now", and in the in-app line about simulated features if it mentions groups.
+
+**Update the ERD (required; the README's ERD section is graded)**
+
+The database now has a column the team's ERD doesn't show yet. Your human (not the AI) updates the diagram, because the team owns it:
+
+1. In the ERD tool the team used, add **`UserID` (FK → `Users.UserID`) to `Friend_Groups`**, with a **one-to-many** line from Users to Friend_Groups (one user owns many groups; each group has exactly one owner, required).
+2. Export it again over **`docs/ioya-erd.pdf`** and **`docs/ioya-erd.png`** (the README shows the PNG).
+3. In `README.md` → ERD:
+   - add the row `| Users → Friend_Groups | one-to-many | \`Friend_Groups.UserID\` |` to the "Relationships and cardinality" table;
+   - in the **Accounts** paragraph, remove `friend_groups.user_id` from the list of columns that are "not in the ERD yet" (`users.auth_user_id` stays there unless the team adds it too).
+4. In this file's Data model table, remove "(not in the ERD yet)" from the `friend_groups` row.
+
+**Testing the group editor**
+
+- Add tests in `test/accounts.test.js` style (the fake Supabase there already takes a `groups` option) for: creating a group shows it, editing replaces the members, deleting removes it, and an error keeps what was typed.
+- In the app: create a group with 2 test contacts, refresh (it must still be there), edit its name and members, refresh again, then delete it. Also try a blank name and check the error. Check the rows in Supabase's Table Editor (`friend_groups.user_id` should be your guest's `user_id`). Delete your test data afterwards.
+- Run `npm test` and the normal click-through in "Testing your change" below.
+- Before the PR, update the AI disclosure list with what the AI built.
+
 ## Testing your change
 
 `npm test` runs receipt parser and scan-lifecycle checks with isolated data; it does not replace browser/real-phone checks. Before handing work back:
