@@ -49,11 +49,12 @@ function load(fake){
   return context.api;
 }
 
+// The last getSession reads whether the account is a guest or saved (Profile shows it).
 test('a first visit signs in anonymously and acts as the new user, not the demo user', async () => {
   const fake = fakeSupabase();
   const api = load(fake);
   await api.loadAll();
-  assert.deepEqual(fake.calls, ['getSession', 'signInAnonymously', 'ensure_my_user']);
+  assert.deepEqual(fake.calls, ['getSession', 'signInAnonymously', 'ensure_my_user', 'getSession']);
   assert.equal(api.S.loadError, null);
   assert.equal(api.S.userId, 7);
   assert.equal(api.S.selfContactId, '50');
@@ -75,7 +76,7 @@ test('a returning visitor keeps their saved session instead of getting a new acc
   const fake = fakeSupabase({session:{access_token:'saved'}});
   const api = load(fake);
   await api.loadAll();
-  assert.deepEqual(fake.calls, ['getSession', 'ensure_my_user']);
+  assert.deepEqual(fake.calls, ['getSession', 'ensure_my_user', 'getSession']);
   assert.equal(api.S.userId, 7);
 });
 
@@ -91,7 +92,7 @@ test('a saved session for a deleted account starts a fresh account', async () =>
   const fake = fakeSupabase({session:{access_token:'stale'}, ensure:[{data:null, error:{code:'23503', message:'foreign key'}}, {data:8}]});
   const api = load(fake);
   await api.loadAll();
-  assert.deepEqual(fake.calls, ['getSession', 'ensure_my_user', 'signOut', 'signInAnonymously', 'ensure_my_user']);
+  assert.deepEqual(fake.calls, ['getSession', 'ensure_my_user', 'signOut', 'signInAnonymously', 'ensure_my_user', 'getSession']);
   assert.equal(api.S.userId, 8);
   assert.equal(api.S.loadError, null);
 });

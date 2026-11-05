@@ -54,6 +54,8 @@ This diagram shows the technologies we use now and the ones we plan to use. Paym
 
 **Accounts.** There is no login screen. The first time a browser opens IOYA, it signs in to Supabase anonymously, which creates a guest account, and the database function `ensure_my_user` creates that person's `users` row and their own "You" contact. The browser keeps the session, so the same person gets the same account on later visits. Clearing the browser's data or using a private window starts a new, empty account. A new account doesn't see the sample data in `seed.sql`, which belongs to the sample user, Demo Payer.
 
+**Profile and saved accounts.** The person icon at the top of each screen opens Profile. There you can set your name and phone; the database function `save_my_profile` (in [`supabase/profile.sql`](supabase/profile.sql)) updates your `users` row and your "You" contact together, so the app keeps recognizing which contact is you. A guest can **save their account** with an email: Supabase emails a 6-digit code, and once it's entered the same account (same data) becomes permanent. On another device or browser, **Already saved? Sign in** asks for the email and a new code, then loads that account. A guest's data is not merged into a saved account. Saved accounts can **sign out**, which gives that browser a fresh guest account. Email addresses are kept by Supabase Auth, not in our tables.
+
 **Security.** The browser uses Supabase's public **anon** key. Row Level Security is on for every table, and the rules are in [`supabase/private-data.sql`](supabase/private-data.sql). Each account's data is private: a signed-in person can
 
 - **read only their own rows**: their user row, their contacts and those contacts' payment usernames, their groups, and the splits they paid for (with those splits' items, participants and assignments). Everyone signed in can read the list of payment methods;
@@ -64,7 +66,7 @@ Someone with only the anon key and no session can't read or change anything.
 
 Every other change has to be made in the Supabase dashboard. Never put the `service_role` key or the database password in `.env` or in the code.
 
-**Saved to Supabase:** your guest account, contacts you add, edit or delete on the Contacts screen, and "Mark as paid." Each account can read only its own data (see Security).
+**Saved to Supabase:** your guest account (and its email, once saved), your profile name and phone, contacts you add, edit or delete on the Contacts screen, and "Mark as paid." Each account can read only its own data (see Security).
 
 **Receipt scanning:** Start split → Take photo or Upload photo → Check the items. On HTTPS or localhost, Take photo opens a live in-page preview when the browser supports it, after the user grants camera permission. It prefers the rear camera and does not request a microphone. Capture photo takes a still (or a video frame where needed) and reads it locally. The camera stops after capture, on closing, on leaving the capture view and when the tab is hidden/unloaded. On HTTP phone LAN addresses or unsupported browsers, Take photo uses the native camera/file picker instead. That fallback is also available explicitly. Choose a browser-readable image under 20 MB. The first scan needs internet to download the OCR reader. Check every item, tax, fees and printed total before continuing. Photos stay in memory; the editable draft is saved locally. Scanning does not save a receipt to Supabase.
 
@@ -108,7 +110,26 @@ npm install
 4. In **Table Editor** you should now see 11 tables, each with sample rows. (`schema.sql` already includes the contact and account functions, so you don't need to run `contacts-sync.sql` or `anonymous-accounts.sql` separately.)
 5. Open **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**, then click **Save**. Without it, the app shows "Guest accounts are turned off."
 6. Open **Authentication → URL Configuration**. Set **Site URL** to your live address (ours is `https://ioya.onrender.com`) and add `http://localhost:3001/**` under **Redirect URLs**.
-7. Find your **Project URL** and **anon public key** under **Project Settings → API** (or the **Connect** button).
+7. For saving accounts with email (see "Set up account emails" below): check that **Authentication → Sign In / Providers → Email** is on, put the 6-digit code in the email templates, and, so anyone can receive the emails, set up your own email sender.
+8. Find your **Project URL** and **anon public key** under **Project Settings → API** (or the **Connect** button).
+
+#### Set up account emails (6-digit codes)
+
+The Profile screen emails a 6-digit code when someone saves their account or signs in. Do this once per Supabase project (our team's project is already set up).
+
+1. **Authentication → Sign In / Providers → Email**: make sure it is **enabled**, and leave **Confirm email** on.
+2. **Authentication → Emails → Templates**: in each of **Magic Link**, **Change Email Address** and **Confirm signup**, replace the message body with the following and click **Save**:
+
+   ```html
+   <h2>Your IOYA code</h2>
+   <p>Enter this code in IOYA:</p>
+   <p style="font-size:28px;font-weight:bold;letter-spacing:4px">{{ .Token }}</p>
+   <p>It expires in 1 hour. If you didn't ask for it, you can ignore this email.</p>
+   ```
+
+   A subject like `Your IOYA code` works for all three. The app has no link-based sign-in, so the templates don't need a link.
+3. **Your own email sender (needed for anyone outside the Supabase team).** Supabase's built-in sender only delivers to members of the Supabase project and only a few emails per hour. So that a TA or anyone else can save an account, open **Authentication → Emails → SMTP Settings**, turn on **Enable custom SMTP**, and fill in a real email account's SMTP details. With a Gmail account made for the project (recommended over a personal one): host `smtp.gmail.com`, port `465`, username = the full Gmail address, password = a Gmail **app password** (Google Account → Security → 2-Step Verification must be on, then **App passwords**), sender email = that Gmail address, sender name `IOYA`. Never commit the app password or put it in `.env`.
+4. **Authentication → Rate Limits**: after custom SMTP is on, check **Rate limit for sending emails** (for example 30 per hour) is enough for testing.
 
 ### 3. Create your `.env` file
 
@@ -153,6 +174,10 @@ The HTTPS address is a new browser origin: its local draft and camera permission
 - "The database is missing the accounts update", or `Could not find the function public.save_contact`: the project was set up before accounts were added. Run [`supabase/anonymous-accounts.sql`](supabase/anonymous-accounts.sql) once in the SQL Editor.
 - "Too many new accounts were created from this network": Supabase limits how many guest accounts one network can create per hour. Wait, or reuse a browser that already has an account.
 - `permission denied` when saving: you are trying to change something other than a contact or "Mark as paid," which the security rules block on purpose.
+- "The database is missing the profile update": run [`supabase/profile.sql`](supabase/profile.sql) once in the SQL Editor.
+- The code email never arrives: check spam, then **Authentication → Emails → SMTP Settings** (without your own sender, only Supabase project members get emails) and Supabase's **Logs → Auth** for the error. "The email could not be sent" in the app means the SMTP details are wrong.
+- "That email already has a saved IOYA account": use **Already saved? Sign in** instead of **Save your account**.
+- The code is rejected: codes expire after an hour and each new code replaces the last one, so use the newest email.
 
 ## Verifying the Vertical Slice
 
@@ -199,6 +224,7 @@ supabase/schema.sql    Creates the 11 tables, security rules and contact/group f
 supabase/contacts-sync.sql  Adds just the contact functions to a project set up before they existed (older version)
 supabase/anonymous-accounts.sql  Guest accounts: links users to Supabase Auth and updates the contact functions
 supabase/private-data.sql  Makes each account's data private, gives groups an owner, adds save_group/delete_group
+supabase/profile.sql   Adds save_my_profile (name and phone for the Profile screen)
 supabase/seed.sql      Sample rows for every table
 docs/ioya-erd.pdf      Our ERD (docs/ioya-erd.png is the same diagram for this README)
 .env.example           Template for your .env file
