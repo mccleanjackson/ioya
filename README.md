@@ -117,7 +117,7 @@ npm install
 
 The Profile screen emails a 6-digit code when someone saves their account or signs in. Do this once per Supabase project (our team's project is already set up).
 
-1. **Authentication → Sign In / Providers → Email**: make sure it is **enabled**, and leave **Confirm email** on.
+1. **Authentication → Sign In / Providers → Email**: make sure it is **enabled**, leave **Confirm email** on, and set **Email OTP Length** to `6` (the app says "6-digit code"; some projects default to 8).
 2. **Authentication → Emails → Templates**: in each of **Magic Link**, **Change Email Address** and **Confirm signup**, replace the message body with the following and click **Save**:
 
    ```html
@@ -177,6 +177,7 @@ The HTTPS address is a new browser origin: its local draft and camera permission
 - "The database is missing the profile update": run [`supabase/profile.sql`](supabase/profile.sql) once in the SQL Editor.
 - The code email never arrives: check spam, then **Authentication → Emails → SMTP Settings** (without your own sender, only Supabase project members get emails) and Supabase's **Logs → Auth** for the error. "The email could not be sent" in the app means the SMTP details are wrong.
 - "That email already has a saved IOYA account": use **Already saved? Sign in** instead of **Save your account**.
+- The email has an 8-digit code but the app asks for 6: set **Email OTP Length** to `6` (setup step 1 under "Set up account emails").
 - The code is rejected: codes expire after an hour and each new code replaces the last one, so use the newest email.
 
 ## Verifying the Vertical Slice

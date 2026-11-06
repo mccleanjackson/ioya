@@ -458,6 +458,34 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .mlist label{display:flex;gap:10px;align-items:center;padding:6px 2px;font-weight:600}
 .mlist input{width:18px;height:18px;accent-color:var(--accent)}
 .kv{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+/* profile */
+.field.invalid input{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
+.ferr{display:flex;gap:6px;align-items:flex-start;color:var(--bad);font-size:13px;font-weight:600;line-height:1.35;margin:0}
+.ferr .ic{width:16px;height:16px;flex-shrink:0;margin-top:1px}
+.ferr[hidden]{display:none}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sheet-head .iconbtn{box-shadow:inset 0 0 0 1.5px var(--line)}
+.pstepno{font:600 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:-8px 0 0}
+.prof-card{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:18px 14px 14px;background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line)}
+.pava{width:84px;height:84px;border-radius:50%;box-shadow:inset 0 0 0 2.5px var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:30px;background:var(--card);margin-bottom:6px}
+.pava .ic{width:40px;height:40px;color:var(--muted)}
+.pname{font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:-.01em;margin:0}
+.pname.empty{color:var(--muted);font-weight:700;font-size:18px}
+.pmeta{font-size:14px;color:var(--muted);margin:0;display:flex;align-items:center;gap:6px;justify-content:center;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--good-soft);color:var(--good)}
+.badge .ic{width:13px;height:13px;stroke-width:3}
+.badge.guest{background:var(--card);color:var(--muted);box-shadow:inset 0 0 0 1.5px var(--line)}
+.pstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pstats div{background:var(--card);border-radius:12px;box-shadow:inset 0 0 0 1.5px var(--line);padding:10px 6px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.pstats b{font-family:var(--f-mono);font-size:17px;font-variant-numeric:tabular-nums}
+.pstats span{font-size:12px;color:var(--muted);font-weight:600}
+.pbox{background:var(--card);border-radius:14px;box-shadow:inset 0 0 0 1.5px var(--line);padding:14px;display:flex;flex-direction:column;gap:10px}
+.pbox p{margin:0}
+.pbox .acct{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pbox .acct div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pbox .acct b{overflow-wrap:anywhere}
+.center{align-self:center;padding:6px}
+.avatar.has-ini{font-family:var(--f-display);font-weight:800;font-size:15px;background:var(--card)}
 .kv span:first-child{color:var(--muted)}
 
 .toast{position:absolute;left:18px;right:18px;bottom:84px;z-index:9;background:var(--ink);color:var(--paper);padding:12px 14px;border-radius:12px;font-weight:600;font-size:14px;animation:up .2s ease-out}
@@ -538,7 +566,7 @@ function normalizeTipDraft(d){
    Contacts, groups and history are read from Supabase. Only the in-progress draft
    and the current screen are kept in this browser's localStorage. */
 const KEY = 'ioya-draft-v1';
-let S = {view:'home', userId:null, me:{first:'', last:'', phone:''}, account:{email:null, guest:true}, contacts:[], groups:[], history:[], payMethods:[], selfContactId:null, draft:newDraft(), loading:true, loadError:null};
+let S = {view:'home', userId:null, me:{first:'', last:'', phone:''}, account:{email:null, guest:true, since:null}, contacts:[], groups:[], history:[], payMethods:[], selfContactId:null, draft:newDraft(), loading:true, loadError:null};
 // Older versions filled empty drafts with a sample receipt (fromSample); drop those instead of resuming them.
 try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.draft && !saved.draft.fromSample) Object.assign(S, {view:saved.view, draft:normalizeTipDraft(saved.draft)}); } catch(e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({view:S.view, draft:S.draft})); } catch(e) {} };
@@ -593,7 +621,7 @@ async function signIn(){
 async function readAccount(){
   const {data:{session}} = await sb.auth.getSession();
   const u = session && session.user;
-  S.account = {email:(u && u.email) || null, guest:!u || u.is_anonymous !== false};
+  S.account = {email:(u && u.email) || null, guest:!u || u.is_anonymous !== false, since:(u && u.created_at) || null};
 }
 
 async function loadAll(){
@@ -919,7 +947,7 @@ V.home = () => {
   return `
   <header class="top home-top">
     <div class="logo"><img src="/ioya_logo.png" alt="IOYA"></div>
-    <button class="avatar" data-act="sheet" data-s="profile" aria-label="Profile">${I('user')}</button>
+    ${avatarBtn()}
   </header>
   <p class="tag">Make sure <em>you</em> get <mark>paid</mark>.</p>
   <button class="cta" data-act="start">${I('scan')}<span><b>Pay the tab</b><small>Scan a receipt and split it</small></span></button>
@@ -994,7 +1022,7 @@ function historyList(){
   }).join('');
 }
 V.history = () => `
-  <header class="top"><h1 class="h">History</h1><button class="avatar" data-act="sheet" data-s="profile" aria-label="Profile">${I('user')}</button></header>
+  <header class="top"><h1 class="h">History</h1>${avatarBtn()}</header>
   ${historyStatusSummary()}
   ${findBar('h', 'Search people, places or items', 'Search splits by person, restaurant or item', HFILTERS, 'Filter by payment status')}
   <div class="hlist" data-live="hlist">${historyList()}</div>`;
@@ -1033,7 +1061,7 @@ function contactList(){
   </div>`;
 }
 V.contacts = () => `
-  <header class="top"><h1 class="h">Your Contacts</h1><button class="avatar" data-act="sheet" data-s="profile" aria-label="Profile">${I('user')}</button></header>
+  <header class="top"><h1 class="h">Your Contacts</h1>${avatarBtn()}</header>
   <h2 class="eyebrow">Groups</h2>
   <div class="groups">${S.groups.map(g => `<button class="grp" data-act="sheet" data-s="group" data-id="${g.id}"><span class="gc">${esc(ini(g.name))}</span><span>${esc(g.name)}</span><small>${g.members.length} people</small></button>`).join('')}
 </div>
@@ -1312,53 +1340,82 @@ function refresh(){
 }
 
 /* ---------- sheets ---------- */
-// Profile sheet. s.step: undefined (profile), 'email' (type an email), 'code' (type the 6-digit code), 'signout'.
-// s.mode: 'save' turns this guest account into a saved one; 'signin' switches to an already-saved account.
+// Header button that opens Profile: the user's initials once they have a name.
+const myName = () => [S.me.first, S.me.last].filter(Boolean).join(' ');
+const avatarBtn = () => S.me.first
+  ? `<button class="avatar has-ini" data-act="sheet" data-s="profile" aria-label="Profile: ${esc(myName())}">${esc(ini(myName()))}</button>`
+  : `<button class="avatar" data-act="sheet" data-s="profile" aria-label="Profile">${I('user')}</button>`;
+
+// Profile sheet. s.step: null (view), 'edit', 'email', 'code', 'signout'.
+// s.mode: 'create' (guest → profile with email; edit → email → code) or 'signin' (email → code) or null (plain edit).
+// s.errs holds one message per field ({first, last, phone, email, code}); s.alert holds any other error.
+const fieldErr = (s, k) => `<p class="ferr" id="e-${k}" role="alert"${s.errs && s.errs[k] ? '' : ' hidden'}>${I('alert')}<span>${esc((s.errs && s.errs[k]) || '')}</span></p>`;
+const field = (s, k, label, input) => `<label class="field${s.errs && s.errs[k] ? ' invalid' : ''}" id="w-${k}"><span>${label}</span>${input}</label>${fieldErr(s, k)}`;
+const inv = (s, k) => `aria-describedby="e-${k}"${s.errs && s.errs[k] ? ' aria-invalid="true"' : ''}`;
+const alertBox = s => s.alert ? `<div class="alert bad" role="alert">${esc(s.alert)}</div>` : '';
 function profileSheet(s){
   const busy = ui.saving ? 'disabled' : '';
-  const err = `<p class="fine" id="f-err" role="alert"${s.err ? '' : ' hidden'}>${esc(s.err || '')}</p>`;
-  if (s.step === 'email'){
-    const signin = s.mode === 'signin';
-    const hasData = S.account.guest && (S.contacts.length || S.history.length);
-    return `<h2 id="sh-t">${signin ? 'Sign in to your saved account' : 'Save your account'}</h2>
-      <p class="fine">${signin ? 'Enter the email you saved your account with. We\'ll email you a 6-digit code.'
-        : 'Add your email so you can get back to your contacts and splits on any device. We\'ll email you a 6-digit code to confirm it.'}</p>
-      ${signin && hasData ? `<p class="fine"><strong>Heads up:</strong> the ${S.contacts.length} contact${S.contacts.length === 1 ? '' : 's'} in this guest account won't move to your saved account. To keep them, close this and choose "Save your account" instead.</p>` : ''}
-      <label class="field"><span>Email</span><input id="f-email" type="email" inputmode="email" autocomplete="email" value="${esc(s.email || '')}" placeholder="you@example.com"></label>
-      ${err}
-      <div class="next two"><button class="btn ghost" data-act="pstep" ${busy}>Back</button>
-        <button class="btn" data-act="sendcode" ${busy}>${ui.saving ? 'Sending…' : 'Send code'}</button></div>`;
+  const create = s.mode === 'create', signin = s.mode === 'signin';
+  const steps = n => create ? `<p class="pstepno">Step ${n} of 3</p>` : '';
+  if (s.step === 'edit'){
+    const me = s.draft || S.me;
+    return `<h2 id="sh-t">${create ? 'Create your profile' : 'Edit profile'}</h2>${steps(1)}
+      ${create ? '<p class="fine">This is how you show up in IOYA.</p>' : ''}
+      ${alertBox(s)}
+      <div class="slot-m" style="grid-template-columns:1fr 1fr">
+        <div style="display:flex;flex-direction:column;gap:6px">${field(s, 'first', 'First name', `<input id="f-first" data-in="pf" data-f="first" data-enter="saveprofile" value="${esc(me.first)}" autocomplete="given-name" maxlength="80" ${inv(s, 'first')}>`)}</div>
+        <div style="display:flex;flex-direction:column;gap:6px">${field(s, 'last', 'Last name <small>optional</small>', `<input id="f-last" data-in="pf" data-f="last" data-enter="saveprofile" value="${esc(me.last)}" autocomplete="family-name" maxlength="80" ${inv(s, 'last')}>`)}</div>
+      </div>
+      ${field(s, 'phone', 'Phone <small>optional</small>', `<input id="f-phone" type="tel" inputmode="tel" data-in="pf" data-f="phone" data-enter="saveprofile" value="${esc(me.phone)}" placeholder="(555) 000-0000" autocomplete="tel" ${inv(s, 'phone')}>`)}
+      <div class="next two"><button class="btn ghost" data-act="pstep" ${busy}>Cancel</button>
+        <button class="btn" data-act="saveprofile" ${busy}>${ui.saving ? 'Saving…' : create ? 'Continue' : 'Save'}</button></div>`;
   }
-  if (s.step === 'code') return `<h2 id="sh-t">Enter your code</h2>
-      <p class="fine">We sent a 6-digit code to <strong>${esc(s.email)}</strong>. It can take a minute to arrive; check your spam folder too.</p>
-      <label class="field"><span>6-digit code</span><input id="f-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" value="${esc(s.token || '')}" placeholder="123456"></label>
-      ${err}
-      <div class="next two"><button class="btn ghost" data-act="sendcode" data-again="1" ${busy}>Send a new code</button>
-        <button class="btn" data-act="verifycode" ${busy}>${ui.saving ? 'Checking…' : 'Confirm'}</button></div>
-      <button class="link" data-act="pstep" data-step="email" data-mode="${s.mode}" ${busy}>Use a different email</button>`;
+  if (s.step === 'email') return `<h2 id="sh-t">${signin ? 'Sign in' : 'Add your email'}</h2>${steps(2)}
+      <p class="fine">${signin ? 'Enter the email on your IOYA profile. We\'ll send you a 6-digit code.'
+        : 'Your email lets you get back to your contacts and splits on any device. We\'ll send a 6-digit code to confirm it.'}</p>
+      ${signin && S.account.guest && (S.contacts.length || S.history.length) ? `<div class="alert warn" role="note"><b>Your guest data stays behind.</b>The ${S.contacts.length} contact${S.contacts.length === 1 ? '' : 's'} on this guest account won't move to the profile you sign in to.</div>` : ''}
+      ${alertBox(s)}
+      ${field(s, 'email', 'Email', `<input id="f-email" type="email" inputmode="email" data-in="pf" data-f="email" data-enter="sendcode" autocomplete="email" value="${esc(s.email || '')}" placeholder="you@example.com" ${inv(s, 'email')}>`)}
+      <div class="next two"><button class="btn ghost" data-act="pstep" data-step="${create ? 'edit' : ''}" data-mode="${s.mode || ''}" ${busy}>Back</button>
+        <button class="btn" data-act="sendcode" ${busy}>${ui.saving ? 'Sending…' : 'Send code'}</button></div>`;
+  if (s.step === 'code') return `<h2 id="sh-t">Check your email</h2>${steps(3)}
+      <p class="fine">We sent a 6-digit code to <b>${esc(s.email)}</b>. It can take a minute to arrive. If you don't see it, check your spam folder.</p>
+      ${alertBox(s)}
+      ${field(s, 'code', '6-digit code', `<input id="f-code" inputmode="numeric" data-in="pf" data-f="code" data-enter="verifycode" autocomplete="one-time-code" maxlength="10" value="${esc(s.token || '')}" placeholder="123456" ${inv(s, 'code')}>`)}
+      <div class="next two"><button class="btn ghost" data-act="pstep" data-step="email" data-mode="${s.mode}" ${busy}>Back</button>
+        <button class="btn" data-act="verifycode" ${busy}>${ui.saving ? 'Checking…' : create ? 'Create profile' : 'Sign in'}</button></div>
+      <button class="link center" data-act="sendcode" data-again="1" ${busy}>Send a new code</button>`;
   if (s.step === 'signout') return `<h2 id="sh-t">Sign out?</h2>
-      <p class="fine">Your account stays saved. This browser will start a new, empty guest account, and you can sign back in with ${esc(S.account.email)} at any time.</p>
-      ${err}
+      <p class="fine">Your profile stays saved. You can sign back in with ${esc(S.account.email)} at any time. This browser will start over as a guest.</p>
+      ${alertBox(s)}
       <div class="next two"><button class="btn ghost" data-act="pstep" ${busy}>Cancel</button>
         <button class="btn" data-act="signout" ${busy}>${ui.saving ? 'Signing out…' : 'Sign out'}</button></div>`;
-  const me = s.draft || S.me;
-  return `<h2 id="sh-t">Profile</h2>
-    <div class="slot-m" style="grid-template-columns:1fr 1fr">
-      <label class="field"><span>First name</span><input id="f-first" value="${esc(me.first)}" autocomplete="given-name"></label>
-      <label class="field"><span>Last name <small>optional</small></span><input id="f-last" value="${esc(me.last)}" autocomplete="family-name"></label>
+
+  // View
+  const owed = S.history.reduce((t, h) => t + h.requests.filter(r => r.status !== 'paid').reduce((a, r) => a + r.amount, 0), 0);
+  const since = S.account.since ? new Date(S.account.since).toLocaleDateString('en-US', {month:'long', year:'numeric'}) : '';
+  return `<div class="sheet-head"><h2 id="sh-t">Profile</h2>
+      <button class="iconbtn" data-act="pstep" data-step="edit" aria-label="Edit profile" title="Edit profile">${I('pencil')}</button></div>
+    <div class="prof-card">
+      <div class="pava" aria-hidden="true">${S.me.first ? esc(ini(myName())) : I('user')}</div>
+      ${S.me.first ? `<p class="pname">${esc(myName())}</p>` : `<p class="pname empty">Add your name</p>`}
+      ${S.me.phone ? `<p class="pmeta">${esc(S.me.phone)}</p>` : ''}
+      <p class="pmeta">${S.account.guest ? `<span class="badge guest">Guest</span>` : `${esc(S.account.email || '')} <span class="badge">${I('check')}Verified</span>`}</p>
+      ${since ? `<p class="pmeta">Member since ${esc(since)}</p>` : ''}
     </div>
-    <label class="field"><span>Phone <small>optional</small></span><input id="f-phone" type="tel" inputmode="tel" value="${esc(me.phone)}" placeholder="(555) 000-0000" autocomplete="tel"></label>
-    ${err}
-    <div class="next"><button class="btn" data-act="saveprofile" ${busy}>${ui.saving ? 'Saving…' : 'Save profile'}</button></div>
-    <div class="kv"><span>Events</span><span class="mono">${S.history.length}</span></div>
-    <div class="kv"><span>Contacts</span><span class="mono">${S.contacts.length}</span></div>
+    <div class="pstats">
+      <div><b>${S.history.length}</b><span>Split${S.history.length === 1 ? '' : 's'}</span></div>
+      <div><b>${S.contacts.length}</b><span>Contact${S.contacts.length === 1 ? '' : 's'}</span></div>
+      <div><b>${money(owed)}</b><span>Owed to you</span></div>
+    </div>
     <p class="eyebrow">Account</p>
     ${S.account.guest
-      ? `<p class="fine">You're using a guest account that lives only in this browser. If you clear this browser's data or use a private window, you'll lose it. Save it with your email to keep it.</p>
-        <div class="next two"><button class="btn ghost" data-act="pstep" data-step="email" data-mode="signin" ${busy}>Already saved? Sign in</button>
-          <button class="btn" data-act="pstep" data-step="email" data-mode="save" ${busy}>Save your account</button></div>`
-      : `<div class="kv"><span>Saved as</span><span>${esc(S.account.email || '')}</span></div>
-        <div class="next"><button class="btn ghost" data-act="pstep" data-step="signout" ${busy}>Sign out</button></div>`}`;
+      ? `<div class="pbox"><p><b>You're using IOYA as a guest.</b></p>
+          <p class="fine">Your contacts and splits are saved only in this browser. Create a profile to keep them and use IOYA on any device.</p>
+          <button class="btn" data-act="pstep" data-step="edit" data-mode="create" ${busy}>Create profile</button></div>
+        <p class="fine center">Already have a profile? <button class="link" data-act="pstep" data-step="email" data-mode="signin" ${busy}>Sign in</button></p>`
+      : `<div class="pbox"><div class="acct"><div><span class="fine">Signed in as</span><b>${esc(S.account.email || '')}</b></div>
+          <button class="btn small ghost" data-act="pstep" data-step="signout" ${busy}>Sign out</button></div></div>`}`;
 }
 function sheetHTML(){
   const s = ui.sheet; if (!s) return '';
@@ -1817,8 +1874,10 @@ const A = {
   markunpaid: () => setPaid(null),
   savecontact: ds => saveContact(ds.id || null),
   saveprofile: () => saveProfile(),
-  pstep: ds => { Object.assign(ui.sheet, {step:ds.step || null, mode:ds.mode || ui.sheet.mode, err:null}); render();
-    document.getElementById(ds.step === 'email' ? 'f-email' : 'f-first')?.focus(); },
+  pstep: ds => { Object.assign(ui.sheet, {step:ds.step || null, mode:ds.mode || null, errs:{}, alert:null});
+    if (ds.step !== 'email' && ds.step !== 'code') ui.sheet.draft = null;
+    render();
+    document.getElementById({edit:'f-first', email:'f-email'}[ds.step] || '')?.focus(); },
   sendcode: ds => sendCode(!!ds.again),
   verifycode: () => verifyCode(),
   signout: () => signOutAccount(),
@@ -1841,80 +1900,125 @@ const A = {
   done: () => { stopCamera(); cancelScan(); S.draft = newDraft(); clearPhoto(); ui.scanText = ''; go('home'); toast('New splits are not saved yet. This one was a demo.'); }
 };
 // Profile: save_my_profile updates the users row and the "You" contact together (supabase/profile.sql).
-const PHONE_OK = p => !p || (/^[0-9()+. -]+$/.test(p) && (p.match(/[0-9]/g) || []).length >= 7 && (p.match(/[0-9]/g) || []).length <= 15);
+// Each check returns the exact message shown in red under that field, or '' when it's fine.
+const digits = p => (p.match(/[0-9]/g) || []).length;
+const CHECK = {
+  first: v => !v ? 'First name is required.' : v.length > 50 ? `First name can be at most 50 characters (it has ${v.length}).` : '',
+  last: v => v.length > 50 ? `Last name can be at most 50 characters (it has ${v.length}).` : '',
+  phone: v => !v ? ''
+    : !/^[0-9()+. -]+$/.test(v) ? 'Phone numbers can only use digits, spaces and ( ) + - .'
+    : digits(v) < 7 ? `Phone number is too short: it has ${digits(v)} digit${digits(v) === 1 ? '' : 's'}, and it needs at least 7.`
+    : digits(v) > 15 ? `Phone number is too long: it has ${digits(v)} digits, and it can have at most 15.` : '',
+  email: v => !v ? 'Email is required.' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? 'Enter a full email address, like you@example.com.' : '',
+  code: v => !v ? 'Enter the 6-digit code from the email.' : !/^[0-9]+$/.test(v) ? 'The code is numbers only.'
+    : v.length < 6 ? `The code is 6 digits. You entered ${v.length}.` : ''
+};
+const fieldVal = k => { const v = (document.getElementById('f-' + k)?.value || '').trim(); return k === 'code' ? v.replace(/\s/g, '') : k === 'email' ? v.toLowerCase() : v; };
+// Show the errors, keep what was typed, and put the cursor in the first field that needs fixing.
+function showErrs(errs, alert){
+  const sh = ui.sheet; sh.errs = errs; sh.alert = alert || null; ui.saving = false; render();
+  const first = Object.keys(errs).find(k => errs[k]);
+  if (first) document.getElementById('f-' + first)?.focus();
+}
+// While typing, update that field's message (only once it has been shown), without re-rendering.
+function liveCheck(el){
+  const sh = ui.sheet, k = el.dataset.f; if (!sh) return;
+  if (['first', 'last', 'phone'].includes(k)) (sh.draft = sh.draft || {...S.me})[k] = el.value;
+  if (k === 'email') sh.email = el.value;
+  if (k === 'code') sh.token = el.value;
+  if (!sh.errs || !sh.errs[k]) return;
+  const v = k === 'code' ? el.value.replace(/\s/g, '') : el.value.trim();
+  const msg = CHECK[k](k === 'email' ? v.toLowerCase() : v);
+  sh.errs[k] = msg;
+  const box = document.getElementById('e-' + k), wrap = document.getElementById('w-' + k);
+  if (box){ box.hidden = !msg; box.querySelector('span').textContent = msg; }
+  wrap?.classList.toggle('invalid', !!msg);
+  if (msg) el.setAttribute('aria-invalid', 'true'); else el.removeAttribute('aria-invalid');
+}
+// Put a database or Supabase message under the field it is about, if there is one.
+const errField = m => /first name|names can be/i.test(m) ? 'first' : /phone number/i.test(m) ? 'phone'
+  : /email|registered|no saved profile/i.test(m) ? 'email' : /code/i.test(m) ? 'code' : null;
+function showServerErr(m){ const k = errField(m); k ? showErrs({[k]:m}) : showErrs({}, m); }
+
 async function saveProfile(){
-  const val = k => (document.getElementById(k)?.value || '').trim();
-  const draft = {first:val('f-first'), last:val('f-last'), phone:val('f-phone')};
-  const fail = m => { Object.assign(ui.sheet, {draft, err:m}); ui.saving = false; render(); };
-  if (!draft.first) return fail('Add your first name.');
-  if (!PHONE_OK(draft.phone)) return fail('Enter a phone number with 7 to 15 digits, or leave it blank.');
-  Object.assign(ui.sheet, {draft, err:null}); ui.saving = true; render();
+  const sh = ui.sheet;
+  const draft = {first:fieldVal('first'), last:fieldVal('last'), phone:fieldVal('phone')};
+  sh.draft = draft;
+  const errs = {first:CHECK.first(draft.first), last:CHECK.last(draft.last), phone:CHECK.phone(draft.phone)};
+  if (errs.first || errs.last || errs.phone) return showErrs(errs);
+  sh.errs = {}; sh.alert = null; ui.saving = true; render();
   try {
-    need(await sb.rpc('save_my_profile', {p_first_name:draft.first, p_last_name:draft.last, p_phone:draft.phone}));
-    await loadAll();  // reloads the users row and finds the renamed "You" contact
-    if (S.loadError) return;
-    ui.saving = false; ui.sheet = null;
-    toast(`Saved your profile, ${S.me.first}.`);
+    const same = draft.first === S.me.first && draft.last === S.me.last && draft.phone === S.me.phone;
+    if (!same){
+      need(await sb.rpc('save_my_profile', {p_first_name:draft.first, p_last_name:draft.last, p_phone:draft.phone}));
+      await loadAll();  // reloads the users row and finds the renamed "You" contact
+      if (S.loadError) return;
+    }
+    ui.saving = false;
+    if (sh.mode === 'create'){ Object.assign(sh, {step:'email', draft:null}); render(); document.getElementById('f-email')?.focus(); }
+    else { Object.assign(sh, {step:null, draft:null}); toast(same ? 'No changes to save.' : 'Profile updated.'); }
   } catch(e) {
-    fail(/save_my_profile/.test(e.message) ? 'The database is missing the profile update. Run supabase/profile.sql in the Supabase SQL Editor.' : e.message);
+    showServerErr(/failed to fetch|network|load failed/i.test(e.message) ? OFFLINE : /save_my_profile/.test(e.message) ? 'The database is missing the profile update. Run supabase/profile.sql in the Supabase SQL Editor.' : e.message);
   }
 }
 
-// Email codes. "save": attach an email to this guest account (same account, same data).
-// "signin": switch this browser to an account that was already saved.
-const EMAIL_OK = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-const authErr = (m, mode) => /already (been )?registered|already exists|email_exists/i.test(m) ? 'That email already has a saved IOYA account. Go back and choose "Already saved? Sign in" instead.'
-  : /signups not allowed|user not found/i.test(m) ? 'No saved account uses that email. Check the spelling, or go back and save this account instead.'
+// Email codes. 'create': attach an email to this guest account (same account, same data).
+// 'signin': switch this browser to an existing profile.
+const OFFLINE = 'Couldn\'t reach IOYA. Check your internet connection and try again.';
+const authErr = m => /failed to fetch|network|load failed/i.test(m) ? OFFLINE
+  : /already (been )?registered|already exists|email_exists/i.test(m) ? 'This email already has an IOYA profile. Go back and choose "Sign in" instead.'
+  : /signups not allowed|user not found/i.test(m) ? 'No saved profile uses this email. Check the spelling, or create a profile instead.'
   : /expired|invalid/i.test(m) && /token|otp|code/i.test(m) ? 'That code is wrong or has expired. Check it, or tap "Send a new code".'
   : /rate limit|too many|security purposes|seconds/i.test(m) ? 'Too many codes were requested. Wait a minute, then try again.'
   : /error sending|smtp/i.test(m) ? 'The email could not be sent. Try again later, or tell the IOYA team.'
   : m;
 async function sendCode(again){
   const sh = ui.sheet;
-  const email = again ? sh.email : (document.getElementById('f-email')?.value || '').trim().toLowerCase();
-  const fail = m => { Object.assign(sh, {email, err:m}); ui.saving = false; render(); };
-  if (!EMAIL_OK(email)) return fail('Enter a full email address, like you@example.com.');
-  if (sh.mode === 'save' && !S.account.guest) return fail('This account is already saved.');
-  Object.assign(sh, {email, err:null}); ui.saving = true; render();
+  const email = again ? sh.email : fieldVal('email');
+  sh.email = email;
+  const bad = CHECK.email(email);
+  if (bad) return showErrs({email:bad});
+  if (sh.mode === 'create' && !S.account.guest) return showErrs({}, 'You already have a profile.');
+  sh.errs = {}; sh.alert = null; ui.saving = true; render();
   try {
-    const r = sh.mode === 'save' ? await sb.auth.updateUser({email})
+    const r = sh.mode === 'create' ? await sb.auth.updateUser({email})
       : await sb.auth.signInWithOtp({email, options:{shouldCreateUser:false}});
     if (r.error) throw new Error(r.error.message);
-    ui.saving = false; sh.step = 'code'; render();
+    ui.saving = false; sh.step = 'code'; if (!again) sh.token = ''; render();
     document.getElementById('f-code')?.focus();
     if (again) toast(`Sent a new code to ${email}.`);
-  } catch(e) { fail(authErr(e.message, sh.mode)); }
+  } catch(e) { showServerErr(authErr(e.message)); }
 }
 async function verifyCode(){
   const sh = ui.sheet;
-  const token = (document.getElementById('f-code')?.value || '').replace(/\s/g, '');
-  const fail = m => { sh.err = m; ui.saving = false; render(); };
+  const token = fieldVal('code');
   sh.token = token;
-  if (!/^[0-9]{6,10}$/.test(token)) return fail('Enter the 6-digit code from the email.');
-  sh.err = null; ui.saving = true; render();
+  const bad = CHECK.code(token);
+  if (bad) return showErrs({code:bad});
+  sh.errs = {}; sh.alert = null; ui.saving = true; render();
   try {
-    const r = await sb.auth.verifyOtp({email:sh.email, token, type:sh.mode === 'save' ? 'email_change' : 'email'});
+    const r = await sb.auth.verifyOtp({email:sh.email, token, type:sh.mode === 'create' ? 'email_change' : 'email'});
     if (r.error) throw new Error(r.error.message);
-    if (sh.mode === 'save'){
+    if (sh.mode === 'create'){
       await readAccount();
-      ui.saving = false; ui.sheet = null;
-      toast(`Your account is saved as ${S.account.email || sh.email}.`);
+      ui.saving = false; ui.sheet = {type:'profile', id:null};
+      toast(`Your profile is created. You're signed in as ${S.account.email || sh.email}.`);
     } else {
-      // A different account is now signed in: forget this browser's guest and load the saved one.
-      S.userId = null; ui.saving = false; ui.sheet = null;
+      // A different account is now signed in: forget this browser's guest and load the profile.
+      S.userId = null; ui.saving = false; ui.sheet = {type:'profile', id:null};
       await loadAll();
       if (!S.loadError) toast(`Signed in as ${S.account.email}.`);
     }
-  } catch(e) { fail(authErr(e.message, sh.mode)); }
+  } catch(e) { showServerErr(authErr(e.message)); }
 }
 async function signOutAccount(){
   ui.saving = true; render();
   const {error} = await sb.auth.signOut({scope:'local'});
-  ui.saving = false;
-  if (error){ ui.sheet.err = `Couldn't sign out: ${error.message}`; render(); return; }
-  ui.sheet = null; S.userId = null;
+  if (error) return showErrs({}, `Couldn't sign out: ${error.message}`);
+  ui.saving = false; ui.sheet = null; S.userId = null;
+  S.me = {first:'', last:'', phone:''};
   await loadAll();  // starts a fresh guest account
-  if (!S.loadError) toast('Signed out. This browser now has a new guest account.');
+  if (!S.loadError) toast('Signed out. This browser is now using a guest account.');
 }
 
 // Contacts sync: Supabase functions save_contact / delete_contact (see supabase/contacts-sync.sql).
@@ -1987,6 +2091,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => {
   const el = e.target, k = el.dataset.in; if (!k) return;
+  if (k === 'pf') return liveCheck(el);
   const d = S.draft, val = el.value;
   const item = () => d.items.find(it => it.id === el.dataset.id);
   const person = () => d.people.find(p => p.id === el.dataset.id);
@@ -2011,6 +2116,8 @@ document.addEventListener('change', e => {
   if (file) runScan(file);
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.sheet){ ui.sheet = null; render(); } });
+// Enter in a profile field presses that step's main button.
+document.addEventListener('keydown', e => { const act = e.target.dataset && e.target.dataset.enter; if (e.key === 'Enter' && act && !ui.saving){ e.preventDefault(); A[act]({}); } });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && ui.cameraOpen){ stopCamera(); if (S.view === 'scan') render(); }
 });

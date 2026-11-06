@@ -12,7 +12,7 @@ const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][0][1];
 function fakeSupabase({fail = {}, saved = false} = {}){
   const calls = [];
   let nextUser = 7;
-  const state = {session:{user:{id:'guest', is_anonymous:!saved, email:saved ? 'me@example.com' : ''}}, userId:7,
+  const state = {session:{user:{id:'guest', is_anonymous:!saved, email:saved ? 'me@example.com' : '', created_at:'2026-11-02T10:00:00Z'}}, userId:7,
     me:{user_first_name:'', user_last_name:'', phone:null}};
   const err = name => fail[name] ? {error:{message:fail[name]}} : null;
   const query = rows => {
@@ -38,7 +38,7 @@ function fakeSupabase({fail = {}, saved = false} = {}){
       verifyOtp: async args => {
         calls.push(['verifyOtp', args]);
         if (fail.verifyOtp) return {data:{}, error:{message:fail.verifyOtp}};
-        if (args.type === 'email_change') state.session = {user:{id:'guest', is_anonymous:false, email:args.email}};
+        if (args.type === 'email_change') state.session = {user:{...state.session.user, is_anonymous:false, email:args.email}};
         else { state.session = {user:{id:'saved', is_anonymous:false, email:args.email}}; state.userId = 3; state.me = {user_first_name:'Saved', user_last_name:'Me', phone:null}; }
         return {data:{}, error:null};
       }
@@ -66,10 +66,11 @@ async function load(fake){
     localStorage:{getItem:() => null, setItem(){}},
     setTimeout:() => 0, clearTimeout:() => {}, console
   };
-  const instrumented = script.replace("if (!V[S.view]", "render = () => {}; globalThis.api = {loadAll, S, ui, A, sheetHTML}; return;\nif (!V[S.view]");
+  const instrumented = script.replace("if (!V[S.view]", "render = () => {}; globalThis.api = {loadAll, S, ui, A, sheetHTML, liveCheck, avatarBtn}; return;\nif (!V[S.view]");
   vm.runInNewContext(instrumented, context);
   const api = context.api;
   api.type = (values) => { for (const k of Object.keys(fields)) delete fields[k]; Object.entries(values).forEach(([id, value]) => fields[id] = {value, focus(){}}); };
+  api.fields = fields;
   await api.loadAll();
   return api;
 }
@@ -77,140 +78,226 @@ const open = api => api.A.sheet({s:'profile'});
 const calls = (fake, name) => fake.calls.filter(c => c[0] === name);
 // Objects made inside the app's sandbox have different prototypes; compare them as plain data.
 const plain = x => JSON.parse(JSON.stringify(x));
+const errs = api => plain(api.ui.sheet.errs || {});
+// Walk a guest through steps 1 and 2 of "Create profile".
+async function toCode(api, email = 'me@example.com'){
+  open(api); api.A.pstep({step:'edit', mode:'create'});
+  api.type({'f-first':'Jackson', 'f-last':'', 'f-phone':''}); await api.A.saveprofile();
+  api.type({'f-email':email}); await api.A.sendcode({});
+}
 
-test('saving the profile sends trimmed values and reloads the renamed "You" contact', async () => {
+test('the profile opens in view mode with a pencil, not as a form', async () => {
+  const api = await load(fakeSupabase());
+  open(api);
+  const out = api.sheetHTML();
+  assert.match(out, /aria-label="Edit profile"/);
+  assert.doesNotMatch(out, /id="f-first"/, 'no fields until the pencil is pressed');
+  assert.match(out, /Add your name/);
+  assert.match(out, /Member since November 2026/);
+  api.A.pstep({step:'edit'});
+  assert.match(api.sheetHTML(), /Edit profile[\s\S]*id="f-first"/);
+});
+
+test('a guest sees "Create profile" and a small "Sign in" link; no "Sign out"', async () => {
+  const api = await load(fakeSupabase());
+  open(api);
+  const out = api.sheetHTML();
+  assert.match(out, />Create profile</);
+  assert.match(out, /Already have a profile\?.*>Sign in</s);
+  assert.match(out, /badge guest/);
+  assert.doesNotMatch(out, /Sign out/);
+});
+
+test('a signed-in user sees their email and "Sign out", and no create or sign-in buttons', async () => {
+  const api = await load(fakeSupabase({saved:true}));
+  open(api);
+  const out = api.sheetHTML();
+  assert.match(out, /Signed in as<\/span><b>me@example.com/);
+  assert.match(out, /Verified/);
+  assert.match(out, /Sign out/);
+  assert.doesNotMatch(out, /Create profile|Already have a profile|>Sign in</);
+});
+
+test('saving the profile sends trimmed values, reloads "You", and returns to view mode', async () => {
   const fake = fakeSupabase();
   const api = await load(fake);
-  open(api);
+  open(api); api.A.pstep({step:'edit'});
   api.type({'f-first':'  Jackson ', 'f-last':' McClean ', 'f-phone':' (801) 555-1234 '});
   await api.A.saveprofile();
   assert.deepEqual(plain(calls(fake, 'save_my_profile')[0][1]), {p_first_name:'Jackson', p_last_name:'McClean', p_phone:'(801) 555-1234'});
   assert.deepEqual(plain(api.S.me), {first:'Jackson', last:'McClean', phone:'(801) 555-1234'});
   assert.equal(api.S.selfContactId, '50', 'still finds "You" after the rename');
-  assert.equal(api.ui.sheet, null);
-  assert.match(api.ui.toast, /Saved your profile, Jackson/);
+  assert.equal(api.ui.sheet.step, null, 'back to view mode');
+  assert.match(api.ui.toast, /Profile updated/);
+  assert.match(api.sheetHTML(), /class="pname">Jackson McClean/);
 });
 
-test('a blank first name or a bad phone is caught before saving, and the typed values stay', async () => {
+test('each invalid field gets its own exact red message, and nothing is sent', async () => {
   const fake = fakeSupabase();
   const api = await load(fake);
-  open(api);
-  api.type({'f-first':' ', 'f-last':'McClean', 'f-phone':''});
-  await api.A.saveprofile();
-  assert.match(api.ui.sheet.err, /Add your first name/);
-  api.type({'f-first':'Jackson', 'f-last':'McClean', 'f-phone':'555-CALL'});
-  await api.A.saveprofile();
-  assert.match(api.ui.sheet.err, /7 to 15 digits/);
-  assert.match(api.sheetHTML(), /value="555-CALL"/, 'what was typed is still in the field');
+  open(api); api.A.pstep({step:'edit'});
+  const cases = [
+    [{'f-first':' ', 'f-phone':''}, 'first', 'First name is required.'],
+    [{'f-first':'J', 'f-phone':'123'}, 'phone', 'Phone number is too short: it has 3 digits, and it needs at least 7.'],
+    [{'f-first':'J', 'f-phone':'1234567890123456'}, 'phone', 'Phone number is too long: it has 16 digits, and it can have at most 15.'],
+    [{'f-first':'J', 'f-phone':'555-CALL-NOW'}, 'phone', 'Phone numbers can only use digits, spaces and ( ) + - .'],
+    [{'f-first':'x'.repeat(51), 'f-phone':''}, 'first', 'First name can be at most 50 characters (it has 51).']
+  ];
+  for (const [values, k, msg] of cases){
+    api.type({'f-last':'', ...values});
+    await api.A.saveprofile();
+    assert.equal(errs(api)[k], msg);
+    const out = api.sheetHTML();
+    assert.match(out, new RegExp(`id="w-${k}"[^>]*`), 'field wrapper present');
+    assert.match(out, new RegExp(`class="field invalid" id="w-${k}"`), 'field outlined in red');
+    assert.match(out, new RegExp(`<p class="ferr" id="e-${k}" role="alert">`), 'message visible');
+  }
   assert.equal(calls(fake, 'save_my_profile').length, 0);
+  assert.match(api.sheetHTML(), /value="x{51}"/, 'what was typed is still in the field');
 });
 
-test('a database error keeps the form open with the message', async () => {
-  const fake = fakeSupabase({fail:{save_my_profile:'One of your contacts already has this exact name and phone.'}});
+test('a message clears as soon as the field is fixed', async () => {
+  const api = await load(fakeSupabase());
+  open(api); api.A.pstep({step:'edit'});
+  api.type({'f-first':'J', 'f-last':'', 'f-phone':'12'}); await api.A.saveprofile();
+  assert.ok(errs(api).phone);
+  const box = {hidden:false, querySelector:() => ({textContent:''})}, wrap = {classList:{toggle(){}}};
+  api.fields['e-phone'] = box; api.fields['w-phone'] = wrap;
+  const input = {dataset:{f:'phone'}, value:'(801) 555-1234', setAttribute(){}, removeAttribute(){}};
+  // The input listener calls liveCheck for data-in="pf" fields.
+  api.ui.sheet && (api.ui.sheet.errs.phone = errs(api).phone);
+  api.liveCheck(input);
+  assert.equal(api.ui.sheet.errs.phone, '');
+  assert.equal(box.hidden, true);
+});
+
+test('a database error lands under the field it is about', async () => {
+  const fake = fakeSupabase({fail:{save_my_profile:'Enter a phone number with 7 to 15 digits, or leave it blank.'}});
   const api = await load(fake);
-  open(api);
-  api.type({'f-first':'Guest', 'f-last':'Friend', 'f-phone':''});
+  open(api); api.A.pstep({step:'edit'});
+  api.type({'f-first':'Guest', 'f-last':'Friend', 'f-phone':'(801) 555-1234'});
   await api.A.saveprofile();
-  assert.match(api.ui.sheet.err, /already has this exact name/);
+  assert.match(errs(api).phone, /7 to 15 digits/);
   assert.equal(api.ui.saving, false);
   assert.match(api.sheetHTML(), /value="Guest"/);
 });
 
-test('a guest saves their account: email, then the 6-digit code; same account and data', async () => {
+test('an unrelated database error shows as a red box at the top', async () => {
+  const fake = fakeSupabase({fail:{save_my_profile:'One of your contacts already has this exact name and phone.'}});
+  const api = await load(fake);
+  open(api); api.A.pstep({step:'edit'});
+  api.type({'f-first':'Guest', 'f-last':'Friend', 'f-phone':''});
+  await api.A.saveprofile();
+  assert.match(api.sheetHTML(), /<div class="alert bad" role="alert">One of your contacts/);
+});
+
+test('Create profile: name, then email, then the 6-digit code; same account and data', async () => {
   const fake = fakeSupabase();
   const api = await load(fake);
-  open(api);
-  assert.match(api.sheetHTML(), /Save your account/);
-  api.A.pstep({step:'email', mode:'save'});
+  open(api); api.A.pstep({step:'edit', mode:'create'});
+  assert.match(api.sheetHTML(), /Create your profile[\s\S]*Step 1 of 3/);
+  api.type({'f-first':'Jackson', 'f-last':'McClean', 'f-phone':''});
+  await api.A.saveprofile();
+  assert.equal(api.ui.sheet.step, 'email');
+  assert.match(api.sheetHTML(), /Add your email[\s\S]*Step 2 of 3/);
   api.type({'f-email':' Me@Example.com '});
   await api.A.sendcode({});
   assert.deepEqual(plain(calls(fake, 'updateUser')[0][1]), {email:'me@example.com'});
-  assert.equal(api.ui.sheet.step, 'code');
+  assert.match(api.sheetHTML(), /Check your email[\s\S]*Step 3 of 3[\s\S]*>Create profile</);
   api.type({'f-code':'123 456'});
   await api.A.verifycode();
   assert.deepEqual(plain(calls(fake, 'verifyOtp')[0][1]), {email:'me@example.com', token:'123456', type:'email_change'});
-  assert.deepEqual(plain(api.S.account), {email:'me@example.com', guest:false});
+  assert.deepEqual(plain(api.S.account), {email:'me@example.com', guest:false, since:'2026-11-02T10:00:00Z'});
   assert.equal(api.S.userId, 7, 'same account');
   assert.equal(api.S.contacts.length, 1, 'contacts kept');
-  open(api);
-  assert.match(api.sheetHTML(), /Saved as<\/span><span>me@example.com/);
-  assert.doesNotMatch(api.sheetHTML(), /Save your account/);
+  assert.equal(api.ui.sheet.step, undefined, 'back to the profile view');
+  assert.match(api.ui.toast, /Your profile is created/);
+  assert.doesNotMatch(api.sheetHTML(), /Create profile/);
 });
 
-test('an email already used by a saved account points to Sign in', async () => {
+test('an email already used by a profile shows under the email field and points to Sign in', async () => {
   const fake = fakeSupabase({fail:{updateUser:'A user with this email address has already been registered'}});
   const api = await load(fake);
-  open(api); api.A.pstep({step:'email', mode:'save'});
-  api.type({'f-email':'taken@example.com'});
-  await api.A.sendcode({});
-  assert.match(api.ui.sheet.err, /Already saved\? Sign in/);
+  await toCode(api, 'taken@example.com');
+  assert.match(errs(api).email, /already has an IOYA profile.*Sign in/);
   assert.equal(api.ui.sheet.step, 'email');
   assert.match(api.sheetHTML(), /value="taken@example.com"/);
 });
 
-test('a wrong code shows a clear message and keeps the code', async () => {
+test('email and code mistakes get exact messages', async () => {
+  const fake = fakeSupabase();
+  const api = await load(fake);
+  open(api); api.A.pstep({step:'email', mode:'signin'});
+  api.type({'f-email':''}); await api.A.sendcode({});
+  assert.equal(errs(api).email, 'Email is required.');
+  api.type({'f-email':'not-an-email'}); await api.A.sendcode({});
+  assert.equal(errs(api).email, 'Enter a full email address, like you@example.com.');
+  assert.equal(calls(fake, 'signInWithOtp').length, 0);
+  api.type({'f-email':'me@example.com'}); await api.A.sendcode({});
+  api.type({'f-code':'12'}); await api.A.verifycode();
+  assert.equal(errs(api).code, 'The code is 6 digits. You entered 2.');
+  api.type({'f-code':'12a456'}); await api.A.verifycode();
+  assert.equal(errs(api).code, 'The code is numbers only.');
+  assert.equal(calls(fake, 'verifyOtp').length, 0);
+});
+
+test('a wrong code shows under the code field and keeps the code', async () => {
   const fake = fakeSupabase({fail:{verifyOtp:'Token has expired or is invalid'}});
   const api = await load(fake);
-  open(api); api.A.pstep({step:'email', mode:'save'});
-  api.type({'f-email':'me@example.com'}); await api.A.sendcode({});
+  await toCode(api);
   api.type({'f-code':'111111'}); await api.A.verifycode();
-  assert.match(api.ui.sheet.err, /wrong or has expired/);
+  assert.match(errs(api).code, /wrong or has expired/);
   assert.match(api.sheetHTML(), /value="111111"/);
   assert.equal(api.S.account.guest, true);
-  api.type({'f-code':'12'}); await api.A.verifycode();
-  assert.match(api.ui.sheet.err, /6-digit code/);
-  assert.equal(calls(fake, 'verifyOtp').length, 1, 'a too-short code is not sent');
 });
 
 test('"Send a new code" resends to the same email', async () => {
   const fake = fakeSupabase();
   const api = await load(fake);
-  open(api); api.A.pstep({step:'email', mode:'save'});
-  api.type({'f-email':'me@example.com'}); await api.A.sendcode({});
+  await toCode(api);
   api.type({}); await api.A.sendcode({again:'1'});
   assert.equal(calls(fake, 'updateUser').length, 2);
   assert.deepEqual(plain(calls(fake, 'updateUser')[1][1]), {email:'me@example.com'});
   assert.match(api.ui.toast, /Sent a new code/);
 });
 
-test('signing in to a saved account switches this browser to it, without creating an account', async () => {
+test('signing in switches this browser to the profile, without creating an account', async () => {
   const fake = fakeSupabase();
   const api = await load(fake);
   open(api); api.A.pstep({step:'email', mode:'signin'});
-  assert.match(api.sheetHTML(), /1 contact in this guest account won't move/);
+  assert.match(api.sheetHTML(), /Your guest data stays behind[\s\S]*1 contact on this guest account/);
   api.type({'f-email':'saved@example.com'});
   await api.A.sendcode({});
   assert.deepEqual(plain(calls(fake, 'signInWithOtp')[0][1]), {email:'saved@example.com', options:{shouldCreateUser:false}});
+  assert.match(api.sheetHTML(), />Sign in</);
+  assert.doesNotMatch(api.sheetHTML(), /Step \d of 3/);
   api.type({'f-code':'654321'});
   await api.A.verifycode();
   assert.equal(calls(fake, 'verifyOtp')[0][1].type, 'email');
-  assert.equal(api.S.userId, 3, 'now the saved account');
+  assert.equal(api.S.userId, 3, 'now the saved profile');
   assert.equal(api.S.me.first, 'Saved');
   assert.equal(api.S.contacts.length, 0, "the guest's contacts are gone from the screen");
   assert.match(api.ui.toast, /Signed in as saved@example.com/);
 });
 
-test('signing in with an unknown email says so', async () => {
+test('a dropped connection shows a plain message, not a technical one', async () => {
+  const fake = fakeSupabase({fail:{updateUser:'Failed to fetch'}});
+  const api = await load(fake);
+  await toCode(api);
+  assert.match(api.sheetHTML(), /<div class="alert bad" role="alert">Couldn&#39;t reach IOYA|<div class="alert bad" role="alert">Couldn't reach IOYA/);
+});
+
+test('signing in with an unknown email says so under the email field', async () => {
   const fake = fakeSupabase({fail:{signInWithOtp:'Signups not allowed for otp'}});
   const api = await load(fake);
   open(api); api.A.pstep({step:'email', mode:'signin'});
   api.type({'f-email':'nobody@example.com'}); await api.A.sendcode({});
-  assert.match(api.ui.sheet.err, /No saved account uses that email/);
+  assert.match(errs(api).email, /No saved profile uses this email/);
 });
 
-test('an invalid email is caught before anything is sent', async () => {
-  const fake = fakeSupabase();
-  const api = await load(fake);
-  open(api); api.A.pstep({step:'email', mode:'save'});
-  api.type({'f-email':'not-an-email'}); await api.A.sendcode({});
-  assert.match(api.ui.sheet.err, /full email address/);
-  assert.equal(calls(fake, 'updateUser').length, 0);
-});
-
-test('signing out a saved account starts a fresh guest account', async () => {
+test('signing out starts a fresh guest account', async () => {
   const fake = fakeSupabase({saved:true});
   const api = await load(fake);
-  assert.equal(api.S.account.guest, false);
   open(api); api.A.pstep({step:'signout'});
   assert.match(api.sheetHTML(), /sign back in with me@example.com/);
   await api.A.signout();
@@ -221,13 +308,20 @@ test('signing out a saved account starts a fresh guest account', async () => {
   assert.equal(api.ui.sheet, null);
 });
 
+test('the header button shows initials once there is a name', async () => {
+  const fake = fakeSupabase();
+  fake.state.me = {user_first_name:'Jackson', user_last_name:'McClean', phone:null};
+  const api = await load(fake);
+  assert.match(api.avatarBtn(), /aria-label="Profile: Jackson McClean">JM</);
+});
+
 test('names and emails are escaped in the profile sheet', async () => {
   const fake = fakeSupabase({saved:true});
   fake.state.session.user.email = '<b>x</b>@example.com';
   fake.state.me = {user_first_name:'<img src=x>', user_last_name:'', phone:null};
   const api = await load(fake);
   open(api);
-  const out = api.sheetHTML();
+  const out = api.sheetHTML() + api.avatarBtn();
   assert.doesNotMatch(out, /<img src=x>|<b>x<\/b>/);
   assert.match(out, /&lt;img src=x&gt;/);
 });
