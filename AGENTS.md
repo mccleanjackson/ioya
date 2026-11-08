@@ -141,6 +141,8 @@ Groups are owned through `friend_groups.user_id`; the database returns only the 
 
 **Remaining limitations:** Groups can't be created or edited in the app yet, but `save_group`/`delete_group` are ready: the UI only needs to call them (same write pattern as `saveContact()`), then update `S.groups` from what Supabase returns.
 
+Additional draft request methods are Cash App (`cashapp`, $cashtag/email/U.S. phone, minimum $1), Apple Cash (`applecash`, uses `phone`, Messages draft plus native Apple Cash Request instructions) and Cash (`cash`, no electronic contact/link). Apple Cash is not Apple Pay merchant checkout, and an SMS draft is not an Apple Cash request. Cash App's provider-created request links may accept Apple Pay/Google Pay; never synthesize a pay-the-debtor $cashtag link. No lookup rows or SQL were changed: Cash App details live in the local split; the saved Contacts editor still reflects `S.payMethods` from Supabase. Keep physical-device verification separate from software checks.
+
 ## Building the group editor (next task): read this first
 
 A teammate is adding "create, edit and delete groups" to the Contacts page. **The database side is already done and live on the shared Supabase project** (`supabase/private-data.sql`). Do not write new SQL, table grants or policies for this feature, and do not ask your human to run any SQL. If something seems to need a database change, stop and ask Jackson first.

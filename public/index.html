@@ -532,7 +532,7 @@ const ini = n => (n || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join(
 const fmtDate = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
 const shortDate = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
-const METHODS = {venmo:{label:'Venmo', field:'venmo', ph:'@username', need:'a Venmo username'}, sms:{label:'Text', field:'phone', ph:'Mobile number', need:'a mobile number'}, paypal:{label:'PayPal', field:'paypal', ph:'PayPal email', need:'a PayPal email'}, zelle:{label:'Zelle', field:'zelle', ph:'Phone or email', need:'a Zelle phone or email'}};
+const METHODS = {venmo:{label:'Venmo', field:'venmo', ph:'@username', need:'a Venmo username'}, paypal:{label:'PayPal', field:'paypal', ph:'PayPal email', need:'a PayPal email'}, zelle:{label:'Zelle', field:'zelle', ph:'Phone or email', need:'a Zelle phone or email'}, cashapp:{label:'Cash App', field:'cashapp', ph:'$cashtag, phone or email', need:'a Cash App $cashtag, phone or email'}, applecash:{label:'Apple Cash', field:'phone', ph:'iMessage mobile number', need:'their iMessage mobile number'}, cash:{label:'Cash', field:'cash', ph:'No contact needed', need:'no contact details'}, sms:{label:'Text', field:'phone', ph:'Mobile number', need:'a mobile number'}};
 
 const ICONS = {
   home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
@@ -580,7 +580,7 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify({view:S.view
 
 const CFG = window.IOYA_CONFIG || {};
 const sb = window.supabase && CFG.supabaseUrl && CFG.supabaseAnonKey ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey) : null;
-const METHOD_KEY = {Venmo:'venmo', PayPal:'paypal', Zelle:'zelle'};
+const METHOD_KEY = {Venmo:'venmo', PayPal:'paypal', Zelle:'zelle', 'Cash App':'cashapp', 'Apple Cash':'applecash', Cash:'cash'};
 const fullName = (f, l) => [f, l].filter(Boolean).join(' ');
 const need = ({data, error}) => { if (error) throw new Error(error.message); return data; };
 
@@ -678,10 +678,10 @@ async function loadAll(){
 }
 const CONTACT_SELECT = 'contact_id, cont_first_name, cont_last_name, phone, contacts_payment_method(pay_method_id, pay_method_username, is_preferred, payment_methods(pay_method_name))';
 function normContact(c){
-  const m = {venmo:'', paypal:'', zelle:''}; let pref = null;
+  const m = {venmo:'', paypal:'', zelle:'', cashapp:''}; let pref = null;
   const list = c.contacts_payment_method.map(x => ({id:x.pay_method_id, name:x.payment_methods.pay_method_name, username:x.pay_method_username, preferred:x.is_preferred}))
     .sort((a, b) => a.id - b.id);
-  list.forEach(x => { const k = METHOD_KEY[x.name]; if (k) m[k] = x.username; if (x.preferred) pref = x; });
+  list.forEach(x => { const k = METHOD_KEY[x.name]; if (k) m[METHODS[k].field] = x.username; if (x.preferred) pref = x; });
   return {id:String(c.contact_id), first:c.cont_first_name, last:c.cont_last_name, name:fullName(c.cont_first_name, c.cont_last_name), phone:c.phone || '',
     ...m, method:(pref && METHOD_KEY[pref.name]) || 'sms', pref, methods:list};
 }
@@ -817,6 +817,7 @@ const handleOf = p => p[METHODS[p.method]?.field] || '';
 function requestTarget(method, raw){
   const value = String(raw || '').trim();
   if (!METHODS[method]) return {error:'Choose a supported request method.'};
+  if (method === 'cash') return {value:'In person'};
   if (!value) return {error:`Add ${METHODS[method].need}.`};
   if (method === 'venmo') {
     const handle = value.replace(/^@/, '');
@@ -825,15 +826,17 @@ function requestTarget(method, raw){
   }
   const email = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(value) && !/[\r\n]/.test(value);
   if (method === 'paypal') return email ? {value} : {error:'Enter the email on their PayPal account.'};
-  if (method === 'zelle' && email) return {value};
+  if (['zelle','cashapp'].includes(method) && email) return {value};
+  if (method === 'cashapp' && /^\$[A-Za-z0-9]{1,20}$/.test(value) && /[A-Za-z]/.test(value)) return {value};
   const digits = value.replace(/[+().\s-]/g, '');
   const phone = /^\d{10}$/.test(digits) ? '+1' + digits : /^1\d{10}$/.test(digits) ? '+' + digits : '';
-  return phone ? {value:phone} : {error:method === 'zelle' ? 'Enter their enrolled Zelle email or U.S. mobile number.' : 'Enter a U.S. mobile number, including area code.'};
+  return phone ? {value:phone} : {error:method === 'zelle' ? 'Enter their enrolled Zelle email or U.S. mobile number.' : method === 'cashapp' ? 'Enter their $cashtag, Cash App email or U.S. mobile number.' : 'Enter a U.S. mobile number, including area code.'};
 }
 function paymentRequest(r){
   const target = requestTarget(r.method, r.handle);
   if (target.error) return target;
   if (!Number.isSafeInteger(r.amount) || r.amount <= 0) return {error:'The request amount must be a positive number of cents.'};
+  if (r.method === 'cashapp' && r.amount < 100) return {error:'Cash App requests start at $1. Choose another method for this share.'};
   const amount = cIn(r.amount), note = String(r.note || '').trim();
   const body = `${r.name || 'Your'} share: ${money(r.amount)}.${note ? '\n' + note : ''}`;
   const detail = `Request from: ${r.name || 'Friend'}\n${METHODS[r.method].label}: ${target.value}\nAmount: ${money(r.amount)} USD${note ? '\nNote: ' + note : ''}`;
@@ -846,7 +849,13 @@ function paymentRequest(r){
     help:'In PayPal, choose Request and paste this person’s email, amount and note. Review and send there.'};
   if (r.method === 'zelle') return {target:target.value, detail, href:'https://www.zellepay.com/get-started', label:'Find my bank for Zelle',
     help:'Open your bank’s app → Zelle → Request. Use this person’s enrolled email or U.S. mobile number, amount and note. Review and send there.'};
+  if (r.method === 'cashapp') return {target:target.value, detail, href:'https://cash.app/login', label:'Open Cash App',
+    help:'In Cash App, enter this amount → Request, then find this person using their $cashtag, phone or email. Review and send there. You can also create a request link in Cash App and share it; eligible recipients without Cash App can pay that link with Apple Pay or Google Pay.'};
+  if (r.method === 'cash') return {target:target.value, detail,
+    help:'Arrange to collect this amount in person. No electronic request is created. Mark a saved split paid only after you receive the cash.'};
   const separator = /iPad|iPhone|iPod/.test(navigator.userAgent || '') ? '&' : '?';
+  if (r.method === 'applecash') return {target:target.value, detail, href:`sms:${target.value}${separator}body=${encodeURIComponent(body)}`, label:'Open Messages for Apple Cash',
+    help:'On an iPhone, open this conversation, tap + → Apple Cash, enter this amount and choose Request, then send. The message draft alone is not an Apple Cash request. Requires Apple Cash eligibility and compatible Apple devices in the U.S.; Android cannot send Apple Cash requests.'};
   return {target:target.value, detail, href:`sms:${target.value}${separator}body=${encodeURIComponent(body)}`, label:'Open text message',
     help:'Review the message and add how you want to be paid, then send it in Messages. This does not create a request inside a payment app.'};
 }
@@ -856,9 +865,9 @@ function requestCard(r, index){
   if (info.error) return `<p class="warn-line" role="alert">${esc(info.error)}</p>`;
   return `<div class="request-handoff">
     <p class="fine">${esc(info.help)}</p>
-    <a class="btn" href="${esc(info.href)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">${info.label}</a>
+    ${info.href ? `<a class="btn" href="${esc(info.href)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">${info.label}</a>` : ''}
     <div class="request-copy">
-      <button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="contact">Copy contact</button>
+      ${r.method !== 'cash' ? `<button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="contact">Copy contact</button>` : ''}
       <button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="amount">Copy amount</button>
       <button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="note">Copy note</button>
     </div>
@@ -1256,7 +1265,7 @@ V.people = () => {
           <input id="sn-${p.id}" data-in="pname" data-id="${p.id}" value="${esc(p.name)}" placeholder="Name" aria-label="Person ${i+1} name">
           <div class="slot-m">
             <select id="sm-${p.id}" data-in="pmethod" data-id="${p.id}" aria-label="Request method">${Object.entries(METHODS).map(([k, m]) => `<option value="${k}" ${p.method === k ? 'selected' : ''}>${m.label}</option>`).join('')}</select>
-            <input id="sh-${p.id}" data-in="phandle" data-id="${p.id}" value="${esc(handleOf(p))}" placeholder="${METHODS[p.method].ph}" aria-label="${METHODS[p.method].label} contact">
+            <input id="sh-${p.id}" data-in="phandle" data-id="${p.id}" value="${p.method === 'cash' ? '' : esc(handleOf(p))}" placeholder="${METHODS[p.method].ph}" aria-label="${METHODS[p.method].label} contact" ${p.method === 'cash' ? 'disabled' : ''}>
           </div></div>
           <button class="iconbtn sm" data-act="rmp" data-id="${p.id}" aria-label="Remove person ${i+1}" ${d.people.length <= 2 ? 'disabled' : ''}>${I('x')}</button></li>`).join('')}
   </ol>
@@ -1305,12 +1314,12 @@ V.summary = () => {
   ${d.people.map(p => {
     const nm = p.me ? 'You' : (p.name || 'Unnamed');
     return `<article class="pcard">
-      <header><div><b>${esc(nm)}</b><span class="meta">${p.me ? 'Your share. No request is sent.' : 'Prepare a ' + METHODS[p.method].label + ' request'}</span></div><span class="ptotal mono">${money(c.totals[p.id])}</span></header>
+      <header><div><b>${esc(nm)}</b><span class="meta">${p.me ? 'Your share. No request is sent.' : p.method === 'cash' ? 'Collect cash in person' : 'Request via ' + METHODS[p.method].label}</span></div><span class="ptotal mono">${money(c.totals[p.id])}</span></header>
       <ul class="lines">${c.lines[p.id].map(l => `<li><span>${esc(l.name)}${l.of > 1 ? ` <small>÷${l.of}</small>` : ''}</span><span class="mono">${money(l.share)}</span></li>`).join('') || '<li><span class="fine">Nothing assigned yet</span></li>'}
         <li class="alloc"><span>Tax, tip & fees</span><span class="mono">${money(c.alloc[p.id])}</span></li></ul>
       ${p.me ? '' : `<div class="req-edit">
         <select id="xm-${p.id}" data-in="pmethod" data-id="${p.id}" aria-label="Request method for ${esc(nm)}">${Object.entries(METHODS).map(([k, m]) => `<option value="${k}" ${p.method === k ? 'selected' : ''}>${m.label}</option>`).join('')}</select>
-        <input id="xh-${p.id}" data-in="phandle" data-id="${p.id}" value="${esc(handleOf(p))}" placeholder="${METHODS[p.method].ph}" aria-label="${METHODS[p.method].label} for ${esc(nm)}">
+        <input id="xh-${p.id}" data-in="phandle" data-id="${p.id}" value="${p.method === 'cash' ? '' : esc(handleOf(p))}" placeholder="${METHODS[p.method].ph}" aria-label="${METHODS[p.method].label} for ${esc(nm)}" ${p.method === 'cash' ? 'disabled' : ''}>
       </div><div data-live="warn" data-pid="${p.id}"></div>`}
     </article>`;
   }).join('')}
@@ -1325,7 +1334,7 @@ V.sent = () => {
     <div class="next"><button class="btn" data-act="go" data-v="summary">Review updated split</button></div>`;
   return `<h1 class="h">Finish in your payment apps</h1>
     <p class="sub">${esc(d.merchant || 'Your split')} · ${results.length} prepared request${results.length === 1 ? '' : 's'}</p>
-    <p class="fine">Open each request below. Review the person and amount, then send in that app. IOYA cannot confirm whether a request was sent or paid.</p>
+    <p class="fine">Follow each person’s instructions below. Review the person and amount, then finish in the app or collect cash in person. IOYA cannot confirm whether a request was sent or paid.</p>
     ${results.map((r, i) => `<article class="pcard"><header><div><b>${esc(r.name)}</b><span class="meta">${esc(METHODS[r.method]?.label || '')} · ${esc(r.handle)}</span></div><span class="ptotal mono">${money(r.amount)}</span></header>${requestCard(r, i)}</article>`).join('')}
     <p class="fine">This split is kept in this browser. It is not saved to History yet.</p>
     <div class="next two"><button class="btn ghost" data-act="go" data-v="summary">Edit split</button><button class="btn" data-act="done">Return home</button></div>`;
@@ -1374,7 +1383,7 @@ const LIVE = {
   warn: el => {
     const d = S.draft, p = d.people.find(q => q.id === el.dataset.pid), c = calc(d);
     if (!p) return '';
-    const target = requestTarget(p.method, handleOf(p));
+    const target = requestIssue(p, c);
     if (target.error) return `<p class="warn-line">${I('alert')} ${esc(target.error)}</p>`;
     if (!c.totals[p.id]) return `<p class="warn-line">${I('alert')} Nothing assigned, so no request.</p>`;
     return `<p class="warn-line ok">${I('check')} Ready to prepare</p>`;
@@ -1400,7 +1409,12 @@ function autoMessage(p, c){
 function sendPlan(){
   const d = S.draft, c = calc(d);
   const others = d.people.filter(p => !p.me && c.totals[p.id] > 0);
-  return {c, ready: others.filter(p => !requestTarget(p.method, handleOf(p)).error), blocked: others.filter(p => requestTarget(p.method, handleOf(p)).error), globalBlock: c.unassigned.length > 0 || c.mismatch || c.totalsOff || !c.tipValid};
+  return {c, ready: others.filter(p => !requestIssue(p, c).error), blocked: others.filter(p => requestIssue(p, c).error), globalBlock: c.unassigned.length > 0 || c.mismatch || c.totalsOff || !c.tipValid};
+}
+function requestIssue(p, c){
+  // Contact validation first preserves useful missing-contact feedback for zero shares.
+  const target = requestTarget(p.method, handleOf(p));
+  return target.error || !c.totals[p.id] ? target : paymentRequest({method:p.method, handle:handleOf(p), amount:c.totals[p.id]});
 }
 function preparedRequests(){
   const {c, ready, globalBlock} = sendPlan();
@@ -1542,7 +1556,7 @@ function sheetHTML(){
     const r = s.request;
     body = `<h2 id="sh-t">Request from ${esc(r.name)}</h2><p class="sub mono">${money(r.amount)}</p>
       <label class="field"><span>Request method</span><select data-in="requestMethod">${Object.entries(METHODS).map(([k,m]) => `<option value="${k}" ${r.method === k ? 'selected' : ''}>${m.label}</option>`).join('')}</select></label>
-      <label class="field"><span>Request from</span><input data-in="requestHandle" value="${esc(r.handle)}" placeholder="${METHODS[r.method].ph}"></label>
+      <label class="field"><span>Request from</span><input data-in="requestHandle" value="${r.method === 'cash' ? '' : esc(r.handle)}" placeholder="${METHODS[r.method].ph}" ${r.method === 'cash' ? 'disabled' : ''}></label>
       <label class="field"><span>Note</span><textarea data-in="requestNote" rows="3">${esc(r.note)}</textarea></label>
       <div data-live="requestSheet">${requestCard(r, 'sheet')}</div><p class="fine">Opening the app does not change payment status in IOYA.</p>
       <div class="next"><button class="btn ghost" data-act="close">Close</button></div>`;
@@ -1571,7 +1585,7 @@ function sheetHTML(){
             <button class="btn small ghost" data-act="genmsg" data-pid="${p.id}">Auto-generate</button></div>
           <textarea id="msg-${p.id}" data-in="pmsg" data-id="${p.id}" rows="3" placeholder="Write a message, or tap Auto-generate">${esc(d.msgs[p.id] || '')}</textarea></li>`;
       }).join('')}
-      ${blocked.map(p => `<li class="blocked"><div class="ct"><span>${esc(p.name)}</span><span class="mono">${money(c.totals[p.id])}</span></div><div class="cm">Skipped: ${esc(requestTarget(p.method, handleOf(p)).error)}</div></li>`).join('')}</ul>
+      ${blocked.map(p => `<li class="blocked"><div class="ct"><span>${esc(p.name)}</span><span class="mono">${money(c.totals[p.id])}</span></div><div class="cm">Skipped: ${esc(requestIssue(p, c).error)}</div></li>`).join('')}</ul>
       <p class="fine">Next, open each request and finish sending in your payment app. Nothing is sent from this screen.</p>
       <div class="next two"><button class="btn ghost" data-act="close">Go back</button><button class="btn" data-act="send">Prepare requests</button></div>`;
   }
@@ -1610,7 +1624,7 @@ function go(v){
   S.view = v; render();
 }
 function toast(t){ ui.toast = t; render(); clearTimeout(toast.t); toast.t = setTimeout(() => { ui.toast = null; render(); }, 2600); }
-const fill = (p, c) => Object.assign(p, {name:c.name, method:c.method, venmo:c.venmo, phone:c.phone, paypal:c.paypal, zelle:c.zelle, contactId:c.id});
+const fill = (p, c) => Object.assign(p, {name:c.name, method:c.method, venmo:c.venmo, phone:c.phone, paypal:c.paypal, zelle:c.zelle, cashapp:c.cashapp, contactId:c.id});
 function addContact(cid){
   const d = S.draft, c = S.contacts.find(x => x.id === cid);
   if (!c || d.people.some(p => p.contactId === cid)) return;

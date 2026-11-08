@@ -96,3 +96,45 @@ test('history reminders use the current contact, preserve unpaid status, and esc
   const card=api.requestCard(request({name:'<img onerror=evil>',note:'</textarea><script>evil</script>'}),0);
   assert.ok(!card.includes('<script>'));assert.ok(card.includes('&lt;script&gt;'));assert.ok(card.includes('rel="noopener noreferrer"'));
 });
+
+test('Cash App accepts a cashtag, email or phone without linking to a payment to the debtor',()=>{
+  const api=app();
+  for(const [handle,expected] of [['$AlexTest','$AlexTest'],['alex@example.test','alex@example.test'],['(801) 555-0100','+18015550100']]){
+    const info=api.paymentRequest(request({method:'cashapp',handle}));
+    assert.equal(info.target,expected);assert.equal(info.href,'https://cash.app/login');
+    assert.match(info.help,/Request/);assert.match(info.help,/Apple Pay or Google Pay/);
+    assert.ok(!info.href.includes(expected));
+  }
+  for(const handle of ['$12345','$a/b','$alex&txn=pay','https://cash.app/$AlexTest','$abcdefghijklmnopqrstu']) assert.ok(api.requestTarget('cashapp',handle).error);
+});
+test('Cash App rejects sub-dollar shares in preparation and explains why',()=>{
+  const api=app(),d=split(api);d.people[1].method='cashapp';d.people[1].cashapp='$AlexTest';
+  d.items[0].price=100;d.printed=100;
+  assert.equal(api.sendPlan().ready.length,0);assert.equal(api.sendPlan().blocked.length,1);
+  api.A.send();assert.equal(d.results,null);assert.match(api.paymentRequest(request({method:'cashapp',handle:'$AlexTest',amount:99})).error,/\$1/);
+  d.items[0].price=200;d.printed=200;api.A.send();assert.equal(d.results[0].amount,100);
+});
+test('Apple Cash opens only a Messages draft and explains the native Request step',()=>{
+  const api=app({userAgent:'iPhone'}), info=api.paymentRequest(request({method:'applecash',handle:'8015550100'}));
+  assert.ok(info.href.startsWith('sms:+18015550100&body='));assert.match(decodeURIComponent(info.href),/\$12.34/);
+  assert.match(info.help,/draft alone is not an Apple Cash request/);assert.match(info.help,/compatible Apple devices/);
+  assert.ok(api.requestTarget('applecash','not-a-number').error);
+  assert.ok(!api.paymentRequest(request({method:'applecash',handle:'8015550100'})).error);
+});
+test('cash needs no electronic contact, makes no external link and stays unpaid',()=>{
+  const api=app(),d=split(api);d.people[1].method='cash';
+  assert.equal(api.sendPlan().ready.length,1);api.A.send();
+  assert.equal(d.results[0].amount,500);assert.equal(d.results[0].status,undefined);
+  const card=api.requestCard(d.results[0],0);assert.ok(!card.includes('href='));assert.ok(!card.includes('Copy contact'));
+  assert.match(card,/collect this amount in person/);
+  assert.match(api.V.summary(),/No contact needed/);
+});
+test('all added methods appear in both new-split and reminder method choices',()=>{
+  const api=app();split(api);
+  api.ui.sheet={type:'payment',request:request()};
+  for(const label of ['Cash App','Apple Cash','Cash']){
+    assert.ok(api.V.people().includes('>'+label+'</option>'));
+    assert.ok(api.V.summary().includes('>'+label+'</option>'));
+    assert.ok(api.sheetHTML().includes('>'+label+'</option>'));
+  }
+});
