@@ -113,7 +113,7 @@ Single global state, string-template rendering, event delegation. No framework.
 - **Bottom sheets:** `sheetHTML()` switches on `ui.sheet.type` (`profile`, `contact`, `group`, `req`, `receipt`, `confirm`). The `receipt` sheet (History → "View full receipt split") is built by `receiptSplitDetail()`.
 - **Search and filters:** History and Contacts share `findBar(k, ...)` (search box + filter chips). State is `ui[k + 'q']` / `ui[k + 'f']` (`k` is `'h'` or `'c'`); the lists are live regions (`hlist`, `clist`) so typing doesn't lose focus. Reuse it for any new searchable list.
 - **Actions:** clicks on any `[data-act="x"]` element call `A.x(dataset, element)`. Inputs with `data-in="..."` are handled in the single `input` listener. Add new buttons the same way.
-- **Writes:** `setPaid()` (participants update), `saveContact()` / `deleteContact()` (RPCs; `save_group` / `delete_group` exist in the database for the upcoming group editor). Pattern: set `ui.saving`, call Supabase, check `error` with the `need()` helper, update `S` from **what Supabase returned**, then `toast()`. On error, keep the user's typed input and show the message.
+- **Writes:** `setPaid()` (participants update), `saveContact()` / `deleteContact()` and `saveGroup()` / `deleteGroup()` (RPCs). Pattern: set `ui.saving`, call Supabase, check `error` with the `need()` helper, update `S` from **what Supabase returned**, then `toast()`. On error, keep the user's typed input and show the message.
 - **Split math:** `calc(draft)` handles per-person pre-tax shares, proportional tax/tip/fees, unassigned items and the receipt-total mismatch check. All in cents.
 
 Conventions to keep:
@@ -137,11 +137,15 @@ Empty reads, missing totals and items that do not reconcile with the printed tot
 
 Groups are owned through `friend_groups.user_id`; the database returns only the user's own groups, including empty ones, so `loadAll()` doesn't filter them.
 
-**What is simulated (not real yet):** sending Venmo/SMS/PayPal requests and reminders, and saving a new split (Done shows "New splits are not saved yet"). Groups can't be created or edited in the app yet, but `save_group`/`delete_group` are ready: the UI only needs to call them (same write pattern as `saveContact()`), then update `S.groups` from what Supabase returns.
+**Payment requests:** `requestTarget()` validates one debtor contact, `paymentRequest()` builds a provider handoff and `preparedRequests()` snapshots exact shares/notes. Venmo uses a best-effort charge link; PayPal opens Request with copyable details; Zelle requests are completed in the bank's app; SMS opens a draft. `requestCard()` supplies clipboard/manual details. History reminders use the same handoff. Never infer sent/paid from navigation, copying, timers or returning to the page: there is no provider callback. Do not make a PayPal.Me link with the debtor's account (that would pay the wrong person). `V.sent` hides stale snapshots after edits. Return home preserves the draft; new splits are not saved to History yet. Legacy simulated results are discarded. No SQL/provider credentials are needed. Send no real requests during agent testing.
 
-## Building the group editor (next task): read this first
+**Group editing:** Contacts has New group and editable group bubbles. `openGroup()` snapshots name/members into `ui.sheet.draft`; `groupSheet()` and `groupMembers()` render the editor/search. `saveGroup()` calls the existing RPC and reads back the row through `groupFromRow()`. A returned ID is kept after readback failure to avoid duplicate creates. `deleteGroup()` requires the in-sheet confirmation and preserves contacts/history/drafts. Errors retain form state; saving blocks duplicate submissions, and responses for a different account are ignored. No new SQL is needed. `test/groups.test.js` covers these flows with isolated data. The team's exported ERD still needs its human-owned group-ownership update below.
 
-A teammate is adding "create, edit and delete groups" to the Contacts page. **The database side is already done and live on the shared Supabase project** (`supabase/private-data.sql`). Do not write new SQL, table grants or policies for this feature, and do not ask your human to run any SQL. If something seems to need a database change, stop and ask Jackson first.
+Additional draft request methods are Cash App (`cashapp`, $cashtag/email/U.S. phone, minimum $1), Apple Cash (`applecash`, uses `phone`, Messages draft plus native Apple Cash Request instructions) and Cash (`cash`, no electronic contact/link). Apple Cash is not Apple Pay merchant checkout, and an SMS draft is not an Apple Cash request. Cash App's provider-created request links may accept Apple Pay/Google Pay; never synthesize a pay-the-debtor $cashtag link. No lookup rows or SQL were changed: Cash App details live in the local split; the saved Contacts editor still reflects `S.payMethods` from Supabase. Keep physical-device verification separate from software checks.
+
+## Group editor database contract and maintenance
+
+Contacts now supports creating, editing and deleting groups. **The existing database functions are already live on the shared Supabase project** (`supabase/private-data.sql`), according to the team's setup record. Do not write new SQL, table grants or policies for this feature, and do not ask your human to run any SQL. If something seems to need a database change, stop and ask Jackson first. Isolated software/preview checks do not independently verify the live deployment.
 
 **What already exists in the database**
 
@@ -163,10 +167,10 @@ A teammate is adding "create, edit and delete groups" to the Contacts page. **Th
    ```
 
    Then update `S.groups` from `row` (shape: `{id:String, name, members:[String contact ids]}`, same as `loadAll()`), close the sheet and `toast()`. For delete: `need(await sb.rpc('delete_group', {p_group_id: Number(groupId)}))`, then remove it from `S.groups`.
-2. The group sheet (`s.type === 'group'` in `sheetHTML()`) is read-only today, and the group bubbles on Contacts open it (`data-act="sheet" data-s="group"`). Add the "New group" button, the name field and the member picker (checkboxes from `S.contacts`) there. Use `data-act` / `A.x` for buttons, `esc()` for names and the existing CSS tokens.
+2. Group bubbles and New group on Contacts use `data-act="sheet" data-s="group"`, routed through `openGroup()`. Keep the group name, member picker and search in the group sheet. Use `data-act` / `A.x` for buttons, `esc()` for names and the existing CSS tokens. Preserve checkbox focus when updating the selected count; searching must not discard hidden selections.
 3. Keep the visible states the course grades: saving (`ui.saving`, disabled buttons), errors shown in the sheet with the user's typed name and selections kept, an empty state when there are no groups yet, and a confirm step before delete (the `confirm` sheet type exists).
 4. The user's own "You" contact is not in `S.contacts`, so it can't be picked as a member. Keep it that way unless the team decides otherwise.
-5. Remove the "Groups can't be created or edited in the app yet" notes: in this file ("What is simulated"), in README "Simulated for now", and in the in-app line about simulated features if it mentions groups.
+5. Keep the README and in-app feature descriptions consistent with the editor; group changes are saved through the existing RPCs, not directly to tables.
 
 **Update the ERD (required; the README's ERD section is graded)**
 

@@ -306,6 +306,12 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .lines li{display:flex;justify-content:space-between;gap:10px}
 .lines small{color:var(--muted);font-family:var(--f-mono)}
 .lines .alloc{color:var(--muted);padding-top:4px;border-top:1px dashed var(--line);margin-top:2px}
+.request-handoff{padding:12px 14px;display:grid;gap:12px;min-width:0}
+.request-handoff .fine{margin:0}
+.request-handoff .btn{text-align:center;text-decoration:none}
+.request-copy{display:flex;flex-wrap:wrap;gap:6px}
+.request-handoff textarea{width:100%;box-sizing:border-box;margin:10px 0;overflow-wrap:anywhere}
+.request-handoff summary{cursor:pointer;font-size:14px;color:var(--muted)}
 .req-edit{display:grid;grid-template-columns:100px 1fr;gap:6px}
 .req-edit select,.req-edit input{padding:7px 9px;font-size:14px}
 .warn-line{font-size:13px;color:var(--bad);font-weight:600;display:flex;gap:6px;align-items:center}
@@ -413,7 +419,17 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 
 /* contacts */
 .groups{display:flex;gap:14px;overflow-x:auto;margin:0 -18px;padding:4px 18px;scrollbar-width:none}
+.ghead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.ghead .eyebrow{margin:0}
+.gempty{padding:16px;background:var(--card);border:1px dashed var(--line);border-radius:16px;margin:0}
+#g-error{color:var(--bad)}
+.gmember-list{display:grid;gap:4px;margin-top:10px}
+.gmember{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:center;min-height:48px;padding:8px 10px;background:var(--card);border-radius:10px;cursor:pointer}
+.gmember input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.gmember span{overflow-wrap:anywhere}
+.gmember small{display:block;color:var(--muted);font-size:12px}
 .grp{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12.5px;font-weight:600;min-width:64px}
+.grp{max-width:110px;flex-shrink:0;overflow-wrap:anywhere}
 .grp small{color:var(--muted);font-weight:500;font-family:var(--f-mono);font-size:11px;margin-top:-4px}
 .gc{width:58px;height:58px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:18px;background:var(--card)}
 .grp:nth-child(3n+1) .gc{background:var(--accent);color:var(--on-hi)}
@@ -500,7 +516,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
     <p>Scan a receipt, match items to friends, and track who has paid you back.</p>
     <h2>Screens</h2>
     <div class="jump" id="jump"></div>
-    <p class="fine">Contacts, groups, past splits and who has paid are stored in Supabase. Receipt photos are read in your browser; check the results before splitting. Sending requests and saving new splits are still simulated.</p>
+    <p class="fine">Contacts, groups, past splits and who has paid are stored in Supabase. Receipt photos are read in your browser; check the results before splitting. Prepare payment requests here, then review and send in your payment app. New splits stay in this browser and are not saved to History yet.</p>
   </aside>
   <div class="phone">
     <div class="app" id="app">
@@ -511,7 +527,6 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
 <!-- Served by server.js from .env, so the Supabase URL and key are never committed. -->
 <script src="/config.js"></script>
@@ -527,7 +542,7 @@ const ini = n => (n || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join(
 const fmtDate = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
 const shortDate = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
-const METHODS = {venmo:{label:'Venmo', field:'venmo', ph:'@username', need:'a Venmo username'}, sms:{label:'Text', field:'phone', ph:'Mobile number', need:'a mobile number'}, paypal:{label:'PayPal', field:'paypal', ph:'PayPal email', need:'a PayPal email'}, zelle:{label:'Zelle', field:'zelle', ph:'Phone or email', need:'a Zelle phone or email'}};
+const METHODS = {venmo:{label:'Venmo', field:'venmo', ph:'@username', need:'a Venmo username'}, paypal:{label:'PayPal', field:'paypal', ph:'PayPal email', need:'a PayPal email'}, zelle:{label:'Zelle', field:'zelle', ph:'Phone or email', need:'a Zelle phone or email'}, cashapp:{label:'Cash App', field:'cashapp', ph:'$cashtag, phone or email', need:'a Cash App $cashtag, phone or email'}, applecash:{label:'Apple Cash', field:'phone', ph:'iMessage mobile number', need:'their iMessage mobile number'}, cash:{label:'Cash', field:'cash', ph:'No contact needed', need:'no contact details'}, sms:{label:'Text', field:'phone', ph:'Mobile number', need:'a mobile number'}};
 
 const ICONS = {
   home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
@@ -559,6 +574,8 @@ function normalizeTipDraft(d){
   // Older drafts cannot distinguish an automatic 18% from a deliberate choice.
   // Keep the receipt and assignments, and let the user choose under the new UI.
   if (!Object.prototype.hasOwnProperty.call(d, 'tipMode')) Object.assign(d, {tipMode:null, tipPct:null, tipInput:''});
+  // Discard old prototype delivery claims; they never represented real requests.
+  if (d.results?.some(r => r.handoffVersion !== 1)) { d.results = null; if (d.at === 'sent') d.at = 'summary'; }
   return d;
 }
 
@@ -573,7 +590,7 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify({view:S.view
 
 const CFG = window.IOYA_CONFIG || {};
 const sb = window.supabase && CFG.supabaseUrl && CFG.supabaseAnonKey ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey) : null;
-const METHOD_KEY = {Venmo:'venmo', PayPal:'paypal', Zelle:'zelle'};
+const METHOD_KEY = {Venmo:'venmo', PayPal:'paypal', Zelle:'zelle', 'Cash App':'cashapp', 'Apple Cash':'applecash', Cash:'cash'};
 const fullName = (f, l) => [f, l].filter(Boolean).join(' ');
 const need = ({data, error}) => { if (error) throw new Error(error.message); return data; };
 
@@ -649,7 +666,7 @@ async function loadAll(){
     const byId = Object.fromEntries(S.contacts.map(c => [c.id, c]));
     // The database returns only this user's own groups, including empty ones. Members are limited
     // to contacts on the list (this drops the user's own "You" contact if a group includes it).
-    S.groups = groups.map(g => ({id:String(g.group_id), name:g.group_name, members:g.group_members.map(m => String(m.contact_id)).filter(id => byId[id])}));
+    S.groups = groups.map(groupFromRow);
     S.history = events.filter(e => e.receipts.some(r => r.payer_user_id === S.userId)).map(e => {
       const owed = {};
       e.receipts.forEach(r => Object.entries(owedByContact(r)).forEach(([cid, v]) => owed[cid] = (owed[cid] || 0) + v));
@@ -671,15 +688,19 @@ async function loadAll(){
 }
 const CONTACT_SELECT = 'contact_id, cont_first_name, cont_last_name, phone, contacts_payment_method(pay_method_id, pay_method_username, is_preferred, payment_methods(pay_method_name))';
 function normContact(c){
-  const m = {venmo:'', paypal:'', zelle:''}; let pref = null;
+  const m = {venmo:'', paypal:'', zelle:'', cashapp:''}; let pref = null;
   const list = c.contacts_payment_method.map(x => ({id:x.pay_method_id, name:x.payment_methods.pay_method_name, username:x.pay_method_username, preferred:x.is_preferred}))
     .sort((a, b) => a.id - b.id);
-  list.forEach(x => { const k = METHOD_KEY[x.name]; if (k) m[k] = x.username; if (x.preferred) pref = x; });
+  list.forEach(x => { const k = METHOD_KEY[x.name]; if (k) m[METHODS[k].field] = x.username; if (x.preferred) pref = x; });
   return {id:String(c.contact_id), first:c.cont_first_name, last:c.cont_last_name, name:fullName(c.cont_first_name, c.cont_last_name), phone:c.phone || '',
     ...m, method:(pref && METHOD_KEY[pref.name]) || 'sms', pref, methods:list};
 }
 const payMethodName = id => (S.payMethods.find(m => m.id === id) || {}).name || 'Unknown';
-const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', scanText:'', originalNames:{}, cameraOpen:false, cameraLoading:false, cameraError:'', cameraLightMode:null, cameraFlashEnabled:true, capturing:false, q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, failDemo:false, saving:false};
+function groupFromRow(g){
+  const ids = new Set(S.contacts.map(c => c.id));
+  return {id:String(g.group_id), name:g.group_name, members:(g.group_members || []).map(m => String(m.contact_id)).filter(id => ids.has(id))};
+}
+const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', scanText:'', originalNames:{}, cameraOpen:false, cameraLoading:false, cameraError:'', cameraLightMode:null, cameraFlashEnabled:true, capturing:false, q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, saving:false};
 let cameraSession = null;
 
 /* ---------- receipt text parser ----------
@@ -802,7 +823,87 @@ function calc(d){
   return {pre, lines, alloc, totals, unassigned, subtotal, tip, tipValid:tipInfo.valid, extra, computed, mismatch, grand, sumTotals,
     totalsOff: !unassigned.length && Math.abs(sumTotals - (computed + tip)) > 1};
 }
-const handleOf = p => p[METHODS[p.method].field] || '';
+const handleOf = p => p[METHODS[p.method]?.field] || '';
+
+/* ---------- payment app handoffs ----------
+   These links only open a composer. Delivery and payment cannot be observed here.
+   Never turn an app launch, clipboard write or elapsed timer into a sent/paid claim. */
+function requestTarget(method, raw){
+  const value = String(raw || '').trim();
+  if (!METHODS[method]) return {error:'Choose a supported request method.'};
+  if (method === 'cash') return {value:'In person'};
+  if (!value) return {error:`Add ${METHODS[method].need}.`};
+  if (method === 'venmo') {
+    const handle = value.replace(/^@/, '');
+    return /^[A-Za-z0-9_-]{1,30}$/.test(handle)
+      ? {value:handle} : {error:'Enter one Venmo username, such as @alex-smith (not a link).'};
+  }
+  const email = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(value) && !/[\r\n]/.test(value);
+  if (method === 'paypal') return email ? {value} : {error:'Enter the email on their PayPal account.'};
+  if (['zelle','cashapp'].includes(method) && email) return {value};
+  if (method === 'cashapp' && /^\$[A-Za-z0-9]{1,20}$/.test(value) && /[A-Za-z]/.test(value)) return {value};
+  const digits = value.replace(/[+().\s-]/g, '');
+  const phone = /^\d{10}$/.test(digits) ? '+1' + digits : /^1\d{10}$/.test(digits) ? '+' + digits : '';
+  return phone ? {value:phone} : {error:method === 'zelle' ? 'Enter their enrolled Zelle email or U.S. mobile number.' : method === 'cashapp' ? 'Enter their $cashtag, Cash App email or U.S. mobile number.' : 'Enter a U.S. mobile number, including area code.'};
+}
+function paymentRequest(r){
+  const target = requestTarget(r.method, r.handle);
+  if (target.error) return target;
+  if (!Number.isSafeInteger(r.amount) || r.amount <= 0) return {error:'The request amount must be a positive number of cents.'};
+  if (r.method === 'cashapp' && r.amount < 100) return {error:'Cash App requests start at $1. Choose another method for this share.'};
+  const amount = cIn(r.amount), note = String(r.note || '').trim();
+  const body = `${r.name || 'Your'} share: ${money(r.amount)}.${note ? '\n' + note : ''}`;
+  const detail = `Request from: ${r.name || 'Friend'}\n${METHODS[r.method].label}: ${target.value}\nAmount: ${money(r.amount)} USD${note ? '\nNote: ' + note : ''}`;
+  if (r.method === 'venmo') {
+    const query = `txn=charge&recipients=${encodeURIComponent(target.value)}&amount=${amount}&note=${encodeURIComponent(note)}&audience=private`;
+    return {target:target.value, detail, href:'https://venmo.com/?' + query, label:'Open Venmo request',
+      help:'Check the person, amount and note in Venmo, then tap Request. If the fields do not carry over, copy them below.'};
+  }
+  if (r.method === 'paypal') return {target:target.value, detail, href:'https://www.paypal.com/myaccount/transfer/requestmoney', label:'Open PayPal requests',
+    help:'In PayPal, choose Request and paste this person’s email, amount and note. Review and send there.'};
+  if (r.method === 'zelle') return {target:target.value, detail, href:'https://www.zellepay.com/get-started', label:'Find my bank for Zelle',
+    help:'Open your bank’s app → Zelle → Request. Use this person’s enrolled email or U.S. mobile number, amount and note. Review and send there.'};
+  if (r.method === 'cashapp') return {target:target.value, detail, href:'https://cash.app/login', label:'Open Cash App',
+    help:'In Cash App, enter this amount → Request, then find this person using their $cashtag, phone or email. Review and send there. You can also create a request link in Cash App and share it; eligible recipients without Cash App can pay that link with Apple Pay or Google Pay.'};
+  if (r.method === 'cash') return {target:target.value, detail,
+    help:'Arrange to collect this amount in person. No electronic request is created. Mark a saved split paid only after you receive the cash.'};
+  const separator = /iPad|iPhone|iPod/.test(navigator.userAgent || '') ? '&' : '?';
+  if (r.method === 'applecash') return {target:target.value, detail, href:`sms:${target.value}${separator}body=${encodeURIComponent(body)}`, label:'Open Messages for Apple Cash',
+    help:'On an iPhone, open this conversation, tap + → Apple Cash, enter this amount and choose Request, then send. The message draft alone is not an Apple Cash request. Requires Apple Cash eligibility and compatible Apple devices in the U.S.; Android cannot send Apple Cash requests.'};
+  return {target:target.value, detail, href:`sms:${target.value}${separator}body=${encodeURIComponent(body)}`, label:'Open text message',
+    help:'Review the message and add how you want to be paid, then send it in Messages. This does not create a request inside a payment app.'};
+}
+function requestCard(r, index){
+  const info = paymentRequest(r);
+  const tag = index === 'sheet' ? 'sheet' : String(index);
+  if (info.error) return `<p class="warn-line" role="alert">${esc(info.error)}</p>`;
+  return `<div class="request-handoff">
+    <p class="fine">${esc(info.help)}</p>
+    ${info.href ? `<a class="btn" href="${esc(info.href)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">${info.label}</a>` : ''}
+    <div class="request-copy">
+      ${r.method !== 'cash' ? `<button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="contact">Copy contact</button>` : ''}
+      <button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="amount">Copy amount</button>
+      <button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="note">Copy note</button>
+    </div>
+    <details><summary>Request details / copy manually</summary><textarea id="request-detail-${tag}" rows="5" readonly aria-label="Request details for ${esc(r.name)}">${esc(info.detail)}</textarea>
+      <button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="all">Copy all details</button></details>
+  </div>`;
+}
+async function copyRequest(ds){
+  const r = ds.index === 'sheet' ? ui.sheet?.request : S.draft.results?.[Number(ds.index)];
+  if (!r) return;
+  const info = paymentRequest(r);
+  if (info.error) return toast(info.error);
+  const text = ({contact:info.target, amount:cIn(r.amount), note:r.note || '', all:info.detail})[ds.part];
+  if (text == null) return;
+  try { await navigator.clipboard.writeText(text); toast('Copied ' + (ds.part === 'all' ? 'request details' : ds.part) + '.'); }
+  catch(e) {
+    toast('Clipboard unavailable. Select and copy the request details manually.');
+    const el = document.getElementById('request-detail-' + ds.index);
+    if (el) { el.closest('details').open = true; el.focus(); el.select(); }
+  }
+}
+
 
 /* ---------- views ---------- */
 const STEPS = ['scan','review','people','assign','summary'];
@@ -1062,14 +1163,13 @@ function contactList(){
 }
 V.contacts = () => `
   <header class="top"><h1 class="h">Your Contacts</h1>${avatarBtn()}</header>
-  <h2 class="eyebrow">Groups</h2>
-  <div class="groups">${S.groups.map(g => `<button class="grp" data-act="sheet" data-s="group" data-id="${g.id}"><span class="gc">${esc(ini(g.name))}</span><span>${esc(g.name)}</span><small>${g.members.length} people</small></button>`).join('')}
-</div>
+  <div class="ghead"><h2 class="eyebrow">Groups</h2><button class="btn small ghost" data-act="sheet" data-s="group">${I('plus')} New group</button></div>
+  ${S.groups.length ? `<div class="groups">${S.groups.map(g => `<button class="grp" data-act="sheet" data-s="group" data-id="${esc(g.id)}" aria-label="Edit group ${esc(g.name)}, ${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}"><span class="gc">${esc(ini(g.name))}</span><span>${esc(g.name)}</span><small>${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}</small></button>`).join('')}</div>` : '<p class="fine gempty">No groups yet. Keep your frequent split partners together in a group.</p>'}
   <h2 class="eyebrow">Contacts</h2>
   ${findBar('c', 'Search names or payment methods', 'Search contacts by first and last name or payment method', contactFilters(), 'Filter by payment method')}
   <div class="clist" data-live="clist">${contactList()}</div>
   <button class="addrow" data-act="sheet" data-s="contact">${I('plus')} Add contact</button>
-  <p class="fine">Contacts save to Supabase. Groups are edited in Supabase for now.</p>`;
+  <p class="fine">Your contacts and groups are saved to your account. Pick a group when adding people to a split.</p>`;
 
 V.scan = () => `
   ${ui.cameraOpen ? '<div class="camera-heading"><h1 class="h">Scan receipt</h1><button class="link" data-act="closeCamera">Close camera</button></div>' : `${flowHead(0, 'home')}<h1 class="h">Add your receipt</h1><p class="sub">Take a photo, then check the items before you split.</p>`}
@@ -1178,7 +1278,7 @@ V.people = () => {
           <input id="sn-${p.id}" data-in="pname" data-id="${p.id}" value="${esc(p.name)}" placeholder="Name" aria-label="Person ${i+1} name">
           <div class="slot-m">
             <select id="sm-${p.id}" data-in="pmethod" data-id="${p.id}" aria-label="Request method">${Object.entries(METHODS).map(([k, m]) => `<option value="${k}" ${p.method === k ? 'selected' : ''}>${m.label}</option>`).join('')}</select>
-            <input id="sh-${p.id}" data-in="phandle" data-id="${p.id}" value="${esc(handleOf(p))}" placeholder="${METHODS[p.method].ph}" aria-label="${METHODS[p.method].label} contact">
+            <input id="sh-${p.id}" data-in="phandle" data-id="${p.id}" value="${p.method === 'cash' ? '' : esc(handleOf(p))}" placeholder="${METHODS[p.method].ph}" aria-label="${METHODS[p.method].label} contact" ${p.method === 'cash' ? 'disabled' : ''}>
           </div></div>
           <button class="iconbtn sm" data-act="rmp" data-id="${p.id}" aria-label="Remove person ${i+1}" ${d.people.length <= 2 ? 'disabled' : ''}>${I('x')}</button></li>`).join('')}
   </ol>
@@ -1227,12 +1327,12 @@ V.summary = () => {
   ${d.people.map(p => {
     const nm = p.me ? 'You' : (p.name || 'Unnamed');
     return `<article class="pcard">
-      <header><div><b>${esc(nm)}</b><span class="meta">${p.me ? 'Your share. No request is sent.' : 'Gets a ' + METHODS[p.method].label + ' request'}</span></div><span class="ptotal mono">${money(c.totals[p.id])}</span></header>
+      <header><div><b>${esc(nm)}</b><span class="meta">${p.me ? 'Your share. No request is sent.' : p.method === 'cash' ? 'Collect cash in person' : 'Request via ' + METHODS[p.method].label}</span></div><span class="ptotal mono">${money(c.totals[p.id])}</span></header>
       <ul class="lines">${c.lines[p.id].map(l => `<li><span>${esc(l.name)}${l.of > 1 ? ` <small>÷${l.of}</small>` : ''}</span><span class="mono">${money(l.share)}</span></li>`).join('') || '<li><span class="fine">Nothing assigned yet</span></li>'}
         <li class="alloc"><span>Tax, tip & fees</span><span class="mono">${money(c.alloc[p.id])}</span></li></ul>
       ${p.me ? '' : `<div class="req-edit">
         <select id="xm-${p.id}" data-in="pmethod" data-id="${p.id}" aria-label="Request method for ${esc(nm)}">${Object.entries(METHODS).map(([k, m]) => `<option value="${k}" ${p.method === k ? 'selected' : ''}>${m.label}</option>`).join('')}</select>
-        <input id="xh-${p.id}" data-in="phandle" data-id="${p.id}" value="${esc(handleOf(p))}" placeholder="${METHODS[p.method].ph}" aria-label="${METHODS[p.method].label} for ${esc(nm)}">
+        <input id="xh-${p.id}" data-in="phandle" data-id="${p.id}" value="${p.method === 'cash' ? '' : esc(handleOf(p))}" placeholder="${METHODS[p.method].ph}" aria-label="${METHODS[p.method].label} for ${esc(nm)}" ${p.method === 'cash' ? 'disabled' : ''}>
       </div><div data-live="warn" data-pid="${p.id}"></div>`}
     </article>`;
   }).join('')}
@@ -1241,28 +1341,16 @@ V.summary = () => {
 };
 
 V.sent = () => {
-  const d = S.draft, r = d.results || [];
-  const busy = r.some(x => x.status === 'sending');
-  const failed = r.filter(x => x.status === 'failed').length;
-  return `
-  <h1 class="h">${busy ? 'Sending requests…' : failed ? `${failed} request${failed === 1 ? '' : 's'} didn't go through` : 'Requests sent'}</h1>
-  <p class="sub">${esc(d.merchant || 'Your split')} · ${r.length} request${r.length === 1 ? '' : 's'}</p>
-  <ul class="sent">${r.map(x => {
-    const p = d.people.find(q => q.id === x.pid);
-    const st = x.status === 'sending' ? '<span class="pill sending">Sending…</span>'
-      : x.status === 'failed' ? `<button class="btn small ghost" data-act="retry" data-pid="${x.pid}">Retry</button><span class="pill failed">Failed</span>`
-      : '<span class="pill paid">Sent</span>';
-    return `<li><b>${esc(p.name)}</b><span class="mono">${money(x.amount)}</span><small>${METHODS[p.method].label} · ${esc(handleOf(p))}${x.status === 'failed' ? ' · Venmo did not respond' : ''}</small><span class="st">${st}</span></li>`;
-  }).join('')}</ul>
-  <section class="share">
-    <h2 class="eyebrow">Share this split</h2>
-    <div class="qr" id="qr" role="img" aria-label="QR code for split ${esc(d.code)}"></div>
-    <div class="code mono" id="code">${esc(d.code)}</div>
-    <button class="btn small ghost" data-act="copy">Copy code</button>
-    <p class="fine">Friends scan this to see the itemized split.</p>
-  </section>
-  <p class="fine">Prototype: no real texts or Venmo requests go out.</p>
-  <div class="next"><button class="btn" data-act="done" ${busy ? 'disabled' : ''}>Done</button></div>`;
+  const d = S.draft, results = d.results || [];
+  if (JSON.stringify(results) !== JSON.stringify(preparedRequests())) return `<h1 class="h">Your split changed</h1>
+    <p class="sub">Prepare updated requests so the contacts, notes and amounts match your latest changes.</p>
+    <div class="next"><button class="btn" data-act="go" data-v="summary">Review updated split</button></div>`;
+  return `<h1 class="h">Finish in your payment apps</h1>
+    <p class="sub">${esc(d.merchant || 'Your split')} · ${results.length} prepared request${results.length === 1 ? '' : 's'}</p>
+    <p class="fine">Follow each person’s instructions below. Review the person and amount, then finish in the app or collect cash in person. IOYA cannot confirm whether a request was sent or paid.</p>
+    ${results.map((r, i) => `<article class="pcard"><header><div><b>${esc(r.name)}</b><span class="meta">${esc(METHODS[r.method]?.label || '')} · ${esc(r.handle)}</span></div><span class="ptotal mono">${money(r.amount)}</span></header>${requestCard(r, i)}</article>`).join('')}
+    <p class="fine">This split is kept in this browser. It is not saved to History yet.</p>
+    <div class="next two"><button class="btn ghost" data-act="go" data-v="summary">Edit split</button><button class="btn" data-act="done">Return home</button></div>`;
 };
 
 /* ---------- live regions (updated while typing without losing focus) ---------- */
@@ -1304,17 +1392,19 @@ const LIVE = {
     const missing = S.draft.people.filter(p => !p.me && !p.name.trim()).length;
     return `${missing ? `<p class="fine">${missing} name${missing === 1 ? '' : 's'} still empty.</p>` : ''}<button class="btn" data-act="go" data-v="assign" ${missing ? 'disabled' : ''}>Assign items</button>`;
   },
+  requestSheet: () => ui.sheet?.type === 'payment' ? requestCard(ui.sheet.request, 'sheet') : '',
   warn: el => {
     const d = S.draft, p = d.people.find(q => q.id === el.dataset.pid), c = calc(d);
     if (!p) return '';
-    if (!handleOf(p)) return `<p class="warn-line">${I('alert')} Add ${METHODS[p.method].need} to request from ${esc(p.name || 'this person')}.</p>`;
+    const target = requestIssue(p, c);
+    if (target.error) return `<p class="warn-line">${I('alert')} ${esc(target.error)}</p>`;
     if (!c.totals[p.id]) return `<p class="warn-line">${I('alert')} Nothing assigned, so no request.</p>`;
-    return `<p class="warn-line ok">${I('check')} Ready to send</p>`;
+    return `<p class="warn-line ok">${I('check')} Ready to prepare</p>`;
   },
   sendbar: () => {
     const {ready, blocked, globalBlock} = sendPlan();
-    const label = ready.length ? `Send ${ready.length} request${ready.length === 1 ? '' : 's'}` : 'Nothing to send yet';
-    return `${blocked.length && !globalBlock ? `<p class="fine">${blocked.map(p => esc(p.name)).join(', ')} will be skipped until you add their info.</p>` : ''}
+    const label = ready.length ? `Prepare ${ready.length} request${ready.length === 1 ? '' : 's'}` : 'Nothing to request yet';
+    return `${blocked.length && !globalBlock ? `<p class="fine">${blocked.map(p => esc(p.name)).join(', ')} will be skipped until you fix their request details.</p>` : ''}
       <button class="btn" data-act="sheet" data-s="confirm" ${globalBlock || !ready.length ? 'disabled' : ''}>${label}</button>`;
   }
 };
@@ -1326,13 +1416,24 @@ function firstName(p){
 function autoMessage(p, c){
   const d = S.draft, amt = money(c.totals[p.id]), when = shortDate(today());
   return p.method === 'sms'
-    ? `Hi ${firstName(p)}! Your share of ${d.merchant || 'dinner'} (${when}) is ${amt}. See the split: ioya.app/${d.code}`
+    ? `Hi ${firstName(p)}! Your share of ${d.merchant || 'dinner'} (${when}) is ${amt}.`
     : `Hi ${firstName(p)}! ${d.merchant || 'Dinner'} on ${when}: your share is ${amt}.`;
 }
 function sendPlan(){
   const d = S.draft, c = calc(d);
   const others = d.people.filter(p => !p.me && c.totals[p.id] > 0);
-  return {c, ready: others.filter(p => handleOf(p)), blocked: others.filter(p => !handleOf(p)), globalBlock: c.unassigned.length > 0 || c.mismatch || c.totalsOff || !c.tipValid};
+  return {c, ready: others.filter(p => !requestIssue(p, c).error), blocked: others.filter(p => requestIssue(p, c).error), globalBlock: c.unassigned.length > 0 || c.mismatch || c.totalsOff || !c.tipValid};
+}
+function requestIssue(p, c){
+  // Contact validation first preserves useful missing-contact feedback for zero shares.
+  const target = requestTarget(p.method, handleOf(p));
+  return target.error || !c.totals[p.id] ? target : paymentRequest({method:p.method, handle:handleOf(p), amount:c.totals[p.id]});
+}
+function preparedRequests(){
+  const {c, ready, globalBlock} = sendPlan();
+  if (globalBlock) return [];
+  return ready.map(p => ({pid:p.id, name:p.name, method:p.method, handle:requestTarget(p.method, handleOf(p)).value,
+    amount:c.totals[p.id], note:(S.draft.msgs?.[p.id] || '').trim() || autoMessage(p, c), handoffVersion:1}));
 }
 function refresh(){
   document.querySelectorAll('[data-live]').forEach(el => { const f = LIVE[el.dataset.live]; if (f) el.innerHTML = f(el); });
@@ -1417,6 +1518,76 @@ function profileSheet(s){
       : `<div class="pbox"><div class="acct"><div><span class="fine">Signed in as</span><b>${esc(S.account.email || '')}</b></div>
           <button class="btn small ghost" data-act="pstep" data-step="signout" ${busy}>Sign out</button></div></div>`}`;
 }
+function openGroup(id){
+  const group = id && S.groups.find(g => g.id === String(id));
+  if (id && !group) return toast('That group no longer exists.');
+  ui.sheet = {type:'group', id:group ? group.id : null, draft:{name:group?.name || '', members:group ? group.members.slice() : []}, query:'', error:'', confirmDelete:false};
+  render();
+}
+function groupMembers(s){
+  const query = (s.query || '').trim().toLowerCase();
+  const contacts = S.contacts.filter(c => c.id !== S.selfContactId && (!query || c.name.toLowerCase().includes(query)));
+  if (!S.contacts.length) return '<p class="fine">Add contacts on the Contacts page to choose members. You can also save an empty group.</p>';
+  if (!contacts.length) return '<p class="fine">No contacts match your search. Try another name.</p>';
+  return contacts.map(c => `<label class="gmember"><input type="checkbox" data-in="gmember" value="${esc(c.id)}" ${s.draft.members.includes(c.id) ? 'checked' : ''} ${ui.saving ? 'disabled' : ''}><span>${esc(c.name)}<small>${esc(c.pref?.name || 'No payment method saved')}</small></span></label>`).join('');
+}
+function groupSheet(s){
+  const busy = ui.saving ? 'disabled' : '';
+  const error = `<p class="fine" id="g-error" role="alert" ${s.error ? '' : 'hidden'}>${esc(s.error || '')}</p>`;
+  if (s.confirmDelete) return `<h2 id="sh-t">Delete ${esc(s.draft.name.trim() || 'this group')}?</h2>
+    <p class="fine">This removes the group and its member list. Your contacts and past splits stay as they are.</p>${error}
+    <div class="next two"><button class="btn ghost" data-act="keepgroup" ${busy}>Keep group</button><button class="btn" data-act="deletegroup" ${busy}>${ui.saving ? 'Deleting…' : 'Delete group'}</button></div>`;
+  return `<h2 id="sh-t">${s.id ? 'Edit group' : 'New group'}</h2>
+    <label class="field"><span>Group name</span><input id="g-name" data-in="gname" data-enter="savegroup" value="${esc(s.draft.name)}" placeholder="e.g. Lunch crew" ${busy} aria-describedby="g-error"></label>
+    <p class="eyebrow">Members <span id="g-count" aria-live="polite">(${s.draft.members.length} selected)</span></p>
+    <div class="search">${I('search')}<input data-in="gquery" aria-label="Search group members" placeholder="Search contacts" value="${esc(s.query || '')}" ${busy}></div>
+    <div class="gmember-list" id="g-members">${groupMembers(s)}</div>${error}
+    <div class="next two"><button class="btn ghost" data-act="close" ${busy}>Cancel</button><button class="btn" data-act="savegroup" ${busy}>${ui.saving ? 'Saving…' : 'Save group'}</button></div>
+    ${s.id ? `<button class="link" data-act="askdeletegroup" ${busy}>Delete group</button>` : ''}`;
+}
+async function saveGroup(){
+  const s = ui.sheet;
+  if (s?.type !== 'group' || ui.saving || s.confirmDelete) return;
+  const name = s.draft.name.trim(), account = S.userId;
+  if (!name) { s.error = 'Add a group name.'; render(); document.getElementById('g-name')?.focus(); return; }
+  const allowed = new Set(S.contacts.filter(c => c.id !== S.selfContactId).map(c => c.id));
+  const ids = [...new Set(s.draft.members)];
+  if (ids.some(id => !allowed.has(id) || !Number.isSafeInteger(Number(id)) || Number(id) <= 0)) {
+    s.error = 'One of those contacts no longer exists. Refresh the page and try again.'; render(); return;
+  }
+  ui.saving = true; s.error = ''; render();
+  let saved = false;
+  try {
+    const id = need(await sb.rpc('save_group', {p_group_id:s.id ? Number(s.id) : null, p_name:name, p_contact_ids:ids.map(Number)}));
+    saved = true;
+    // Keep the returned ID even if readback fails, so retry edits instead of creating a duplicate.
+    s.id = String(id);
+    const row = need(await sb.from('friend_groups').select('group_id, group_name, group_members(contact_id)').eq('group_id', id).single());
+    if (S.userId !== account) return;
+    const group = groupFromRow(row), index = S.groups.findIndex(g => g.id === group.id);
+    if (index < 0) S.groups.push(group); else S.groups[index] = group;
+    if (ui.sheet === s) ui.sheet = null;
+    ui.saving = false; toast(`Saved ${group.name}.`);
+  } catch(e) {
+    s.error = saved ? `The group was saved, but could not be reloaded. Try Save group again. ${e.message}` : `Couldn't save the group: ${e.message}`;
+  } finally {
+    ui.saving = false; render();
+  }
+}
+async function deleteGroup(){
+  const s = ui.sheet;
+  if (s?.type !== 'group' || !s.id || !s.confirmDelete || ui.saving) return;
+  const account = S.userId;
+  ui.saving = true; s.error = ''; render();
+  try {
+    need(await sb.rpc('delete_group', {p_group_id:Number(s.id)}));
+    if (S.userId !== account) return;
+    S.groups = S.groups.filter(g => g.id !== s.id);
+    if (ui.sheet === s) ui.sheet = null;
+    ui.saving = false; toast('Group deleted. Your contacts are kept.');
+  } catch(e) { s.error = `Couldn't delete the group: ${e.message}`; }
+  finally { ui.saving = false; render(); }
+}
 function sheetHTML(){
   const s = ui.sheet; if (!s) return '';
   let body = '';
@@ -1441,10 +1612,7 @@ function sheetHTML(){
         <button class="btn" data-act="savecontact" data-id="${s.id || ''}" ${ui.saving ? 'disabled' : ''}>${ui.saving ? 'Saving…' : 'Save'}</button></div>`;
   }
   if (s.type === 'group'){
-    const g = S.groups.find(x => x.id === s.id);
-    body = `<h2 id="sh-t">${esc(g.name)}</h2>
-      ${g.members.map(id => S.contacts.find(c => c.id === id)).map(c => `<div class="kv"><span>${esc(c.name)}</span><span>${esc(c.pref ? c.pref.name : '')}</span></div>`).join('')}
-      <div class="next"><button class="btn" data-act="close">Close</button></div>`;
+    body = groupSheet(s);
   }
   if (s.type === 'req'){
     const sp = S.history.find(x => x.id === s.sid), r = sp.requests[s.i];
@@ -1462,7 +1630,16 @@ function sheetHTML(){
         <p class="eyebrow" id="paywith-l">How did ${esc(r.name)} pay?</p>
         <div class="seg" role="radiogroup" aria-labelledby="paywith-l" style="grid-template-columns:repeat(${S.payMethods.length},1fr)">${S.payMethods.map(m => `<button role="radio" aria-checked="${m.id === choice}" class="${m.id === choice ? 'on' : ''}" data-act="paywith" data-m="${m.id}" style="font-family:var(--f-body)">${esc(m.name)}</button>`).join('')}</div>
         <div class="next"><button class="btn" data-act="markpaid" data-m="${choice}" ${ui.saving ? 'disabled' : ''}>${ui.saving ? 'Saving…' : 'Mark as paid'}</button>
-        <button class="btn ghost" data-act="remind">${I('bell')} Send a reminder</button></div>`;
+        <button class="btn ghost" data-act="remind">${I('bell')} Prepare reminder</button></div>`;
+  }
+  if (s.type === 'payment'){
+    const r = s.request;
+    body = `<h2 id="sh-t">Request from ${esc(r.name)}</h2><p class="sub mono">${money(r.amount)}</p>
+      <label class="field"><span>Request method</span><select data-in="requestMethod">${Object.entries(METHODS).map(([k,m]) => `<option value="${k}" ${r.method === k ? 'selected' : ''}>${m.label}</option>`).join('')}</select></label>
+      <label class="field"><span>Request from</span><input data-in="requestHandle" value="${r.method === 'cash' ? '' : esc(r.handle)}" placeholder="${METHODS[r.method].ph}" ${r.method === 'cash' ? 'disabled' : ''}></label>
+      <label class="field"><span>Note</span><textarea data-in="requestNote" rows="3">${esc(r.note)}</textarea></label>
+      <div data-live="requestSheet">${requestCard(r, 'sheet')}</div><p class="fine">Opening the app does not change payment status in IOYA.</p>
+      <div class="next"><button class="btn ghost" data-act="close">Close</button></div>`;
   }
   if (s.type === 'receipt'){
     const sp = S.history.find(x => x.id === s.id);
@@ -1477,8 +1654,9 @@ function sheetHTML(){
   if (s.type === 'confirm'){
     const {c, ready, blocked} = sendPlan(), d = S.draft;
     d.msgs = d.msgs || {};
-    body = `<h2 id="sh-t">Send ${ready.length} request${ready.length === 1 ? '' : 's'}?</h2>
-      ${ready.length > 1 ? `<div class="msg-all"><p class="fine">Messages are optional.</p><button class="link" data-act="genmsg" data-pid="all">Auto-generate all</button></div>` : ''}
+    body = `<h2 id="sh-t">Prepare ${ready.length} request${ready.length === 1 ? '' : 's'}?</h2>
+      <p class="fine">Leave a note blank to use the bill and amount.</p>
+      ${ready.length > 1 ? `<div class="msg-all"><button class="link" data-act="genmsg" data-pid="all">Auto-generate all</button></div>` : ''}
       <ul class="conf">${ready.map(p => {
         const label = p.method === 'sms' ? 'Message' : `${METHODS[p.method].label} note`;
         return `<li><div class="ct"><span>${esc(p.name)}</span><span class="mono">${money(c.totals[p.id])}</span></div>
@@ -1487,9 +1665,9 @@ function sheetHTML(){
             <button class="btn small ghost" data-act="genmsg" data-pid="${p.id}">Auto-generate</button></div>
           <textarea id="msg-${p.id}" data-in="pmsg" data-id="${p.id}" rows="3" placeholder="Write a message, or tap Auto-generate">${esc(d.msgs[p.id] || '')}</textarea></li>`;
       }).join('')}
-      ${blocked.map(p => `<li class="blocked"><div class="ct"><span>${esc(p.name)}</span><span class="mono">${money(c.totals[p.id])}</span></div><div class="cm">Skipped: needs ${METHODS[p.method].need}</div></li>`).join('')}</ul>
-      <label class="checkrow"><input type="checkbox" id="faildemo" ${ui.failDemo ? 'checked' : ''}> Prototype: make one request fail</label>
-      <div class="next two"><button class="btn ghost" data-act="close">Go back</button><button class="btn" data-act="send">Send</button></div>`;
+      ${blocked.map(p => `<li class="blocked"><div class="ct"><span>${esc(p.name)}</span><span class="mono">${money(c.totals[p.id])}</span></div><div class="cm">Skipped: ${esc(requestIssue(p, c).error)}</div></li>`).join('')}</ul>
+      <p class="fine">Next, open each request and finish sending in your payment app. Nothing is sent from this screen.</p>
+      <div class="next two"><button class="btn ghost" data-act="close">Go back</button><button class="btn" data-act="send">Prepare requests</button></div>`;
   }
   return `<div class="sheet-bg" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t">${body}</div>`;
 }
@@ -1511,16 +1689,10 @@ function render(){
   document.getElementById('tabbar').innerHTML = [['home','Home','home'],['history','History','history'],['split','Start split','scan'],['contacts','Contacts','contacts']]
     .map(([k, label, ic]) => { const on = k === 'split' ? flow : k === v; return `<button class="${k === 'split' ? 'scan-tab ' : ''}${on ? 'on' : ''}" data-act="${k === 'split' ? 'start' : 'go'}" data-v="${k}" ${on ? 'aria-current="page"' : ''}>${I(ic)}${label}</button>`; }).join('');
   document.getElementById('overlay').innerHTML = sheetHTML() + (ui.toast ? `<div class="toast" role="status">${esc(ui.toast)}</div>` : '');
-  document.getElementById('jump').innerHTML = [['home','Home','—'],['history','History','—'],['scan','Scan receipt','R1 R4'],['review','Check items','R2 R3 R11'],['people','People','R5'],['assign','Assign items','R6–R8'],['summary','Review & send','R12–R17'],['sent','Requests sent','R18'],['contacts','Contacts','—']]
+  document.getElementById('jump').innerHTML = [['home','Home','—'],['history','History','—'],['scan','Scan receipt','R1 R4'],['review','Check items','R2 R3 R11'],['people','People','R5'],['assign','Assign items','R6–R8'],['summary','Review & send','R12–R17'],['sent','Payment requests','R18'],['contacts','Contacts','—']]
     .map(([k, label, r]) => `<button class="${k === v ? 'on' : ''}" data-act="jump" data-v="${k}"><span>${label}</span><small>${r}</small></button>`).join('');
-  if (v === 'sent') drawQR();
   if (v === 'scan' && ui.cameraOpen) attachCameraPreview();
   save();
-}
-function drawQR(){
-  const el = document.getElementById('qr'); if (!el) return;
-  try { new QRCode(el, {text:'https://ioya.app/s/' + S.draft.code, width:156, height:156, colorDark:'#15171C', colorLight:'#FFFFFF', correctLevel:QRCode.CorrectLevel.M}); }
-  catch(e) { el.innerHTML = '<span class="fine">QR code unavailable</span>'; }
 }
 function go(v){
   if (v !== 'scan') stopCamera();
@@ -1532,7 +1704,7 @@ function go(v){
   S.view = v; render();
 }
 function toast(t){ ui.toast = t; render(); clearTimeout(toast.t); toast.t = setTimeout(() => { ui.toast = null; render(); }, 2600); }
-const fill = (p, c) => Object.assign(p, {name:c.name, method:c.method, venmo:c.venmo, phone:c.phone, paypal:c.paypal, zelle:c.zelle, contactId:c.id});
+const fill = (p, c) => Object.assign(p, {name:c.name, method:c.method, venmo:c.venmo, phone:c.phone, paypal:c.paypal, zelle:c.zelle, cashapp:c.cashapp, contactId:c.id});
 function addContact(cid){
   const d = S.draft, c = S.contacts.find(x => x.id === cid);
   if (!c || d.people.some(p => p.contactId === cid)) return;
@@ -1818,15 +1990,6 @@ async function runScan(file){
     fail(e.message || 'The receipt could not be read. Try another image or type the items in.');
   }
 }
-function runSend(pids){
-  const d = S.draft, delay = matchMedia('(prefers-reduced-motion: reduce)').matches ? 100 : 650;
-  pids.forEach((pid, k) => setTimeout(() => {
-    const r = d.results.find(x => x.pid === pid); if (!r) return;
-    r.status = (ui.failDemo && !r.retried && k === 0) ? 'failed' : 'sent';
-    if (S.view === 'sent') render(); else save();
-  }, delay * (k + 1)));
-}
-
 /* ---------- actions ---------- */
 const A = {
   reload: () => { S.loading = true; S.loadError = null; render(); loadAll(); },
@@ -1860,10 +2023,13 @@ const A = {
   all: ds => { const d = S.draft, ids = d.people.map(p => p.id), a = (d.assign[ds.id] || []).filter(x => ids.includes(x));
     d.assign[ds.id] = a.length === ids.length ? [] : ids.slice(); render(); },
   evenrest: () => { const d = S.draft, c = calc(d); c.unassigned.forEach(it => d.assign[it.id] = d.people.map(p => p.id)); render(); },
-  sheet: ds => { ui.sheet = {type:ds.s, id:ds.id || null};
-    if (ds.s === 'confirm' && !S.draft.code) S.draft.code = (S.draft.merchant || 'SP').replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase().padEnd(2, 'X') + Math.random().toString(36).slice(2, 4).toUpperCase() + '-' + Math.random().toString(36).slice(2, 4).toUpperCase();
+  sheet: ds => { if (ds.s === 'group') return openGroup(ds.id); ui.sheet = {type:ds.s, id:ds.id || null};
     render(); },
-  close: () => { ui.sheet = null; render(); },
+  close: () => { if (ui.saving && ui.sheet?.type === 'group') return; ui.sheet = null; render(); },
+  savegroup: () => saveGroup(),
+  askdeletegroup: () => { if (ui.sheet?.type === 'group' && ui.sheet.id && !ui.saving) { ui.sheet.confirmDelete = true; ui.sheet.error = ''; render(); } },
+  keepgroup: () => { if (ui.sheet?.type === 'group' && !ui.saving) { ui.sheet.confirmDelete = false; ui.sheet.error = ''; render(); } },
+  deletegroup: () => deleteGroup(),
   req: ds => { ui.sheet = {type:'req', sid:ds.sid, i:+ds.i}; render(); },
   filter: ds => { ui[ds.k + 'f'] = ds.f; render(); document.querySelector(`[data-act="filter"][data-k="${ds.k}"][data-f="${ds.f}"]`)?.focus(); },
   fclear: ds => { ui[ds.k + 'q'] = ''; if (ds.keep !== 'filter') ui[ds.k + 'f'] = 'all'; render(); document.getElementById(ds.k + 'q')?.focus(); },
@@ -1882,9 +2048,21 @@ const A = {
   verifycode: () => verifyCode(),
   signout: () => signOutAccount(),
   delcontact: ds => deleteContact(ds.id),
-  remind: () => { const r = currentRequest(); ui.sheet = null; toast(`Reminder to ${r.name} is simulated. Nothing was sent.`); },
-  send: () => { const {c, ready} = sendPlan(); ui.failDemo = !!document.getElementById('faildemo')?.checked;
-    S.draft.results = ready.map(p => ({pid:p.id, amount:c.totals[p.id], status:'sending'})); ui.sheet = null; go('sent'); runSend(ready.map(p => p.id)); },
+  remind: () => {
+    const sp = S.history.find(x => x.id === ui.sheet.sid), r = currentRequest();
+    const contact = S.contacts.find(c => c.id === String(r.contactId));
+    const method = (r.pref && METHOD_KEY[r.pref.name]) || 'sms';
+    ui.sheet = {type:'payment', request:{contactId:r.contactId, name:r.name, method, handle:contact?.[METHODS[method].field] || r.pref?.username || '', amount:r.amount,
+      note:`Hi ${r.name.split(/\s+/)[0]}! Your share of ${sp.merchant} is ${money(r.amount)}.`}};
+    render();
+  },
+  copyrequest: ds => copyRequest(ds),
+  send: () => {
+    const {c, ready, globalBlock} = sendPlan();
+    if (globalBlock || !ready.length) return toast('Fix the split and request details before preparing requests.');
+    S.draft.results = preparedRequests();
+    ui.sheet = null; go('sent');
+  },
   genmsg: ds => {
     const {c, ready} = sendPlan(), d = S.draft; d.msgs = d.msgs || {};
     // "All" only fills empty boxes so it never overwrites a message someone typed.
@@ -1892,12 +2070,7 @@ const A = {
     save(); render();
     document.getElementById(`msg-${ds.pid === 'all' ? ready[0].id : ds.pid}`)?.focus();
   },
-  retry: ds => { const r = S.draft.results.find(x => x.pid === ds.pid); r.status = 'sending'; r.retried = true; render(); runSend([ds.pid]); },
-  copy: () => { const code = S.draft.code;
-    const done = () => toast(`Copied ${code}`);
-    try { navigator.clipboard.writeText(code).then(done, () => { selectCode(); toast('Press Copy to finish copying the selected code.'); }); }
-    catch(e) { selectCode(); } },
-  done: () => { stopCamera(); cancelScan(); S.draft = newDraft(); clearPhoto(); ui.scanText = ''; go('home'); toast('New splits are not saved yet. This one was a demo.'); }
+  done: () => { stopCamera(); cancelScan(); clearPhoto(); ui.scanText = ''; go('home'); toast('Split kept in this browser. Use Resume current split to return.'); }
 };
 // Profile: save_my_profile updates the users row and the "You" contact together (supabase/profile.sql).
 // Each check returns the exact message shown in red under that field, or '' when it's fine.
@@ -2083,15 +2256,31 @@ async function setPaid(methodId){
     toast(`Couldn't update ${r.name}: ${e.message}`);
   }
 }
-function selectCode(){ const el = document.getElementById('code'); if (!el) return; const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
-
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
   const f = A[el.dataset.act]; if (f){ e.preventDefault(); f(el.dataset, el); }
 });
 document.addEventListener('input', e => {
   const el = e.target, k = el.dataset.in; if (!k) return;
+  if (['gname','gquery','gmember'].includes(k) && ui.sheet?.type === 'group') {
+    const s = ui.sheet;
+    if (ui.saving) return;
+    if (k === 'gname') s.draft.name = el.value;
+    if (k === 'gquery') { s.query = el.value; document.getElementById('g-members').innerHTML = groupMembers(s); }
+    if (k === 'gmember') {
+      s.draft.members = el.checked ? [...new Set([...s.draft.members, el.value])] : s.draft.members.filter(id => id !== el.value);
+      document.getElementById('g-count').textContent = `(${s.draft.members.length} selected)`;
+    }
+    if (k !== 'gquery') { s.error = ''; const err = document.getElementById('g-error'); if (err) { err.hidden = true; err.textContent = ''; } }
+    return;
+  }
   if (k === 'pf') return liveCheck(el);
+  if (['requestMethod','requestHandle','requestNote'].includes(k) && ui.sheet?.type === 'payment') {
+    const r = ui.sheet.request;
+    if (k === 'requestMethod') { r.method = el.value; const c = S.contacts.find(c => c.id === String(r.contactId)); r.handle = c?.[METHODS[r.method].field] || ''; render(); }
+    else { r[k === 'requestHandle' ? 'handle' : 'note'] = el.value; refresh(); }
+    return;
+  }
   const d = S.draft, val = el.value;
   const item = () => d.items.find(it => it.id === el.dataset.id);
   const person = () => d.people.find(p => p.id === el.dataset.id);
@@ -2115,7 +2304,7 @@ document.addEventListener('change', e => {
   const file = e.target.files[0]; e.target.value = '';
   if (file) runScan(file);
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.sheet){ ui.sheet = null; render(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.sheet) A.close(); });
 // Enter in a profile field presses that step's main button.
 document.addEventListener('keydown', e => { const act = e.target.dataset && e.target.dataset.enter; if (e.key === 'Enter' && act && !ui.saving){ e.preventDefault(); A[act]({}); } });
 document.addEventListener('visibilitychange', () => {
