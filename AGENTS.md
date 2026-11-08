@@ -137,7 +137,9 @@ Empty reads, missing totals and items that do not reconcile with the printed tot
 
 Groups are owned through `friend_groups.user_id`; the database returns only the user's own groups, including empty ones, so `loadAll()` doesn't filter them.
 
-**What is simulated (not real yet):** sending Venmo/SMS/PayPal requests and reminders, and saving a new split (Done shows "New splits are not saved yet"). Groups can't be created or edited in the app yet, but `save_group`/`delete_group` are ready: the UI only needs to call them (same write pattern as `saveContact()`), then update `S.groups` from what Supabase returns.
+**Payment requests:** `requestTarget()` validates one debtor contact, `paymentRequest()` builds a provider handoff and `preparedRequests()` snapshots exact shares/notes. Venmo uses a best-effort charge link; PayPal opens Request with copyable details; Zelle requests are completed in the bank's app; SMS opens a draft. `requestCard()` supplies clipboard/manual details. History reminders use the same handoff. Never infer sent/paid from navigation, copying, timers or returning to the page: there is no provider callback. Do not make a PayPal.Me link with the debtor's account (that would pay the wrong person). `V.sent` hides stale snapshots after edits. Return home preserves the draft; new splits are not saved to History yet. Legacy simulated results are discarded. No SQL/provider credentials are needed. Send no real requests during agent testing.
+
+**Remaining limitations:** Groups can't be created or edited in the app yet, but `save_group`/`delete_group` are ready: the UI only needs to call them (same write pattern as `saveContact()`), then update `S.groups` from what Supabase returns.
 
 ## Building the group editor (next task): read this first
 

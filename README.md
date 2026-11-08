@@ -84,7 +84,11 @@ If the first read finds no priced items, misses the total, or its items/tax/fees
 
 If no items can be identified, the error distinguishes unreadable text from text whose prices could not be parsed. Expand **Text read from receipt** to compare the recognized text with the photo. That diagnostic text stays only in the tab's memory; it is not saved to localStorage or Supabase and is cleared on a new scan, cancellation, successful scan or manual entry. Fill the frame with a straight, focused receipt in bright, even light; flash can help but glare or motion blur still needs a better photo.
 
-**Simulated for now:** payment requests and reminders are not actually sent, a new split is not saved when you tap Done, and groups can't be created or edited in the app yet (the database functions for it, `save_group` and `delete_group`, are ready).
+**Payment requests:** Review & send → Prepare requests creates one handoff per person with their exact share, contact and note. Finish each request in the payment app. Venmo opens a best-effort prefilled **charge** link (request from that person); verify the fields because browser/app support varies. PayPal opens Request with copy buttons for the person's email, amount and note. Zelle requests are completed in your bank's app; IOYA shows the enrolled email/U.S. mobile number and links to the bank directory. Text opens an SMS draft with the amount and note; add your payment instructions before sending. No provider credentials or paid service are required. See [Venmo's request flow](https://venmo.com/financial-education/how-to-send-receive-money), [PayPal's request links](https://www.paypal.com/us/cshelp/article/how-do-i-create-and-use-paypal-links-to-send-and-request-money-help1249) and [Zelle's bank-app flow](https://www.zelle.com/faq/how-can-i-use-zelle).
+
+Copy contact, amount, note or all details; Request details / copy manually provides selectable text if clipboard access is unavailable. History → an unpaid person → Prepare reminder opens the same handoff with editable method/contact/note. Preparing, copying or opening a request does not mark it sent or paid: IOYA has no delivery or settlement callback. No automated requests or messages are sent. Keep using Mark as paid only after confirming payment.
+
+Return home preserves the local split and prepared requests; Resume current split reopens them. Editing the split hides stale handoffs until you prepare updated requests. A successful new scan or Type it in replaces the current draft as before. The old prototype QR/code and simulated delivery timers were removed; legacy simulated results are discarded on reload. No SQL migration is needed. New splits still are not saved to History, and groups can't be created or edited in the app yet (the database functions `save_group` and `delete_group` are ready).
 
 ## How to Get It Running
 
@@ -188,7 +192,15 @@ The HTTPS address is a new browser origin: its local draft and camera permission
 2. Wait for the reader, then compare the extracted item names/prices, tax, service fees and printed total with the photo in Check the items. Correct a price and confirm that the subtotal and mismatch warning update. Add any missed lines and remove any false matches.
 3. Verify no tip starts selected. Enter a custom dollar tip, check the total, switch to a percentage, and then clear the custom field to leave no selection. A negative or invalid amount must block continuing. In the final summary, confirm everyone's shares add up to the bill plus the chosen tip.
 4. Try a blank image and confirm that the app offers retry and Type items instead without loading sample items. Cancel a scan and confirm that a previous draft is preserved. Check both phone and laptop widths.
-5. Continue through People → Assign items → Review & send. Payment sending and saving the new split remain simulated. Check Home, History and Contacts too; no Supabase migration is needed for scanning or tips.
+5. Continue through People → Assign items → Review & send → Prepare requests. Check each contact, amount and note. Use fake details for software testing and stop before sending a real request. Confirm Return home → Resume current split preserves the draft and editing requires updated handoffs. Check Home, History and Contacts too; no Supabase migration is needed for scanning, tips or request handoffs.
+
+### Check payment-app handoffs
+
+1. Prepare a split with Venmo, PayPal and Zelle contacts. Confirm shares including cent rounding. Invalid contacts must show an error and be skipped; unassigned items, invalid tips and mismatched totals must block preparation.
+2. On a physical phone, open Venmo and confirm Request mode, person, amount and note. If prefill is unavailable, copy the details. In PayPal, choose Request and paste them. In Zelle, open your bank's app and choose Request. Only a student intending to send a real request should complete the final action.
+3. Check copy/manual fallback, notes, refresh/resume and History reminders at phone and laptop widths. Opening a provider must leave paid status unchanged. Automated tests use isolated data and send no real requests.
+
+**AI assistance for this feature:** AI implemented provider handoffs, validation, exact-share snapshots, clipboard/manual fallback, reminder preparation, stale-request protection, draft preservation and software checks. Students must verify their own payment apps and disclose this assistance accurately. Software checks are not student-authored course testing or findings.
 
 Run `npm test` for deterministic receipt-parser checks. These are software checks, not student-authored usability, accessibility or course-assignment findings. Students should perform and record their own required testing and disclose AI assistance accurately.
 
