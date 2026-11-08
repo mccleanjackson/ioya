@@ -21,6 +21,7 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 | Relationship | Cardinality | Through |
 |---|---|---|
 | Users → Contacts | one-to-many | `Contacts.UserID` |
+| Users → Friend_Groups | one-to-many | `Friend_Groups.UserID` (live database; exported diagram update pending) |
 | Users → Receipts (as the payer) | one-to-many | `Receipts.PayerUserID` |
 | Friend_Groups ↔ Contacts | many-to-many | `Group_Members` |
 | Contacts ↔ Payment_Methods | many-to-many | `Contacts_Payment_Method` (stores the username and whether it is preferred) |
@@ -92,7 +93,11 @@ Additional per-split methods are **Cash App, Apple Cash and Cash**. Cash App acc
 
 Apple Cash opens a Messages draft for the person's U.S. mobile number. On an eligible iPhone, choose + → Apple Cash → enter the amount → Request → send. The text draft is not itself an Apple Cash request. Apple Cash requires eligible Apple devices/accounts in the U.S.; an Android user cannot send one. This does not add Apple Pay merchant checkout, which needs a separate merchant/payment setup. [Apple Cash instructions](https://support.apple.com/en-us/105013), [Apple Pay setup](https://developer.apple.com/help/account/capabilities/configure-apple-pay-on-the-web). Cash needs no electronic contact and creates no external link; arrange collection in person. None of these options automatically mark payment received. Apple Cash reuses the contact's phone; Cash App details entered for a split stay in that local draft. The saved Contacts editor continues to use the methods already configured in Supabase; no lookup rows or SQL have been changed.
 
-Return home preserves the local split and prepared requests; Resume current split reopens them. Editing the split hides stale handoffs until you prepare updated requests. A successful new scan or Type it in replaces the current draft as before. The old prototype QR/code and simulated delivery timers were removed; legacy simulated results are discarded on reload. No SQL migration is needed. New splits still are not saved to History, and groups can't be created or edited in the app yet (the database functions `save_group` and `delete_group` are ready).
+Return home preserves the local split and prepared requests; Resume current split reopens them. Editing the split hides stale handoffs until you prepare updated requests. A successful new scan or Type it in replaces the current draft as before. The old prototype QR/code and simulated delivery timers were removed; legacy simulated results are discarded on reload. No SQL migration is needed. New splits still are not saved to History.
+
+**Groups on Contacts:** Choose New group, enter a name and select your contacts. Search narrows the member list without losing selected members. Empty groups are allowed. Tap an existing group to rename it or replace its members. Save reads back the database's row before updating the list; errors keep the entered name/selections, and retrying after a readback failure updates the saved ID instead of creating a duplicate. Delete group asks for confirmation and removes only the group, keeping contacts and past splits. Saved groups remain available when adding people to a split.
+
+The editor uses the existing `save_group` and `delete_group` functions from `supabase/private-data.sql`; it needs no new SQL, grants or schema changes. Groups remain private to the signed-in account. The team still needs to update its source ERD and re-export `docs/ioya-erd.pdf` and `.png` to show required `Friend_Groups.UserID` → `Users.UserID` (one user owns many groups). Per `AGENTS.md`, that diagram edit belongs to the human team; the table above records the live database relationship without claiming the current diagram is updated.
 
 ## How to Get It Running
 
@@ -208,6 +213,15 @@ The HTTPS address is a new browser origin: its local draft and camera permission
 **AI assistance for this feature:** AI implemented provider handoffs, validation, exact-share snapshots, clipboard/manual fallback, reminder preparation, stale-request protection, draft preservation and software checks. Students must verify their own payment apps and disclose this assistance accurately. Software checks are not student-authored course testing or findings.
 
 Run `npm test` for deterministic receipt-parser checks. These are software checks, not student-authored usability, accessibility or course-assignment findings. Students should perform and record their own required testing and disclose AI assistance accurately.
+
+### Check group editing
+
+1. On Contacts, create a group with two test contacts, refresh and check its name/members. Rename it, replace a member, save and refresh again. Verify searching the picker preserves hidden selections and that an empty group can be saved.
+2. Try a blank name and confirm the error. A failed save must keep the typed name and selections. Check the saving state and phone/laptop layouts.
+3. Open a group, choose Delete group, cancel once, then confirm deletion of your test group. Refresh and confirm the group is gone while contacts and past splits remain. A group should also be selectable in the split's People step without adding duplicate people.
+4. In an authorized live test, confirm the saved `friend_groups.user_id` belongs to the signed-in guest/profile in Supabase Table Editor and clean up test records. The isolated local preview uses a fake database; its refresh checks do not establish live Supabase deployment state.
+
+**AI assistance for groups:** AI implemented the Contacts group editor, member search/selection, save/readback/retry handling, delete confirmation, error/saving states and software checks. Students remain responsible for their required course testing, findings, disclosure and the team-owned ERD update.
 
 ### Existing database vertical slice
 

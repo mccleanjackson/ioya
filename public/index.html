@@ -419,7 +419,17 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 
 /* contacts */
 .groups{display:flex;gap:14px;overflow-x:auto;margin:0 -18px;padding:4px 18px;scrollbar-width:none}
+.ghead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.ghead .eyebrow{margin:0}
+.gempty{padding:16px;background:var(--card);border:1px dashed var(--line);border-radius:16px;margin:0}
+#g-error{color:var(--bad)}
+.gmember-list{display:grid;gap:4px;margin-top:10px}
+.gmember{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:center;min-height:48px;padding:8px 10px;background:var(--card);border-radius:10px;cursor:pointer}
+.gmember input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.gmember span{overflow-wrap:anywhere}
+.gmember small{display:block;color:var(--muted);font-size:12px}
 .grp{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12.5px;font-weight:600;min-width:64px}
+.grp{max-width:110px;flex-shrink:0;overflow-wrap:anywhere}
 .grp small{color:var(--muted);font-weight:500;font-family:var(--f-mono);font-size:11px;margin-top:-4px}
 .gc{width:58px;height:58px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:18px;background:var(--card)}
 .grp:nth-child(3n+1) .gc{background:var(--accent);color:var(--on-hi)}
@@ -656,7 +666,7 @@ async function loadAll(){
     const byId = Object.fromEntries(S.contacts.map(c => [c.id, c]));
     // The database returns only this user's own groups, including empty ones. Members are limited
     // to contacts on the list (this drops the user's own "You" contact if a group includes it).
-    S.groups = groups.map(g => ({id:String(g.group_id), name:g.group_name, members:g.group_members.map(m => String(m.contact_id)).filter(id => byId[id])}));
+    S.groups = groups.map(groupFromRow);
     S.history = events.filter(e => e.receipts.some(r => r.payer_user_id === S.userId)).map(e => {
       const owed = {};
       e.receipts.forEach(r => Object.entries(owedByContact(r)).forEach(([cid, v]) => owed[cid] = (owed[cid] || 0) + v));
@@ -686,6 +696,10 @@ function normContact(c){
     ...m, method:(pref && METHOD_KEY[pref.name]) || 'sms', pref, methods:list};
 }
 const payMethodName = id => (S.payMethods.find(m => m.id === id) || {}).name || 'Unknown';
+function groupFromRow(g){
+  const ids = new Set(S.contacts.map(c => c.id));
+  return {id:String(g.group_id), name:g.group_name, members:(g.group_members || []).map(m => String(m.contact_id)).filter(id => ids.has(id))};
+}
 const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', scanText:'', originalNames:{}, cameraOpen:false, cameraLoading:false, cameraError:'', cameraLightMode:null, cameraFlashEnabled:true, capturing:false, q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, saving:false};
 let cameraSession = null;
 
@@ -1149,14 +1163,13 @@ function contactList(){
 }
 V.contacts = () => `
   <header class="top"><h1 class="h">Your Contacts</h1>${avatarBtn()}</header>
-  <h2 class="eyebrow">Groups</h2>
-  <div class="groups">${S.groups.map(g => `<button class="grp" data-act="sheet" data-s="group" data-id="${g.id}"><span class="gc">${esc(ini(g.name))}</span><span>${esc(g.name)}</span><small>${g.members.length} people</small></button>`).join('')}
-</div>
+  <div class="ghead"><h2 class="eyebrow">Groups</h2><button class="btn small ghost" data-act="sheet" data-s="group">${I('plus')} New group</button></div>
+  ${S.groups.length ? `<div class="groups">${S.groups.map(g => `<button class="grp" data-act="sheet" data-s="group" data-id="${esc(g.id)}" aria-label="Edit group ${esc(g.name)}, ${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}"><span class="gc">${esc(ini(g.name))}</span><span>${esc(g.name)}</span><small>${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}</small></button>`).join('')}</div>` : '<p class="fine gempty">No groups yet. Keep your frequent split partners together in a group.</p>'}
   <h2 class="eyebrow">Contacts</h2>
   ${findBar('c', 'Search names or payment methods', 'Search contacts by first and last name or payment method', contactFilters(), 'Filter by payment method')}
   <div class="clist" data-live="clist">${contactList()}</div>
   <button class="addrow" data-act="sheet" data-s="contact">${I('plus')} Add contact</button>
-  <p class="fine">Contacts save to Supabase. Groups are edited in Supabase for now.</p>`;
+  <p class="fine">Your contacts and groups are saved to your account. Pick a group when adding people to a split.</p>`;
 
 V.scan = () => `
   ${ui.cameraOpen ? '<div class="camera-heading"><h1 class="h">Scan receipt</h1><button class="link" data-act="closeCamera">Close camera</button></div>' : `${flowHead(0, 'home')}<h1 class="h">Add your receipt</h1><p class="sub">Take a photo, then check the items before you split.</p>`}
@@ -1505,6 +1518,76 @@ function profileSheet(s){
       : `<div class="pbox"><div class="acct"><div><span class="fine">Signed in as</span><b>${esc(S.account.email || '')}</b></div>
           <button class="btn small ghost" data-act="pstep" data-step="signout" ${busy}>Sign out</button></div></div>`}`;
 }
+function openGroup(id){
+  const group = id && S.groups.find(g => g.id === String(id));
+  if (id && !group) return toast('That group no longer exists.');
+  ui.sheet = {type:'group', id:group ? group.id : null, draft:{name:group?.name || '', members:group ? group.members.slice() : []}, query:'', error:'', confirmDelete:false};
+  render();
+}
+function groupMembers(s){
+  const query = (s.query || '').trim().toLowerCase();
+  const contacts = S.contacts.filter(c => c.id !== S.selfContactId && (!query || c.name.toLowerCase().includes(query)));
+  if (!S.contacts.length) return '<p class="fine">Add contacts on the Contacts page to choose members. You can also save an empty group.</p>';
+  if (!contacts.length) return '<p class="fine">No contacts match your search. Try another name.</p>';
+  return contacts.map(c => `<label class="gmember"><input type="checkbox" data-in="gmember" value="${esc(c.id)}" ${s.draft.members.includes(c.id) ? 'checked' : ''} ${ui.saving ? 'disabled' : ''}><span>${esc(c.name)}<small>${esc(c.pref?.name || 'No payment method saved')}</small></span></label>`).join('');
+}
+function groupSheet(s){
+  const busy = ui.saving ? 'disabled' : '';
+  const error = `<p class="fine" id="g-error" role="alert" ${s.error ? '' : 'hidden'}>${esc(s.error || '')}</p>`;
+  if (s.confirmDelete) return `<h2 id="sh-t">Delete ${esc(s.draft.name.trim() || 'this group')}?</h2>
+    <p class="fine">This removes the group and its member list. Your contacts and past splits stay as they are.</p>${error}
+    <div class="next two"><button class="btn ghost" data-act="keepgroup" ${busy}>Keep group</button><button class="btn" data-act="deletegroup" ${busy}>${ui.saving ? 'Deleting…' : 'Delete group'}</button></div>`;
+  return `<h2 id="sh-t">${s.id ? 'Edit group' : 'New group'}</h2>
+    <label class="field"><span>Group name</span><input id="g-name" data-in="gname" data-enter="savegroup" value="${esc(s.draft.name)}" placeholder="e.g. Lunch crew" ${busy} aria-describedby="g-error"></label>
+    <p class="eyebrow">Members <span id="g-count" aria-live="polite">(${s.draft.members.length} selected)</span></p>
+    <div class="search">${I('search')}<input data-in="gquery" aria-label="Search group members" placeholder="Search contacts" value="${esc(s.query || '')}" ${busy}></div>
+    <div class="gmember-list" id="g-members">${groupMembers(s)}</div>${error}
+    <div class="next two"><button class="btn ghost" data-act="close" ${busy}>Cancel</button><button class="btn" data-act="savegroup" ${busy}>${ui.saving ? 'Saving…' : 'Save group'}</button></div>
+    ${s.id ? `<button class="link" data-act="askdeletegroup" ${busy}>Delete group</button>` : ''}`;
+}
+async function saveGroup(){
+  const s = ui.sheet;
+  if (s?.type !== 'group' || ui.saving || s.confirmDelete) return;
+  const name = s.draft.name.trim(), account = S.userId;
+  if (!name) { s.error = 'Add a group name.'; render(); document.getElementById('g-name')?.focus(); return; }
+  const allowed = new Set(S.contacts.filter(c => c.id !== S.selfContactId).map(c => c.id));
+  const ids = [...new Set(s.draft.members)];
+  if (ids.some(id => !allowed.has(id) || !Number.isSafeInteger(Number(id)) || Number(id) <= 0)) {
+    s.error = 'One of those contacts no longer exists. Refresh the page and try again.'; render(); return;
+  }
+  ui.saving = true; s.error = ''; render();
+  let saved = false;
+  try {
+    const id = need(await sb.rpc('save_group', {p_group_id:s.id ? Number(s.id) : null, p_name:name, p_contact_ids:ids.map(Number)}));
+    saved = true;
+    // Keep the returned ID even if readback fails, so retry edits instead of creating a duplicate.
+    s.id = String(id);
+    const row = need(await sb.from('friend_groups').select('group_id, group_name, group_members(contact_id)').eq('group_id', id).single());
+    if (S.userId !== account) return;
+    const group = groupFromRow(row), index = S.groups.findIndex(g => g.id === group.id);
+    if (index < 0) S.groups.push(group); else S.groups[index] = group;
+    if (ui.sheet === s) ui.sheet = null;
+    ui.saving = false; toast(`Saved ${group.name}.`);
+  } catch(e) {
+    s.error = saved ? `The group was saved, but could not be reloaded. Try Save group again. ${e.message}` : `Couldn't save the group: ${e.message}`;
+  } finally {
+    ui.saving = false; render();
+  }
+}
+async function deleteGroup(){
+  const s = ui.sheet;
+  if (s?.type !== 'group' || !s.id || !s.confirmDelete || ui.saving) return;
+  const account = S.userId;
+  ui.saving = true; s.error = ''; render();
+  try {
+    need(await sb.rpc('delete_group', {p_group_id:Number(s.id)}));
+    if (S.userId !== account) return;
+    S.groups = S.groups.filter(g => g.id !== s.id);
+    if (ui.sheet === s) ui.sheet = null;
+    ui.saving = false; toast('Group deleted. Your contacts are kept.');
+  } catch(e) { s.error = `Couldn't delete the group: ${e.message}`; }
+  finally { ui.saving = false; render(); }
+}
 function sheetHTML(){
   const s = ui.sheet; if (!s) return '';
   let body = '';
@@ -1529,10 +1612,7 @@ function sheetHTML(){
         <button class="btn" data-act="savecontact" data-id="${s.id || ''}" ${ui.saving ? 'disabled' : ''}>${ui.saving ? 'Saving…' : 'Save'}</button></div>`;
   }
   if (s.type === 'group'){
-    const g = S.groups.find(x => x.id === s.id);
-    body = `<h2 id="sh-t">${esc(g.name)}</h2>
-      ${g.members.map(id => S.contacts.find(c => c.id === id)).map(c => `<div class="kv"><span>${esc(c.name)}</span><span>${esc(c.pref ? c.pref.name : '')}</span></div>`).join('')}
-      <div class="next"><button class="btn" data-act="close">Close</button></div>`;
+    body = groupSheet(s);
   }
   if (s.type === 'req'){
     const sp = S.history.find(x => x.id === s.sid), r = sp.requests[s.i];
@@ -1943,9 +2023,13 @@ const A = {
   all: ds => { const d = S.draft, ids = d.people.map(p => p.id), a = (d.assign[ds.id] || []).filter(x => ids.includes(x));
     d.assign[ds.id] = a.length === ids.length ? [] : ids.slice(); render(); },
   evenrest: () => { const d = S.draft, c = calc(d); c.unassigned.forEach(it => d.assign[it.id] = d.people.map(p => p.id)); render(); },
-  sheet: ds => { ui.sheet = {type:ds.s, id:ds.id || null};
+  sheet: ds => { if (ds.s === 'group') return openGroup(ds.id); ui.sheet = {type:ds.s, id:ds.id || null};
     render(); },
-  close: () => { ui.sheet = null; render(); },
+  close: () => { if (ui.saving && ui.sheet?.type === 'group') return; ui.sheet = null; render(); },
+  savegroup: () => saveGroup(),
+  askdeletegroup: () => { if (ui.sheet?.type === 'group' && ui.sheet.id && !ui.saving) { ui.sheet.confirmDelete = true; ui.sheet.error = ''; render(); } },
+  keepgroup: () => { if (ui.sheet?.type === 'group' && !ui.saving) { ui.sheet.confirmDelete = false; ui.sheet.error = ''; render(); } },
+  deletegroup: () => deleteGroup(),
   req: ds => { ui.sheet = {type:'req', sid:ds.sid, i:+ds.i}; render(); },
   filter: ds => { ui[ds.k + 'f'] = ds.f; render(); document.querySelector(`[data-act="filter"][data-k="${ds.k}"][data-f="${ds.f}"]`)?.focus(); },
   fclear: ds => { ui[ds.k + 'q'] = ''; if (ds.keep !== 'filter') ui[ds.k + 'f'] = 'all'; render(); document.getElementById(ds.k + 'q')?.focus(); },
@@ -2178,6 +2262,18 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => {
   const el = e.target, k = el.dataset.in; if (!k) return;
+  if (['gname','gquery','gmember'].includes(k) && ui.sheet?.type === 'group') {
+    const s = ui.sheet;
+    if (ui.saving) return;
+    if (k === 'gname') s.draft.name = el.value;
+    if (k === 'gquery') { s.query = el.value; document.getElementById('g-members').innerHTML = groupMembers(s); }
+    if (k === 'gmember') {
+      s.draft.members = el.checked ? [...new Set([...s.draft.members, el.value])] : s.draft.members.filter(id => id !== el.value);
+      document.getElementById('g-count').textContent = `(${s.draft.members.length} selected)`;
+    }
+    if (k !== 'gquery') { s.error = ''; const err = document.getElementById('g-error'); if (err) { err.hidden = true; err.textContent = ''; } }
+    return;
+  }
   if (k === 'pf') return liveCheck(el);
   if (['requestMethod','requestHandle','requestNote'].includes(k) && ui.sheet?.type === 'payment') {
     const r = ui.sheet.request;
@@ -2208,7 +2304,7 @@ document.addEventListener('change', e => {
   const file = e.target.files[0]; e.target.value = '';
   if (file) runScan(file);
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.sheet){ ui.sheet = null; render(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.sheet) A.close(); });
 // Enter in a profile field presses that step's main button.
 document.addEventListener('keydown', e => { const act = e.target.dataset && e.target.dataset.enter; if (e.key === 'Enter' && act && !ui.saving){ e.preventDefault(); A[act]({}); } });
 document.addEventListener('visibilitychange', () => {
