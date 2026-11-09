@@ -41,7 +41,7 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 
 ![IOYA system architecture](docs/ioya-architecture.png)
 
-This diagram shows how IOYA is built today. Gray dashed boxes are planned and not built yet (profile pictures in Supabase Storage). New splits are still kept only in the browser; saving them to the database is also planned. Automatic texts work only when the Twilio settings are added on the server.
+This diagram shows how IOYA is built today. Gray dashed boxes are planned and not built yet (profile pictures in Supabase Storage). New splits are still kept only in the browser; saving them to the database is also planned.
 
 ## Tech Stack
 
