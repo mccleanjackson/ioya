@@ -3,7 +3,6 @@ require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const {manualPaymentRequests} = require('./manual-payment-requests');
-const {readSmsConfig} = require('./sms-delivery');
 
 const {SUPABASE_URL, SUPABASE_ANON_KEY, IOYA_PUBLIC_ORIGIN, RENDER_EXTERNAL_URL} = process.env;
 const preview = process.env.IOYA_PREVIEW === '1';
@@ -42,7 +41,7 @@ app.get('/config.js', (req, res) => {
 
 app.use('/api/manual-requests', manualPaymentRequests({
   preview, supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY,
-  publicOrigin: configuredOrigin(IOYA_PUBLIC_ORIGIN || RENDER_EXTERNAL_URL), sms: preview ? null : readSmsConfig(process.env)
+  publicOrigin: configuredOrigin(IOYA_PUBLIC_ORIGIN || RENDER_EXTERNAL_URL)
 }));
 app.get(['/pay', '/pay.html'], (req, res) => {
   res.set({
