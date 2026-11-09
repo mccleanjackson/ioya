@@ -35,7 +35,7 @@ function harness(options={}){
     File:class {constructor(parts,name,opts){this.name=name;this.type=opts.type;this.size=parts[0].size;}},
     setTimeout:(f,ms)=>{const id=++tid;if(ms===250)Promise.resolve().then(f);else timers.set(id,f);return id;},clearTimeout:id=>timers.delete(id)};
   context.scans=scans;
-  vm.runInNewContext(script.replace("if (!V[S.view]", "render=()=>{};runScan=async file=>scans.push(file);globalThis.api={openCamera,stopCamera,toggleCameraLight,captureCameraPhoto,attachCameraPreview,cameraPreviewCrop,go,S,ui,A};return;\nif (!V[S.view]"),context);
+  vm.runInNewContext(script.replace("if (!V[S.view]", "render=()=>{};runScan=async file=>scans.push(file);globalThis.api={openCamera,stopCamera,toggleCameraLight,captureCameraPhoto,attachCameraPreview,cameraPreviewCrop,go,S,ui,A,V};return;\nif (!V[S.view]"),context);
   return {api:context.api,t,video,elements,requests,scans,events,draws,revoked,document,timers};
 }
 
@@ -65,11 +65,14 @@ test('insecure contexts retain the native photo picker without requesting a stre
   assert.equal(h.requests.length,0);assert.equal(h.elements['camera-in'].clicks,1);assert.equal(h.api.S.draft,draft);
 });
 
-test('permission denial leaves the draft intact with a fallback message',async()=>{
+test('permission denial shows camera settings and preserves the draft',async()=>{
   const error=Object.assign(Error('denied'),{name:'NotAllowedError'});
   const h=harness({getUserMedia:async()=>{throw error;}}),draft=h.api.S.draft;
   await h.api.openCamera();assert.equal(h.api.ui.cameraOpen,false);
   assert.match(h.api.ui.cameraError,/not allowed/);assert.equal(h.api.S.draft,draft);
+  assert.match(h.api.V.scan(), /data-act="snap">Allow camera<\/button>/);
+  h.api.A.nativeCamera();
+  assert.doesNotMatch(h.api.V.scan(), /data-act="snap">Allow camera<\/button>/);
 });
 
 test('closing a pending camera request stops the late stream and does not reopen it',async()=>{

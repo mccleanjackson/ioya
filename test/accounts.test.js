@@ -31,7 +31,7 @@ function fakeSupabase({session = null, signInError = null, ensure = [{data:7}], 
       signInAnonymously: async () => { calls.push('signInAnonymously'); return signInError ? {data:{}, error:{message:signInError}} : {data:{}, error:null}; },
       signOut: async () => { calls.push('signOut'); return {error:null}; }
     },
-    rpc: async name => { calls.push(name); return {error:null, ...ensure.shift()}; },
+    rpc: async name => { calls.push(name); return name === 'get_my_payment_accounts' ? {data:{},error:null} : {error:null,...ensure.shift()}; },
     from: name => query(tables[name])
   };
   return {client, calls};
@@ -54,7 +54,7 @@ test('a first visit signs in anonymously and acts as the new user, not the demo 
   const fake = fakeSupabase();
   const api = load(fake);
   await api.loadAll();
-  assert.deepEqual(fake.calls, ['getSession', 'signInAnonymously', 'ensure_my_user', 'getSession']);
+  assert.deepEqual(fake.calls, ['getSession', 'signInAnonymously', 'ensure_my_user', 'get_my_payment_accounts', 'getSession']);
   assert.equal(api.S.loadError, null);
   assert.equal(api.S.userId, 7);
   assert.equal(api.S.selfContactId, '50');
@@ -76,7 +76,7 @@ test('a returning visitor keeps their saved session instead of getting a new acc
   const fake = fakeSupabase({session:{access_token:'saved'}});
   const api = load(fake);
   await api.loadAll();
-  assert.deepEqual(fake.calls, ['getSession', 'ensure_my_user', 'getSession']);
+  assert.deepEqual(fake.calls, ['getSession', 'ensure_my_user', 'get_my_payment_accounts', 'getSession']);
   assert.equal(api.S.userId, 7);
 });
 
@@ -92,7 +92,7 @@ test('a saved session for a deleted account starts a fresh account', async () =>
   const fake = fakeSupabase({session:{access_token:'stale'}, ensure:[{data:null, error:{code:'23503', message:'foreign key'}}, {data:8}]});
   const api = load(fake);
   await api.loadAll();
-  assert.deepEqual(fake.calls, ['getSession', 'ensure_my_user', 'signOut', 'signInAnonymously', 'ensure_my_user', 'getSession']);
+  assert.deepEqual(fake.calls, ['getSession', 'ensure_my_user', 'signOut', 'signInAnonymously', 'ensure_my_user', 'get_my_payment_accounts', 'getSession']);
   assert.equal(api.S.userId, 8);
   assert.equal(api.S.loadError, null);
 });

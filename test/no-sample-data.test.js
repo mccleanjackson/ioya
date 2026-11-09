@@ -14,7 +14,7 @@ function load(saved){
     localStorage:{getItem:() => saved ? JSON.stringify(saved) : null, setItem(){}},
     setTimeout, clearTimeout, console
   };
-  const instrumented = script.replace("if (!V[S.view]", "render = () => {}; globalThis.api = {go,A,S}; return;\nif (!V[S.view]");
+  const instrumented = script.replace("if (!V[S.view]", "render = () => {}; globalThis.api = {go,A,S,V}; return;\nif (!V[S.view]");
   vm.runInNewContext(instrumented, context);
   return context.api;
 }
@@ -43,4 +43,11 @@ test('opening a later split screen with an empty split goes to Check the items w
     assert.equal(api.S.draft.items.length, 0, v);
     assert.equal(api.S.draft.people.filter(p => p.name && !p.me).length, 0, v);
   }
+});
+
+test("new visitors start at the receipt camera screen", () => {
+  const api = load();
+  assert.equal(api.S.view, "scan");
+  assert.match(api.V.scan(), /Add your receipt/);
+  assert.doesNotMatch(api.V.scan(), /ioya_logo/);
 });

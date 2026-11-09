@@ -6,7 +6,7 @@
 -- Users.UserFirstName → users.user_first_name, Contacts_Payment_Method → contacts_payment_method, etc.
 -- Money is stored as whole cents (1959 = $19.59).
 
-DROP TABLE IF EXISTS item_assignments, participants, line_items, receipts, events,
+DROP TABLE IF EXISTS profile_payment_accounts, manual_payment_sms, manual_payment_groups, manual_payment_requests, item_assignments, participants, line_items, receipts, events,
   contacts_payment_method, payment_methods, group_members, friend_groups, contacts, users CASCADE;
 
 CREATE TABLE users (
@@ -533,3 +533,533 @@ END $$;
 
 REVOKE ALL ON FUNCTION save_my_profile(text, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION save_my_profile(text, text, text) TO authenticated;
+
+-- Apply after private-data.sql. Safe to re-run. Public access uses unguessable links.
+CREATE TABLE IF NOT EXISTS public.manual_payment_requests (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     integer NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
+  contact_id  integer NOT NULL REFERENCES public.contacts(contact_id) ON DELETE CASCADE,
+  data        jsonb NOT NULL,
+  consent     jsonb,
+  expires_at  timestamptz NOT NULL DEFAULT (now() + interval '7 days')
+);
+
+CREATE INDEX IF NOT EXISTS manual_payment_requests_owner_expiry
+  ON public.manual_payment_requests(user_id, expires_at);
+ALTER TABLE public.manual_payment_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Read own active manual payment requests" ON public.manual_payment_requests;
+CREATE POLICY "Read own active manual payment requests" ON public.manual_payment_requests
+  FOR SELECT TO authenticated USING (user_id = (SELECT public.app_user_id()) AND expires_at > now());
+-- Use the RPCs for app access, including the narrow public capability lookup.
+REVOKE ALL ON public.manual_payment_requests FROM PUBLIC, anon, authenticated;
+
+-- Validate here too because a Supabase client can call the functions directly.
+CREATE OR REPLACE FUNCTION public.valid_manual_payment_account(
+  p_method text, p_value text, p_consent boolean
+) RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path = pg_catalog, public AS $account$
+  SELECT coalesce(
+    CASE WHEN char_length(p_value) > CASE WHEN p_method = 'applePayUrl' THEN 1000 ELSE 100 END THEN false
+    WHEN p_method = 'venmo' THEN p_value ~ '^[A-Za-z0-9_-]{5,30}$'
+    WHEN p_method = 'paypal' AND p_value ~ '^[A-Za-z0-9]{1,20}$' THEN true
+    WHEN p_method = 'zelle' AND p_value ~ '^\+1[2-9][0-9]{9}$' THEN true
+    WHEN p_method = 'zelle' OR (p_method = 'paypal' AND p_consent)
+      THEN p_value ~* $pattern$^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}$$pattern$
+    WHEN p_method = 'applePayUrl' AND NOT p_consent
+      THEN p_value ~ '^https://(buy|checkout)\.stripe\.com/[A-Za-z0-9_/-]+(#[A-Za-z0-9%=_-]+)?$'
+    ELSE false END, false);
+$account$;
+
+CREATE OR REPLACE FUNCTION public.create_manual_payment_request(p_contact_id integer, p_data jsonb)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE
+  v_user integer := public.app_user_id();
+  v_id uuid;
+  v_amount integer;
+  v_note text := btrim(p_data->>'note');
+  v_name text := btrim(p_data->>'payeeName');
+  v_methods jsonb := p_data->'methods';
+BEGIN
+  IF v_user IS NULL OR NOT public.owns_contact(p_contact_id) THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'Select one of your contacts.';
+  END IF;
+  IF jsonb_typeof(p_data->'amountCents') IS DISTINCT FROM 'number'
+    OR NOT coalesce((p_data->>'amountCents') ~ '^[0-9]{1,7}$', false)
+    OR jsonb_typeof(p_data->'note') IS DISTINCT FROM 'string' OR char_length(v_note) NOT BETWEEN 1 AND 160
+    OR jsonb_typeof(p_data->'payeeName') IS DISTINCT FROM 'string' OR char_length(v_name) NOT BETWEEN 1 AND 80
+    OR jsonb_typeof(v_methods) IS DISTINCT FROM 'object' OR v_methods = '{}'::jsonb THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter valid payment request details.';
+  END IF;
+  v_amount := (p_data->>'amountCents')::integer;
+  IF v_amount NOT BETWEEN 1 AND 1000000 OR EXISTS (
+    SELECT 1 FROM jsonb_each(v_methods) AS m(method, value)
+    WHERE jsonb_typeof(m.value) <> 'string' OR NOT public.valid_manual_payment_account(m.method, m.value #>> '{}', false)
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter valid payment request details.';
+  END IF;
+
+  -- Serialize per account so concurrent requests cannot exceed the active-link cap.
+  PERFORM pg_advisory_xact_lock(1369412158, v_user);
+  DELETE FROM public.manual_payment_requests WHERE user_id = v_user AND expires_at <= now();
+  IF (SELECT count(*) FROM public.manual_payment_requests WHERE user_id = v_user) >= 100 THEN
+    RAISE EXCEPTION USING ERRCODE = '54000', MESSAGE = 'Too many active payment links.';
+  END IF;
+  INSERT INTO public.manual_payment_requests(user_id, contact_id, data)
+  VALUES (v_user, p_contact_id, jsonb_build_object('amountCents', v_amount, 'note', v_note, 'payeeName', v_name, 'methods', v_methods))
+  RETURNING id INTO v_id;
+  RETURN v_id;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.read_manual_payment_request(p_id uuid)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE v_data jsonb;
+BEGIN
+  SELECT data INTO v_data FROM public.manual_payment_requests WHERE id = p_id AND expires_at > now();
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'This payment request is unavailable or has expired.';
+  END IF;
+  RETURN v_data;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.record_manual_payment_consent(p_id uuid, p_consent jsonb)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE
+  v_method text := p_consent->>'method';
+  v_username text := p_consent->>'username';
+  v_consent jsonb;
+BEGIN
+  IF jsonb_typeof(p_consent->'username') IS DISTINCT FROM 'string'
+    OR NOT public.valid_manual_payment_account(v_method, v_username, true) THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter a valid payment account.';
+  END IF;
+  v_consent := jsonb_build_object('method', v_method, 'username', v_username);
+  UPDATE public.manual_payment_requests SET consent = v_consent
+  WHERE id = p_id AND expires_at > now() AND (consent IS NULL OR consent = v_consent);
+  IF FOUND THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM public.manual_payment_requests WHERE id = p_id AND expires_at > now()) THEN
+    RAISE EXCEPTION USING ERRCODE = '23505', MESSAGE = 'Payment details have already been shared for this link.';
+  END IF;
+  RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'This payment request is unavailable or has expired.';
+END $$;
+
+CREATE OR REPLACE FUNCTION public.read_manual_payment_consent(p_id uuid)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE v_consent jsonb;
+BEGIN
+  SELECT consent INTO v_consent FROM public.manual_payment_requests
+  WHERE id = p_id AND user_id = public.app_user_id() AND expires_at > now();
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'This payment request is unavailable or has expired.';
+  END IF;
+  RETURN v_consent;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.save_manual_payment_consent(p_id uuid)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE
+  v_contact_id integer;
+  v_consent jsonb;
+  v_method_id integer;
+  v_saved text;
+BEGIN
+  -- Lock the contact so concurrent contact edits and consent saves serialize.
+  SELECT c.contact_id, r.consent INTO v_contact_id, v_consent
+  FROM public.manual_payment_requests r
+  JOIN public.contacts c ON c.contact_id = r.contact_id AND c.user_id = r.user_id
+  WHERE r.id = p_id AND r.user_id = public.app_user_id() AND r.expires_at > now()
+  FOR UPDATE OF c;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'This payment request is unavailable or has expired.';
+  END IF;
+  IF v_consent IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'This contact has not shared an account.';
+  END IF;
+  SELECT pay_method_id INTO v_method_id FROM public.payment_methods
+  WHERE lower(pay_method_name) = v_consent->>'method';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'This payment method is unavailable in Contacts.';
+  END IF;
+
+  INSERT INTO public.contacts_payment_method (contact_id, pay_method_id, pay_method_username)
+  VALUES (v_contact_id, v_method_id, v_consent->>'username')
+  ON CONFLICT (contact_id, pay_method_id) DO NOTHING;
+  SELECT pay_method_username INTO v_saved FROM public.contacts_payment_method
+  WHERE contact_id = v_contact_id AND pay_method_id = v_method_id;
+  IF v_saved IS DISTINCT FROM (v_consent->>'username') THEN
+    RAISE EXCEPTION USING ERRCODE = '23505', MESSAGE = 'This contact already has a different account for that payment method.';
+  END IF;
+  RETURN true;
+END $$;
+
+REVOKE ALL ON FUNCTION public.valid_manual_payment_account(text, text, boolean),
+  public.create_manual_payment_request(integer, jsonb), public.read_manual_payment_consent(uuid),
+  public.save_manual_payment_consent(uuid),
+  public.read_manual_payment_request(uuid), public.record_manual_payment_consent(uuid, jsonb)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_manual_payment_request(integer, jsonb),
+  public.read_manual_payment_consent(uuid), public.save_manual_payment_consent(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.read_manual_payment_request(uuid),
+  public.record_manual_payment_consent(uuid, jsonb) TO anon, authenticated;
+
+-- Apply after manual-payment-requests.sql. Safe to re-run.
+CREATE OR REPLACE FUNCTION public.create_manual_payment_request(p_contact_id integer, p_data jsonb)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE
+  v_user integer := public.app_user_id();
+  v_id uuid;
+  v_amount integer;
+  v_note text := btrim(p_data->>'note');
+  v_name text := btrim(p_data->>'payeeName');
+  v_methods jsonb := p_data->'methods';
+  v_items jsonb := p_data->'items';
+  v_details jsonb;
+BEGIN
+  IF v_user IS NULL OR NOT public.owns_contact(p_contact_id) THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'Select one of your contacts.';
+  END IF;
+  IF jsonb_typeof(p_data->'amountCents') IS DISTINCT FROM 'number'
+    OR NOT coalesce((p_data->>'amountCents') ~ '^[0-9]{1,7}$', false)
+    OR jsonb_typeof(p_data->'note') IS DISTINCT FROM 'string' OR char_length(v_note) NOT BETWEEN 1 AND 160
+    OR jsonb_typeof(p_data->'payeeName') IS DISTINCT FROM 'string' OR char_length(v_name) NOT BETWEEN 1 AND 80
+    OR jsonb_typeof(v_methods) IS DISTINCT FROM 'object' OR v_methods = '{}'::jsonb THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter valid payment request details.';
+  END IF;
+  v_amount := (p_data->>'amountCents')::integer;
+  IF v_amount NOT BETWEEN 1 AND 1000000 OR EXISTS (
+    SELECT 1 FROM jsonb_each(v_methods) AS m(method, value)
+    WHERE jsonb_typeof(m.value) <> 'string' OR NOT public.valid_manual_payment_account(m.method, m.value #>> '{}', false)
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter valid payment request details.';
+  END IF;
+
+  v_details := jsonb_build_object('amountCents', v_amount, 'note', v_note, 'payeeName', v_name, 'methods', v_methods);
+  IF v_items IS NOT NULL THEN
+    IF jsonb_typeof(v_items) IS DISTINCT FROM 'array' THEN
+      RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter a valid item breakdown.';
+    END IF;
+    IF jsonb_array_length(v_items) NOT BETWEEN 1 AND 100 OR EXISTS (
+      SELECT 1 FROM jsonb_array_elements(v_items) AS entry(item)
+      WHERE jsonb_typeof(item->'name') IS DISTINCT FROM 'string'
+        OR char_length(btrim(item->>'name')) NOT BETWEEN 1 AND 120
+        OR jsonb_typeof(item->'amountCents') IS DISTINCT FROM 'number'
+        OR NOT coalesce((item->>'amountCents') ~ '^[0-9]{1,7}$', false)
+    ) THEN
+      RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter a valid item breakdown.';
+    END IF;
+    IF (SELECT sum((item->>'amountCents')::integer)
+        FROM jsonb_array_elements(v_items) AS entry(item)) <> v_amount THEN
+      RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'The item breakdown must add up to the requested amount.';
+    END IF;
+    -- Keep only display data, even if a client sends extra properties.
+    SELECT jsonb_agg(jsonb_build_object('name', btrim(item->>'name'), 'amountCents', item->'amountCents') ORDER BY position)
+      INTO v_items FROM jsonb_array_elements(v_items) WITH ORDINALITY AS entry(item, position);
+    v_details := v_details || jsonb_build_object('items', v_items);
+  END IF;
+
+  -- Serialize per account so concurrent requests cannot exceed the active-link cap.
+  PERFORM pg_advisory_xact_lock(1369412158, v_user);
+  DELETE FROM public.manual_payment_requests WHERE user_id = v_user AND expires_at <= now();
+  IF (SELECT count(*) FROM public.manual_payment_requests WHERE user_id = v_user) >= 100 THEN
+    RAISE EXCEPTION USING ERRCODE = '54000', MESSAGE = 'Too many active payment links.';
+  END IF;
+  INSERT INTO public.manual_payment_requests(user_id, contact_id, data)
+  VALUES (v_user, p_contact_id, v_details)
+  RETURNING id INTO v_id;
+  RETURN v_id;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.manual_payment_groups (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     integer NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
+  recipients  jsonb NOT NULL,
+  expires_at  timestamptz NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS manual_payment_groups_owner_expiry
+  ON public.manual_payment_groups(user_id, expires_at);
+ALTER TABLE public.manual_payment_groups ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Read own active manual payment groups" ON public.manual_payment_groups;
+CREATE POLICY "Read own active manual payment groups" ON public.manual_payment_groups
+  FOR SELECT TO authenticated USING (user_id = (SELECT public.app_user_id()) AND expires_at > now());
+REVOKE ALL ON public.manual_payment_groups FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.create_manual_payment_group(p_recipients jsonb)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE
+  v_user integer := public.app_user_id();
+  v_recipients jsonb;
+  v_count integer;
+  v_contacts integer;
+  v_expires timestamptz;
+  v_id uuid;
+BEGIN
+  IF v_user IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'Sign in to manage payment links.';
+  END IF;
+  IF jsonb_typeof(p_recipients) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Choose payment links for up to 11 contacts.';
+  END IF;
+  IF jsonb_array_length(p_recipients) NOT BETWEEN 1 AND 11 OR EXISTS (
+    SELECT 1 FROM jsonb_array_elements(p_recipients) AS entry(recipient)
+    WHERE jsonb_typeof(recipient->'id') IS DISTINCT FROM 'string'
+      OR NOT coalesce((recipient->>'id') ~ '^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$', false)
+      OR jsonb_typeof(recipient->'name') IS DISTINCT FROM 'string'
+      OR char_length(btrim(recipient->>'name')) NOT BETWEEN 1 AND 80
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Choose payment links for up to 11 contacts.';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(1369412158, v_user);
+  SELECT count(*), count(DISTINCT r.contact_id), min(r.expires_at),
+    jsonb_agg(jsonb_build_object('id', r.id, 'name', btrim(recipient->>'name')) ORDER BY position)
+  INTO v_count, v_contacts, v_expires, v_recipients
+  FROM jsonb_array_elements(p_recipients) WITH ORDINALITY AS entry(recipient, position)
+  JOIN public.manual_payment_requests r ON r.id = (recipient->>'id')::uuid
+  WHERE r.user_id = v_user AND r.expires_at > now();
+
+  IF v_count <> jsonb_array_length(p_recipients) THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'A payment request is unavailable or has expired.';
+  END IF;
+  IF v_contacts <> v_count THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Select each contact only once.';
+  END IF;
+  DELETE FROM public.manual_payment_groups WHERE user_id = v_user AND expires_at <= now();
+  SELECT id INTO v_id FROM public.manual_payment_groups
+  WHERE user_id = v_user AND recipients = v_recipients;
+  IF FOUND THEN RETURN v_id; END IF;
+  IF (SELECT count(*) FROM public.manual_payment_groups WHERE user_id = v_user) >= 100 THEN
+    RAISE EXCEPTION USING ERRCODE = '54000', MESSAGE = 'Too many active payment links.';
+  END IF;
+
+  INSERT INTO public.manual_payment_groups(user_id, recipients, expires_at)
+  VALUES (v_user, v_recipients, v_expires) RETURNING id INTO v_id;
+  RETURN v_id;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.read_manual_payment_group(p_id uuid)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE v_recipients jsonb;
+BEGIN
+  SELECT jsonb_agg(recipient ORDER BY position) INTO v_recipients
+  FROM public.manual_payment_groups g
+  CROSS JOIN LATERAL jsonb_array_elements(g.recipients) WITH ORDINALITY AS entry(recipient, position)
+  JOIN public.manual_payment_requests r ON r.id = (recipient->>'id')::uuid AND r.user_id = g.user_id
+  WHERE g.id = p_id AND g.expires_at > now() AND r.expires_at > now();
+  IF v_recipients IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'This payment request is unavailable or has expired.';
+  END IF;
+  RETURN jsonb_build_object('recipients', v_recipients);
+END $$;
+
+REVOKE ALL ON FUNCTION public.create_manual_payment_group(jsonb), public.read_manual_payment_group(uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_manual_payment_group(jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.read_manual_payment_group(uuid) TO anon, authenticated;
+
+
+-- Apply after the manual payment request migrations. Safe to re-run.
+-- Keep the ledger independent of contact deletion so attempts still count toward the daily cap.
+CREATE TABLE IF NOT EXISTS public.manual_payment_sms (
+  request_id uuid PRIMARY KEY,
+  auth_user_id uuid NOT NULL,
+  attempt_id uuid NOT NULL,
+  phone text NOT NULL,
+  attempted_at timestamptz NOT NULL DEFAULT now(),
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'submitted', 'rejected')),
+  sid text,
+  proof text
+);
+CREATE INDEX IF NOT EXISTS manual_payment_sms_owner_attempt
+  ON public.manual_payment_sms(auth_user_id, attempted_at);
+ALTER TABLE public.manual_payment_sms ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Read own text submission ledger" ON public.manual_payment_sms;
+CREATE POLICY "Read own text submission ledger" ON public.manual_payment_sms
+  FOR SELECT TO authenticated USING (auth_user_id = (SELECT auth.uid()));
+REVOKE ALL ON public.manual_payment_sms FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.reserve_manual_payment_sms(p_id uuid, p_phone text, p_attempt uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE
+  v_auth uuid := auth.uid();
+  v_user integer := public.app_user_id();
+  v_payee text;
+  v_record public.manual_payment_sms%ROWTYPE;
+BEGIN
+  IF v_auth IS NULL OR v_user IS NULL OR coalesce(auth.jwt()->>'is_anonymous', 'false') = 'true' THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'Sign in to send a text.';
+  END IF;
+  IF p_phone IS NULL OR p_phone !~ '^\+1[2-9][0-9]{9}$' OR p_attempt IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter a valid U.S. mobile number.';
+  END IF;
+  PERFORM pg_advisory_xact_lock(1369412160, hashtext(v_auth::text));
+  SELECT r.data->>'payeeName' INTO v_payee
+    FROM public.manual_payment_requests r
+   WHERE r.id = p_id AND r.user_id = v_user AND r.expires_at > now();
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'This payment request is unavailable or has expired.';
+  END IF;
+  SELECT * INTO v_record FROM public.manual_payment_sms WHERE request_id = p_id AND auth_user_id = v_auth;
+  IF FOUND THEN
+    RETURN jsonb_build_object('status', v_record.status, 'phone', v_record.phone, 'sid', v_record.sid, 'proof', v_record.proof);
+  END IF;
+  DELETE FROM public.manual_payment_sms WHERE auth_user_id = v_auth AND attempted_at <= now() - interval '7 days';
+  IF (SELECT count(*) FROM public.manual_payment_sms WHERE auth_user_id = v_auth
+      AND attempted_at > now() - interval '1 day') >= 25 THEN
+    RAISE EXCEPTION USING ERRCODE = '54000', MESSAGE = 'Daily text limit reached.';
+  END IF;
+  INSERT INTO public.manual_payment_sms(request_id, auth_user_id, attempt_id, phone)
+  VALUES (p_id, v_auth, p_attempt, p_phone);
+  RETURN jsonb_build_object('status', 'reserved', 'payeeName', v_payee);
+END $$;
+
+CREATE OR REPLACE FUNCTION public.finish_manual_payment_sms(p_id uuid, p_attempt uuid, p_sid text, p_proof text)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+BEGIN
+  IF (p_sid IS NULL) <> (p_proof IS NULL) OR
+      (p_sid IS NOT NULL AND (p_sid !~* '^SM[0-9a-f]{32}$' OR p_proof !~ '^[0-9a-f]{64}$')) THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Invalid text submission receipt.';
+  END IF;
+  UPDATE public.manual_payment_sms
+    SET status = CASE WHEN p_sid IS NULL THEN 'rejected' ELSE 'submitted' END, sid = p_sid, proof = p_proof
+    WHERE request_id = p_id AND auth_user_id = auth.uid() AND attempt_id = p_attempt AND status = 'pending';
+  RETURN FOUND;
+END $$;
+
+REVOKE ALL ON FUNCTION public.reserve_manual_payment_sms(uuid, text, uuid),
+  public.finish_manual_payment_sms(uuid, uuid, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.reserve_manual_payment_sms(uuid, text, uuid),
+  public.finish_manual_payment_sms(uuid, uuid, text, text) TO authenticated;
+
+-- Save payer payment identifiers independently from the profile name and phone.
+-- Apply after private-data.sql. Safe to run more than once.
+CREATE TABLE IF NOT EXISTS public.profile_payment_accounts (
+  user_id integer PRIMARY KEY REFERENCES public.users(user_id) ON DELETE CASCADE,
+  accounts jsonb NOT NULL
+);
+
+ALTER TABLE public.profile_payment_accounts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Read own profile payment accounts" ON public.profile_payment_accounts;
+CREATE POLICY "Read own profile payment accounts" ON public.profile_payment_accounts
+  FOR SELECT TO authenticated USING (user_id = (SELECT public.app_user_id()));
+REVOKE ALL ON public.profile_payment_accounts FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.get_my_payment_accounts()
+RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+  SELECT coalesce((
+    SELECT accounts FROM public.profile_payment_accounts WHERE user_id = public.app_user_id()
+  ), '{}'::jsonb);
+$$;
+
+CREATE OR REPLACE FUNCTION public.save_my_payment_accounts(p_accounts jsonb)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE
+  v_user_id constant integer := public.app_user_id();
+  v_entry record;
+  v_value text;
+  v_email boolean;
+  v_phone text;
+  v_accounts jsonb := '{}'::jsonb;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'Your account is not set up yet. Refresh and try again.';
+  END IF;
+  IF jsonb_typeof(p_accounts) IS DISTINCT FROM 'object' THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter valid payment account details.';
+  END IF;
+
+  FOR v_entry IN SELECT key, value FROM jsonb_each(p_accounts) LOOP
+    IF v_entry.key NOT IN ('venmo', 'paypal', 'zelle', 'cashapp', 'applecash')
+       OR jsonb_typeof(v_entry.value) IS DISTINCT FROM 'string' THEN
+      RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter valid payment account details.';
+    END IF;
+    v_value := btrim(v_entry.value #>> '{}');
+    IF v_value = '' THEN CONTINUE; END IF;
+    v_email := length(v_value) <= 100 AND v_value ~* '^[a-z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}$';
+    v_phone := NULL;
+    IF length(v_value) <= 40 AND v_value ~ '^[0-9+().[:space:]-]+$' THEN
+      v_phone := regexp_replace(v_value, '[^0-9]', '', 'g');
+      v_phone := CASE
+        WHEN v_phone ~ '^[2-9][0-9]{9}$' THEN '+1' || v_phone
+        WHEN v_phone ~ '^1[2-9][0-9]{9}$' THEN '+' || v_phone
+        ELSE NULL
+      END;
+    END IF;
+
+    CASE v_entry.key
+      WHEN 'venmo' THEN
+        IF v_value !~ '^@?[A-Za-z0-9_-]{5,30}$' THEN
+          RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter your Venmo username.';
+        END IF;
+        v_value := ltrim(v_value, '@');
+      WHEN 'paypal' THEN
+        IF NOT v_email AND v_value !~ '^[A-Za-z0-9]{1,20}$' THEN
+          RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter your PayPal email or PayPal.Me username.';
+        END IF;
+      WHEN 'zelle' THEN
+        IF NOT v_email AND v_phone IS NULL THEN
+          RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter your Zelle email or U.S. mobile number.';
+        END IF;
+        v_value := coalesce(v_phone, v_value);
+      WHEN 'cashapp' THEN
+        IF NOT v_email AND v_phone IS NULL
+           AND NOT (v_value ~ '^\$[A-Za-z0-9]{1,20}$' AND v_value ~ '[A-Za-z]') THEN
+          RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter your Cash App $cashtag, email, or U.S. mobile number.';
+        END IF;
+        v_value := coalesce(v_phone, v_value);
+      WHEN 'applecash' THEN
+        IF v_phone IS NULL THEN
+          RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Enter your Apple Cash U.S. mobile number.';
+        END IF;
+        v_value := v_phone;
+    END CASE;
+    v_accounts := v_accounts || jsonb_build_object(v_entry.key, v_value);
+  END LOOP;
+
+  INSERT INTO public.profile_payment_accounts (user_id, accounts)
+  VALUES (v_user_id, v_accounts)
+  ON CONFLICT (user_id) DO UPDATE SET accounts = excluded.accounts;
+  RETURN v_accounts;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_my_payment_accounts(), public.save_my_payment_accounts(jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_my_payment_accounts(), public.save_my_payment_accounts(jsonb) TO authenticated;
+
+-- Apply after the manual payment migrations. Safe to re-run.
+CREATE OR REPLACE FUNCTION public.valid_manual_payment_account(
+  p_method text, p_value text, p_consent boolean
+) RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path = pg_catalog, public AS $account$
+  SELECT coalesce(
+    CASE WHEN char_length(p_value) > CASE WHEN p_method = 'applePayUrl' THEN 1000 ELSE 100 END THEN false
+    WHEN p_method = 'venmo' THEN p_value ~ '^[A-Za-z0-9_-]{5,30}$'
+    WHEN p_method = 'paypal' AND p_value ~ '^[A-Za-z0-9]{1,20}$' THEN true
+    WHEN (p_method = 'zelle' OR (p_method IN ('cashapp', 'applecash') AND NOT p_consent))
+      AND p_value ~ '^\+1[2-9][0-9]{9}$' THEN true
+    WHEN p_method = 'cashapp' AND NOT p_consent
+      AND p_value ~ '^\$[A-Za-z0-9]{1,20}$' AND p_value ~ '[A-Za-z]' THEN true
+    WHEN p_method IN ('zelle', 'paypal') OR (p_method = 'cashapp' AND NOT p_consent)
+      THEN p_value ~* $pattern$^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}$$pattern$
+    WHEN p_method = 'applePayUrl' AND NOT p_consent
+      THEN p_value ~ '^https://(buy|checkout)\.stripe\.com/[A-Za-z0-9_/-]+(#[A-Za-z0-9%=_-]+)?$'
+    ELSE false END, false);
+$account$;
+
+REVOKE ALL ON FUNCTION public.valid_manual_payment_account(text, text, boolean) FROM PUBLIC, anon, authenticated;
+
+-- Enable saved Cash App and Apple Cash accounts for contacts.
+-- Apply once to an existing database. Safe to run again.
+DO $$
+DECLARE
+  next_id integer;
+  method text;
+  id_sequence regclass := pg_get_serial_sequence('public.payment_methods', 'pay_method_id')::regclass;
+BEGIN
+  LOCK TABLE public.payment_methods IN SHARE ROW EXCLUSIVE MODE;
+  SELECT greatest(4, coalesce(max(pay_method_id), 0), coalesce(pg_sequence_last_value(id_sequence), 0)) + 1
+    INTO next_id FROM public.payment_methods;
+  FOREACH method IN ARRAY ARRAY['Cash App', 'Apple Cash'] LOOP
+    INSERT INTO public.payment_methods(pay_method_id, pay_method_name)
+      VALUES (next_id, method) ON CONFLICT (pay_method_name) DO NOTHING;
+    IF FOUND THEN next_id := next_id + 1; END IF;
+  END LOOP;
+  PERFORM setval(id_sequence, next_id - 1, true);
+END $$;
