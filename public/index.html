@@ -71,10 +71,14 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .aside .aside-logo{display:block;width:220px;height:100px;object-fit:cover;object-position:center;margin-inline:auto}
 .aside p{margin:0;color:var(--muted)}
 .aside h2{font:600 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:6px 0 0}
-.jump{display:flex;flex-direction:column;gap:2px}
-.jump button{display:flex;justify-content:space-between;gap:10px;text-align:left;padding:8px 10px;border-radius:8px;color:var(--ink)}
-.jump button:hover{background:var(--card)}
-.jump button.on{background:var(--card);box-shadow:inset 3px 0 0 var(--accent)}
+.jump{display:flex;flex-direction:column;gap:2px;position:relative}
+.jump::before{content:"";position:absolute;z-index:0;pointer-events:none;left:0;right:0;top:var(--jump-highlight-top,0px);height:var(--jump-highlight-height,0px);border-radius:8px;background:var(--card);box-shadow:inset 3px 0 0 var(--accent);transform-origin:center}
+.jump.jump-ready::before{transition:top .4s cubic-bezier(.2,1.12,.3,1),height .3s cubic-bezier(.2,.8,.2,1)}
+.jump.jump-squash::before{animation:jump-highlight-squash .4s cubic-bezier(.2,.8,.2,1)}
+@keyframes jump-highlight-squash{0%,100%{transform:scaleY(1)}34%{transform:scaleY(1.035)}66%{transform:scaleY(.98)}}
+.jump button{display:flex;justify-content:space-between;gap:10px;text-align:left;padding:8px 10px;border-radius:8px;color:var(--ink);position:relative;z-index:1}
+.jump button:hover:not(.on){background:var(--card)}
+.jump button.on{background:transparent;box-shadow:none}
 .jump small{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
 .aside .reset{align-self:flex-start;font-size:13px;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
 
@@ -1745,6 +1749,21 @@ const scr = document.getElementById('screen');
 let lastView = null;
 let lastActiveTabIndex = null;
 let tabSquashTimer = null;
+function syncJumpHighlight(animate=false){
+  const jump = document.getElementById('jump'), selected = jump?.querySelector('button.on');
+  if (!jump || !selected) return;
+  const canSlide = animate && jump.classList.contains('jump-ready');
+  if (!canSlide) jump.classList.remove('jump-ready','jump-squash');
+  jump.style.setProperty('--jump-highlight-top', `${selected.offsetTop}px`);
+  jump.style.setProperty('--jump-highlight-height', `${selected.offsetHeight}px`);
+  if (!canSlide){ void jump.offsetWidth; jump.classList.add('jump-ready'); }
+  else {
+    jump.classList.remove('jump-squash');
+    void jump.offsetWidth;
+    jump.classList.add('jump-squash');
+    jump.addEventListener('animationend', () => jump.classList.remove('jump-squash'), {once:true});
+  }
+}
 let lastFlowStep = null;
 let flowProgressFrame = null;
 let flowStartWidths = null;
@@ -1854,6 +1873,7 @@ function syncFlowProgress(view){
 }
 function render(){
   const v = S.view;
+  const changedView = v !== lastView;
   scr.classList.toggle('camera-screen', v === 'scan' && ui.cameraOpen);
   const keepScroll = v === lastView ? scr.scrollTop : 0;
   const oldBars = [...scr.querySelectorAll('.steps i span')];
@@ -1894,6 +1914,7 @@ function render(){
   document.getElementById('overlay').innerHTML = sheetHTML() + (ui.toast ? `<div class="toast" role="status">${esc(ui.toast)}</div>` : '');
   document.getElementById('jump').innerHTML = [['home','Home','—'],['history','History','—'],['scan','Scan receipt','R1 R4'],['review','Check items','R2 R3 R11'],['people','People','R5'],['assign','Assign items','R6–R8'],['summary','Review & send','R12–R17'],['sent','Payment requests','R18'],['contacts','Contacts','—']]
     .map(([k, label, r]) => `<button class="${k === v ? 'on' : ''}" data-act="jump" data-v="${k}"><span>${label}</span><small>${r}</small></button>`).join('');
+  syncJumpHighlight(changedView);
   if (v === 'scan' && ui.cameraOpen) attachCameraPreview();
   save();
 }
