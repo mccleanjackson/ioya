@@ -1386,11 +1386,9 @@ V.summary = () => {
 
 function reviewRequest(p,c){
   const method = methodFor(p,c.totals[p.id]);
+  if (method === 'manual') return '';
   return `<section class="review-request" aria-label="Request for ${esc(p.name)}"><h2 class="eyebrow">Request</h2>
-    ${method === 'sms'
-      ? `<label class="field"><span>Phone number <small>optional</small></span><input type="tel" autocomplete="off" data-in="requestPhone" data-id="${esc(p.id)}" value="${esc(p.phone)}" placeholder="(555) 000-0000" aria-describedby="route-${esc(p.id)}"></label>
-        <p class="fine" id="route-${esc(p.id)}" data-live="phoneRoute" data-pid="${esc(p.id)}"></p>`
-      : `<p class="request-account"><span>${esc(METHODS[method]?.label || 'Payment method')}</span><b>${esc(method === 'cash' ? 'In person' : recipientHandle(method,p) || '')}</b></p>`}
+    <p class="request-account"><span>${esc(METHODS[method]?.label || 'Payment method')}</span><b>${esc(method === 'cash' ? 'In person' : recipientHandle(method,p) || '')}</b></p>
     ${acceptsNote(method) ? `<label class="field"><span>Note</span><textarea class="request-note" data-in="pmsg" data-id="${esc(p.id)}" maxlength="160" rows="1">${esc(draftNote(p,c))}</textarea></label>` : ''}
   </section>`;
 }
@@ -1421,45 +1419,14 @@ function manualKey(r){ return JSON.stringify([S.userId, r, receivingFor(r)]); }
 function manualCard(r){
   const state = manualState.get(manualKey(r)) || manualLink(r) || {};
   if (!state.id) return '';
-  const text = textState(r,state);
   return `<article class="pcard">
-    <header><div><b>${esc(r.name)}</b><span class="meta">${r.phone ? esc(r.phone) : 'Shared QR code'}</span></div><span class="ptotal mono">${money(r.amount)}</span></header>
-    ${r.phone ? `<p class="request-status">${CFG.preview ? 'Text message · Preview' : text?.status === 'submitted' ? 'Text submitted' : text?.status === 'sending' ? 'Submitting text…' : 'Text not submitted'}</p>
-      ${text?.error ? `<p class="warn-line" role="status">${esc(text.error)}</p><a class="btn small ghost" href="${esc(state.url)}" target="_blank" rel="noopener noreferrer">Open payment link</a>` : ''}
-      ${!CFG.preview && (!text || text.status === 'retryable') ? `<button class="btn small ghost" data-act="retryText" data-id="${esc(r.pid)}">Retry text</button>` : ''}` : ''}
+    <header><div><b>${esc(r.name)}</b><span class="meta">Shared QR code</span></div><span class="ptotal mono">${money(r.amount)}</span></header>
     ${state.consent ? `<p class="fine">${esc(r.name)} shared their ${esc(METHODS[state.consent.method]?.label || state.consent.method)} details: <b>${esc(state.consent.username)}</b></p>
       <button class="btn small ghost" data-act="saveconsent" data-id="${esc(r.pid)}" ${state.busy || state.saved ? 'disabled' : ''}>${state.saved ? 'Saved to contact' : 'Save to contact'}</button>`
     : `<details><summary>Recipient options</summary>
       <a class="btn small ghost" href="${esc(state.url)}" target="_blank" rel="noopener noreferrer">Open payment page</a>
       <button class="btn small ghost" data-act="checkconsent" data-id="${esc(r.pid)}" ${state.busy ? 'disabled' : ''}>Check for shared payment details</button></details>`}
     ${state.message ? `<p class="fine" role="status">${esc(state.message)}</p>` : ''}</article>`;
-}
-function textState(r,link){
-  return S.draft.textStates?.[r.pid]?.id === link.id ? S.draft.textStates[r.pid] : null;
-}
-async function submitText(r,link){
-  if (CFG.preview || !r.phone || !link.id) return;
-  const current = textState(r,link);
-  if (current && current.status !== 'retryable') return;
-  const state = {id:link.id,status:'sending'};
-  (S.draft.textStates ||= {})[r.pid] = state;
-  try {
-    const response = await manualApi('/' + encodeURIComponent(link.id) + '/sms',{phone:r.phone});
-    if (response.status !== 'submitted') throw new Error('Text submission could not be verified.');
-    state.status = 'submitted';
-  } catch(e) {
-    state.status = [429,503].includes(e.status) ? 'retryable' : [400,403,404,502].includes(e.status) ? 'failed' : 'uncertain';
-    state.error = e.status ? e.message : 'Text submission could not be verified. Check with the recipient before trying again.';
-  }
-  save();
-}
-async function retryText(pid){
-  const r = currentManual(pid), link = r && manualLink(r);
-  if (!link) return;
-  const pending = submitText(r,link);
-  render();
-  await pending;
-  if (S.view === 'sent') render();
 }
 function linkedStatus(r,i){
   const info = paymentRequest(r);
@@ -1574,7 +1541,7 @@ function prepareSplitRequests(){
   const finish = () => {
     ui.sendError = ''; ui.sheet = null;
     draft.results = requests;
-    if (CFG.preview && !manual.some(r => !r.phone)) finishPreviewSplit();
+    if (CFG.preview && !manual.length) finishPreviewSplit();
     else go('sent');
   };
   if (!manual.length) return finish();
@@ -1588,20 +1555,16 @@ function prepareSplitRequests(){
   ui.preparing = true; ui.sendError = ''; refresh();
   return (async () => {
     try {
-      const recipients = [], texts = [];
+      const recipients = [];
       for (const r of manual) {
         const link = await createManualRequest(r, draft);
-        if (r.phone) texts.push({r,link});
-        else recipients.push({id:link.id,name:r.name.trim().slice(0,80)});
+        recipients.push({id:link.id,name:r.name.trim().slice(0,80)});
       }
-      if (recipients.length) {
-        const key = JSON.stringify(recipients);
-        if (draft.sharedQr?.key !== key) {
-          const group = await manualApi('/group',{recipients});
-          draft.sharedQr = {key,...group};
-        }
-      } else delete draft.sharedQr;
-      for (const {r,link} of texts) await submitText(r,link);
+      const key = JSON.stringify(recipients);
+      if (draft.sharedQr?.key !== key) {
+        const group = await manualApi('/group',{recipients});
+        draft.sharedQr = {key,...group};
+      }
       ui.preparing = false; finish();
     } catch(e) {
       ui.preparing = false;
@@ -1615,7 +1578,7 @@ V.sent = () => {
   const d = S.draft, results = d.results || [];
   if (JSON.stringify(results) !== JSON.stringify(preparedRequests())) return `<h1 class="h">Your split changed</h1>
     <div class="next"><button class="btn" data-act="go" data-v="summary">Review updated split</button></div>`;
-  const manual = results.filter(r => r.method === 'manual'), qr = manual.some(r => !r.phone) && d.sharedQr;
+  const manual = results.filter(r => r.method === 'manual'), qr = manual.length && d.sharedQr;
   const linked = results.map((r, i) => r.method === 'manual' ? '' : linkedStatus(r,i)).join('');
   const expired = manual.some(r => !manualLink(r));
   return `${qr && !expired ? '' : `<header class="top"><button class="iconbtn" data-act="go" data-v="summary" aria-label="Back to review">${I('back')}</button>
@@ -1630,7 +1593,7 @@ V.sent = () => {
       <summary>Request details</summary>
       ${linked}${manual.map(manualCard).join('')}
     </details>` : ''}
-    <p class="fine">${CFG.preview ? 'Preview only. No requests were sent.' : 'Texts are submitted automatically. Finish any pending payment-app requests in the app.'}</p>
+    ${CFG.preview ? '<p class="fine">Preview only. No requests were sent.</p>' : linked ? '<p class="fine">Finish any pending requests in their payment apps.</p>' : ''}
     <div class="next two"><button class="btn ghost" data-act="go" data-v="summary">Edit split</button><button class="btn" data-act="${CFG.preview ? 'previewHistory' : 'done'}">${CFG.preview ? 'View preview history' : 'Return home'}</button></div>`;
 };
 
@@ -1661,12 +1624,6 @@ const LIVE = {
     return `<button class="btn" data-act="go" data-v="assign" ${ok ? '' : 'disabled'}>Match items</button>`;
   },
   requestSheet: () => ui.sheet?.type === 'payment' ? requestCard(ui.sheet.request, 'sheet') : '',
-  phoneRoute: el => {
-    const p = S.draft.people.find(q => q.id === el.dataset.pid);
-    if (!p?.phone?.trim()) return p?.contactId ? 'Leave blank to include this person in the shared QR code.' : 'Enter a phone number or add this person from Contacts.';
-    const result = requestTarget('sms',p.phone);
-    return result.error ? `<span class="warn-line">${esc(result.error)}</span>` : 'Payment link by text';
-  },
   sendbar: () => {
     const {ready, blocked, globalBlock} = sendPlan();
     const label = ready.length === 1 ? 'request' : 'requests';
@@ -1682,9 +1639,7 @@ function firstName(p){
 }
 function autoMessage(p, c){
   const d = S.draft, amt = money(c.totals[p.id]), when = shortDate(today());
-  return methodFor(p,c.totals[p.id]) === 'sms'
-    ? `Hi ${firstName(p)}! Your share of ${d.merchant || 'dinner'} (${when}) is ${amt}.`
-    : `Hi ${firstName(p)}! ${d.merchant || 'Dinner'} on ${when}: your share is ${amt}.`;
+  return `Hi ${firstName(p)}! ${d.merchant || 'Dinner'} on ${when}: your share is ${amt}.`;
 }
 function payerAccountValid(method,value){
   if (!value || value.length > 100) return false;
@@ -1714,10 +1669,10 @@ function methodFor(p,amount){
   const preferred = current?.method || p.method;
   const candidates = PROFILE_METHODS.includes(preferred) ? [preferred] : PROFILE_METHODS;
   return candidates.find(method =>
-    (method !== 'cashapp' || !p.contactId || amount == null || amount >= 100) && sharedMethod(method,p)) || 'sms';
+    (method !== 'cashapp' || !p.contactId || amount == null || amount >= 100) && sharedMethod(method,p)) || 'manual';
 }
-function needsManual(p,amount){ return !!p.contactId && methodFor(p,amount) === 'sms'; }
-function acceptsNote(method){ return !['sms','cash'].includes(method); }
+function needsManual(p,amount){ return !!p.contactId && methodFor(p,amount) === 'manual'; }
+function acceptsNote(method){ return !['manual','sms','cash'].includes(method); }
 function draftNote(p,c){ return S.draft.msgs?.[p.id] ?? autoMessage(p,c).slice(0,160); }
 function requestItems(p,c){
   const items = c.lines[p.id].map(line => ({name:(line.name || 'Receipt item').trim().slice(0,120) || 'Receipt item',amountCents:line.share}));
@@ -1733,21 +1688,18 @@ function sendPlan(){
 }
 function requestIssue(p, c){
   const method = methodFor(p,c.totals[p.id]);
-  const manual = !!p.contactId && method === 'sms';
-  if (manual && !p.phone?.trim()) return {};
+  if (method === 'manual') return p.contactId ? {} : {error:'Add this person from Contacts.'};
   const handle = recipientHandle(method,p);
   const target = requestTarget(method, handle);
-  if (!p.contactId && p.method !== 'sms' && p.method !== 'cash' && method === 'sms' && !handle)
-    return {error:'Add this person from Contacts or enter their phone number.'};
-  return target.error || !c.totals[p.id] || manual ? target : paymentRequest({method,handle,amount:c.totals[p.id]});
+  return target.error || !c.totals[p.id] ? target : paymentRequest({method,handle,amount:c.totals[p.id]});
 }
 function preparedRequests(){
   const {c, ready, globalBlock} = sendPlan();
   if (globalBlock) return [];
   return ready.map(p => {
     const method = methodFor(p,c.totals[p.id]);
-    const routing = method === 'sms' && p.contactId
-      ? {method:'manual',contactId:p.contactId,phone:requestTarget('sms',p.phone).value || '',items:requestItems(p,c)}
+    const routing = method === 'manual'
+      ? {method,contactId:p.contactId,items:requestItems(p,c)}
       : {method,handle:requestTarget(method,recipientHandle(method,p)).value};
     const note = acceptsNote(method) ? {note:draftNote(p,c).trim().slice(0,160) || autoMessage(p,c).slice(0,160)} : {};
     return {pid:p.id,name:p.name,...routing,amount:c.totals[p.id],...note,handoffVersion:1};
@@ -2617,7 +2569,6 @@ const A = {
     for (const id of Object.keys(d.assign)) d.assign[id] = d.assign[id].filter(pid => pid !== ds.id);
     delete d.msgs?.[ds.id];
     delete d.manualLinks?.[ds.id];
-    delete d.textStates?.[ds.id];
     delete d.confirmedRequests?.[ds.id];
     if (ui.matchPersonId === ds.id) ui.matchPersonId = null;
     refreshMatch({strip:true,picker:ui.contactPicker});
@@ -2700,13 +2651,13 @@ const A = {
   remind: () => {
     const sp = S.history.find(x => x.id === ui.sheet.sid), r = currentRequest();
     const contact = S.contacts.find(c => c.id === String(r.contactId));
-    const method = contact ? methodFor({...contact,contactId:contact.id},r.amount) : 'sms';
+    const route = contact ? methodFor({...contact,contactId:contact.id},r.amount) : 'manual';
+    const method = route === 'manual' ? 'sms' : route;
     ui.sheet = {type:'payment', request:{contactId:r.contactId, name:r.name, method, handle:contact ? recipientHandle(method,contact) : '', amount:r.amount,
       note:`Hi ${r.name.split(/\s+/)[0]}! Your share of ${sp.merchant} is ${money(r.amount)}.`}};
     render();
   },
   copyrequest: ds => copyRequest(ds),
-  retryText: ds => retryText(ds.id),
   confirmLinked: ds => {
     const r = S.draft.results?.[Number(ds.index)];
     if (CFG.preview || S.view !== 'sent' || !r || ['manual','cash'].includes(r.method) ||
@@ -2969,7 +2920,6 @@ document.addEventListener('input', e => {
   }
   const d = S.draft, val = el.value;
   const item = () => d.items.find(it => it.id === el.dataset.id);
-  const person = () => d.people.find(p => p.id === el.dataset.id);
   switch (k){
     case 'merchant': d.merchant = val; break;
     case 'iname': item().name = val; break;
@@ -2983,7 +2933,6 @@ document.addEventListener('input', e => {
       return;
     case 'hq': case 'cq': ui[k] = val; break;
     case 'pmsg': (d.msgs ||= {})[el.dataset.id] = val; break;
-    case 'requestPhone': person().phone = val; break;
     case 'receiveCheckout': (d.checkouts ||= {})[el.dataset.id] = {amount:calc(d).totals[el.dataset.id],url:val}; break;
   }
   refresh(); save();
