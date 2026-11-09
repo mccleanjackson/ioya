@@ -90,10 +90,13 @@ button{cursor:pointer;background:none;border:0;padding:0}
 }
 
 /* tab bar */
-.tabbar{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--card);padding:6px 6px calc(8px + env(safe-area-inset-bottom,0px))}
+.tabbar{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--card);padding:6px 6px calc(8px + env(safe-area-inset-bottom,0px));position:relative}
+.tabbar::before{content:"";position:absolute;z-index:1;pointer-events:none;top:0;left:var(--tab-indicator-left,6px);width:var(--tab-indicator-width,36px);height:3px;border-radius:0 0 3px 3px;background:var(--accent);transition:left .4s cubic-bezier(.2,1.35,.3,1)}
+.tabbar:not(.tab-ready)::before{transition:none}
+.tabbar.tab-squash::before{animation:tab-squash .4s cubic-bezier(.2,.8,.2,1)}
+@keyframes tab-squash{0%,100%{transform:scaleX(1)}34%{transform:scaleX(1.38)}66%{transform:scaleX(.86)}}
 .tabbar button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--muted);padding:6px 0;position:relative}
 .tabbar button.on{color:var(--ink)}
-.tabbar button.on::before{content:"";position:absolute;top:-7px;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
 .tabbar .scan-tab .ic{background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:4px;width:30px;height:30px}
 
 .ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -1675,6 +1678,8 @@ function sheetHTML(){
 /* ---------- render ---------- */
 const scr = document.getElementById('screen');
 let lastView = null;
+let lastActiveTabIndex = null;
+let tabSquashTimer = null;
 function render(){
   const v = S.view;
   scr.classList.toggle('camera-screen', v === 'scan' && ui.cameraOpen);
@@ -1686,8 +1691,24 @@ function render(){
   scr.scrollTop = keepScroll; lastView = v;
   refresh();
   const flow = FLOW.includes(v);
-  document.getElementById('tabbar').innerHTML = [['home','Home','home'],['history','History','history'],['split','Start split','scan'],['contacts','Contacts','contacts']]
+  const tabbar = document.getElementById('tabbar');
+  tabbar.innerHTML = [['home','Home','home'],['history','History','history'],['split','Start split','scan'],['contacts','Contacts','contacts']]
     .map(([k, label, ic]) => { const on = k === 'split' ? flow : k === v; return `<button class="${k === 'split' ? 'scan-tab ' : ''}${on ? 'on' : ''}" data-act="${k === 'split' ? 'start' : 'go'}" data-v="${k}" ${on ? 'aria-current="page"' : ''}>${I(ic)}${label}</button>`; }).join('');
+  const activeTab = tabbar.querySelector('button.on');
+  const activeTabIndex = [...tabbar.children].indexOf(activeTab);
+  if (activeTab){
+    tabbar.style.setProperty('--tab-indicator-left', `${activeTab.offsetLeft + activeTab.offsetWidth * .3}px`);
+    tabbar.style.setProperty('--tab-indicator-width', `${activeTab.offsetWidth * .4}px`);
+  }
+  tabbar.classList.add('tab-ready');
+  if (lastActiveTabIndex !== null && activeTabIndex !== lastActiveTabIndex){
+    tabbar.classList.remove('tab-squash');
+    void tabbar.offsetWidth;
+    tabbar.classList.add('tab-squash');
+    clearTimeout(tabSquashTimer);
+    tabSquashTimer = setTimeout(() => tabbar.classList.remove('tab-squash'), 440);
+  }
+  lastActiveTabIndex = activeTabIndex;
   document.getElementById('overlay').innerHTML = sheetHTML() + (ui.toast ? `<div class="toast" role="status">${esc(ui.toast)}</div>` : '');
   document.getElementById('jump').innerHTML = [['home','Home','—'],['history','History','—'],['scan','Scan receipt','R1 R4'],['review','Check items','R2 R3 R11'],['people','People','R5'],['assign','Assign items','R6–R8'],['summary','Review & send','R12–R17'],['sent','Payment requests','R18'],['contacts','Contacts','—']]
     .map(([k, label, r]) => `<button class="${k === v ? 'on' : ''}" data-act="jump" data-v="${k}"><span>${label}</span><small>${r}</small></button>`).join('');
