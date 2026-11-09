@@ -159,7 +159,7 @@ test('contacts and overlapping groups add each person once and remove their assi
   assert.match(api.V.assign(),/0 of 1 matched/);
 });
 
-test('review uses saved accounts, prefills phone and sends blank phones to one shared QR',async()=>{
+test('review uses saved accounts and one QR for manual recipients with or without a phone',async()=>{
   const calls=[];
   const api=app({preview:true,fetch:async (url,request)=>{
     if (!request.body) return {ok:true,json:async()=>({})};
@@ -175,18 +175,18 @@ test('review uses saved accounts, prefills phone and sends blank phones to one s
   d.msgs.sms='Old text note';
   const review=api.V.summary();
   assert.match(review,/alex-test/);
-  assert.match(review,/value="8015550100"/);
-  assert.match(review,/value="" placeholder="\(555\)/);
+  assert.equal((review.match(/aria-label="Request for /g)||[]).length,1);
+  assert.doesNotMatch(review,/Shared QR code|Phone number|8015550100/);
   assert.match(review,/Thanks for lunch/);
   assert.doesNotMatch(review,/Old text note/);
   assert.equal((review.match(/data-in="pmsg"/g)||[]).length,1);
   assert.doesNotMatch(review,/<select/);
   await api.A.send();
-  assert.equal(d.results[1].phone,'+18015550100');
-  assert.equal(d.results[2].phone,'');
+  assert.equal(d.results[1].method,'manual');
+  assert.equal(d.results[1].phone,undefined);
   assert.deepEqual(calls[0].body.items,[{name:'Meal',amountCents:200}]);
   assert.equal(calls[0].body.note,undefined);
-  assert.deepEqual(calls.at(-1).body.recipients,[{id:'2',name:'Jordan'},{id:'3',name:'Morgan'}]);
+  assert.deepEqual(calls.at(-1).body.recipients,[{id:'1',name:'Sam'},{id:'2',name:'Jordan'},{id:'3',name:'Morgan'}]);
   const page=api.V.sent();
   assert.equal((page.match(/alt="Shared QR code/g)||[]).length,1);
   assert.match(page,/No requests were sent/);
@@ -216,11 +216,12 @@ test('matching keeps the selected contact and lists unmatched items before conti
   assert.equal(api.S.view,'summary');
 });
 
-test('production submits phone requests server-side and shows only confirmed app requests as requested',async()=>{
+test('production opens the QR even for a single manual recipient with a phone and preserves app confirmation',async()=>{
   const calls=[];
   const api=app({production:true,fetch:async (url,request)=>{
     calls.push({url,body:JSON.parse(request.body)});
-    return {ok:true,json:async()=>url.endsWith('/sms')?{status:'submitted'}:{id:'sms-link',url:'https://ioya.example.com/pay#sms-link'}};
+    const id=url.endsWith('/group')?'group-id':'manual-link';
+    return {ok:true,json:async()=>({id,url:'https://ioya.example.com/pay#'+id})};
   }}), d=split(api);
   api.S.me.first='Taylor';
   api.S.userId=1;
@@ -228,9 +229,9 @@ test('production submits phone requests server-side and shows only confirmed app
   d.people.push({id:'sms',name:'Sam',method:'sms',contactId:'12',phone:'8015550100'});
   d.assign.a.push('sms');
   await api.A.send();
-  assert.deepEqual(calls.map(call=>call.url),['/api/manual-requests','/api/manual-requests/sms-link/sms']);
-  assert.deepEqual(calls[1].body,{phone:'+18015550100'});
-  assert.match(api.V.sent(),/Text submitted/);
+  assert.deepEqual(calls.map(call=>call.url),['/api/manual-requests','/api/manual-requests/group']);
+  assert.deepEqual(calls[1].body,{recipients:[{id:'manual-link',name:'Sam'}]});
+  assert.match(api.V.sent(),/Open shared payment page/);
   assert.doesNotMatch(api.V.sent(),/Requested using Venmo|sms:/);
   api.A.confirmLinked({index:'0'});
   assert.match(api.V.sent(),/Requested using Venmo/);
@@ -258,7 +259,7 @@ test('the active tab preserves the current split step and active page state',()=
   assert.equal(api.ui.sheet,null);
 });
 
-test('Review and Send chooses only methods shared with the payer and falls back to phone or QR',()=>{
+test('Review and Send chooses only methods shared with the payer and falls back to QR',()=>{
   const api=app(),d=split(api);
   Object.assign(d.people[1],{contactId:'20',method:'paypal',paypal:'alex@example.test',phone:'8015550100'});
   api.S.contacts=[{id:'20',method:'paypal',paypal:'alex@example.test',venmo:'current-alex',phone:'8015550100'}];
@@ -266,19 +267,17 @@ test('Review and Send chooses only methods shared with the payer and falls back 
   assert.match(api.V.summary(),/alex@example.test/);
   api.S.paymentAccounts={venmo:'taylor-preview'};
   const preferredUnavailable=api.V.summary();
-  assert.match(preferredUnavailable,/value="8015550100"/);
-  assert.doesNotMatch(preferredUnavailable,/current-alex|alex@example.test/);
+  assert.doesNotMatch(preferredUnavailable,/Request for Alex|current-alex|alex@example.test|8015550100/);
   api.S.contacts[0].method='sms';
   assert.match(api.V.summary(),/current-alex/);
   api.S.paymentAccounts={applecash:'8015550104'};
   const fallback=api.V.summary();
-  assert.match(fallback,/value="8015550100"/);
-  assert.doesNotMatch(fallback,/current-alex|data-in="pmsg"/);
+  assert.doesNotMatch(fallback,/Request for Alex|current-alex|data-in="pmsg"/);
   d.people[1].phone='';
-  assert.match(api.V.summary(),/value="" placeholder="\(555\)/);
+  assert.equal(api.preparedRequests()[0].method,'manual');
 });
 
-test('saved Apple Cash addresses reach Messages without replacing the SMS fallback phone',()=>{
+test('saved Apple Cash addresses reach Messages, and QR requests omit phone details',()=>{
   const api=app(),d=split(api);
   const c=api.normContact({contact_id:12,cont_first_name:'Alex',cont_last_name:'',phone:'8015550100',
     contacts_payment_method:[{pay_method_id:6,pay_method_username:'+18015550199',is_preferred:true,payment_methods:{pay_method_name:'Apple Cash'}}]});
@@ -291,7 +290,7 @@ test('saved Apple Cash addresses reach Messages without replacing the SMS fallba
   api.S.paymentAccounts={};
   const [manual]=api.preparedRequests();
   assert.equal(manual.method,'manual');
-  assert.equal(manual.phone,'+18015550100');
+  assert.equal(manual.phone,undefined);
 });
 
 test('Cash App shares below one dollar fall back to the manual payment link',()=>{
@@ -301,17 +300,15 @@ test('Cash App shares below one dollar fall back to the manual payment link',()=
   Object.assign(d.people[1],{contactId:'12',method:'cashapp',cashapp:'$AlexTest'});
   const [request]=api.preparedRequests();
   assert.equal(request.method,'manual');
-  assert.equal(request.phone,'');
   assert.equal(request.amount,75);
 });
 
-test('one production send prepares the preferred app, submits only eligible SMS, and opens a shared QR',async()=>{
+test('one production send prepares the preferred app and groups all manual shares without texting',async()=>{
   const calls=[];
   const api=app({production:true,fetch:async (url,request)=>{
     const body=JSON.parse(request.body);
     calls.push({url,body});
     const linkId=body.contactId?'link-'+body.contactId:'group-id';
-    if (url.endsWith('/sms')) return {ok:false,status:503,json:async()=>({error:'Automatic texts are unavailable.'})};
     return {ok:true,json:async()=>({id:linkId,url:'https://ioya.example.com/pay#'+linkId})};
   }}),d=split(api);
   api.S.me.first='Taylor';api.S.userId=1;
@@ -321,13 +318,12 @@ test('one production send prepares the preferred app, submits only eligible SMS,
   d.assign.a.push('sms','qr');
   await api.A.send();
   assert.equal(api.S.view,'sent');
-  assert.deepEqual(calls.map(x=>x.url),['/api/manual-requests','/api/manual-requests','/api/manual-requests/group','/api/manual-requests/link-12/sms']);
-  assert.deepEqual(calls[2].body.recipients,[{id:'link-13',name:'Jordan'}]);
-  assert.deepEqual(calls[3].body,{phone:'+18015550100'});
+  assert.deepEqual(calls.map(x=>x.url),['/api/manual-requests','/api/manual-requests','/api/manual-requests/group']);
+  assert.deepEqual(calls[2].body.recipients,[{id:'link-12',name:'Sam'},{id:'link-13',name:'Jordan'}]);
+  assert.equal(calls[0].body.phone,undefined);
   const page=api.V.sent();
   assert.match(page,/Open Venmo request/);
   assert.match(page,/Shared QR code/);
-  assert.match(page,/Text not submitted/);
-  assert.match(page,/Open payment link/);
-  assert.doesNotMatch(page,/Requested using Venmo|Text submitted/);
+  assert.match(page,/Open shared payment page/);
+  assert.doesNotMatch(page,/Requested using Venmo|Text (not )?submitted|Retry text/);
 });
