@@ -94,7 +94,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 }
 
 /* tab bar */
-.tabbar{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--card);padding:6px 6px calc(8px + env(safe-area-inset-bottom,0px));position:relative}
+.tabbar{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--card);padding:6px 6px calc(8px + env(safe-area-inset-bottom,0px));position:relative}
 .tabbar::before{content:"";position:absolute;z-index:1;pointer-events:none;top:0;left:var(--tab-indicator-left,6px);width:var(--tab-indicator-width,36px);height:3px;border-radius:0 0 3px 3px;background:var(--accent);transition:left .4s cubic-bezier(.2,1.35,.3,1)}
 .tabbar:not(.tab-ready)::before{transition:none}
 .tabbar.tab-squash::before{animation:tab-squash .4s cubic-bezier(.2,.8,.2,1)}
@@ -131,8 +131,6 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .logo .l1{font-size:48px;color:var(--accent);text-shadow:3px 3px 0 var(--ink);letter-spacing:.02em}
 .logo .l2{font-size:22px;letter-spacing:.32em;margin-top:6px}
 .logo img{display:block;width:170px;height:80px;object-fit:cover;object-position:center; transform: translate(-20px, -10px)}
-.avatar{width:42px;height:42px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ink);display:grid;place-items:center}
-.home-top .avatar{transform:translateY(-10px)}
 .tag{font-family:var(--f-display);font-weight:700;font-size:21px;margin:-27px 0 0;line-height:1.2}
 .tag em{font-style:normal;text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:4px}
 mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
@@ -173,7 +171,7 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 
 /* flow header */
 .flow-h{display:flex;align-items:center;gap:10px;margin:-6px -6px 0}
-.steps{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.steps{flex:1;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px}
 .steps i{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
 .steps i span{display:block;width:0;height:100%;border-radius:inherit;background:var(--accent);transition:width .52s cubic-bezier(.22,.72,.18,1)}
 @keyframes flow-fill-start{0%,100%{transform:scaleX(1)}38%{transform:scaleX(1.14)}70%{transform:scaleX(.96)}}
@@ -182,29 +180,24 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .step-l{font:500 12px var(--f-mono);color:var(--muted);min-width:28px;text-align:right}
 
 /* receipt capture */
-.capture-guide{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:18px}
-.capture-icon{width:56px;height:56px;border-radius:16px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
-.capture-icon .ic{width:30px;height:30px}
-.capture-guide h2{font-family:var(--f-display);font-size:21px;line-height:1.15;margin:0}
-.capture-guide ol{padding-left:20px;margin:0;color:var(--muted);display:flex;flex-direction:column;gap:10px}
-.capture-actions{display:flex;flex-direction:column;gap:10px}
-.capture-actions .link{align-self:center;padding:8px}
-.screen.camera-screen{min-height:0;padding:12px 14px;gap:10px;overflow-y:auto}
-.camera-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.camera-heading .h{font-size:21px}
-.camera-heading button{min-height:44px;padding:0 8px}
-.camera-stage{flex:1 1 0;min-height:120px;display:grid;place-items:center;overflow:hidden;container-type:size}
-.camera-preview{height:100%;height:min(100cqh,133.333cqw);aspect-ratio:3/4;max-width:100%;border-radius:18px;background:var(--finder);overflow:hidden;position:relative}
+.screen.camera-screen{min-height:0;padding:10px 12px 12px;gap:8px;overflow-y:auto}
+.camera-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.camera-heading .h{margin:0;font-size:21px}
+.camera-heading .link{min-height:44px;font-size:12px}
+.camera-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:10px;background:var(--bad-soft);font-size:13px}
+.camera-banner button{flex:none;min-height:44px}
+.camera-stage{flex:1 1 0;min-height:160px;display:flex;overflow:hidden}
+.camera-preview{width:100%;border-radius:16px;background:var(--finder);overflow:hidden;position:relative;display:grid;place-items:center}
 .camera-preview video{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center}
-.camera-status{position:absolute;bottom:10px;left:10px;right:10px;padding:8px 10px;border-radius:10px;background:var(--card);color:var(--ink);font-size:13px}
-.camera-controls{margin-top:auto;display:flex;flex-direction:column;gap:4px}
-.camera-tools{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;text-align:center}
-.camera-tools button{min-height:44px;padding:4px 8px;font-size:12px;border-radius:12px}
-.camera-tools .shutter{width:64px;height:64px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;box-shadow:inset 0 0 0 4px var(--paper),0 0 0 2px var(--accent)}
-.camera-tools .shutter:disabled{opacity:.4;cursor:not-allowed}
-.camera-tools .fine{font-size:11px}
-.camera-alternatives{display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
-.camera-alternatives button{font-size:12px;min-height:44px}
+.camera-guide{width:68%;height:66%;max-width:360px;border:1px solid rgba(255,255,255,.45);border-radius:12px;pointer-events:none}
+.camera-status{position:absolute;bottom:10px;left:10px;right:10px;margin:0;padding:8px 10px;border-radius:10px;background:var(--card);color:var(--ink);font-size:13px;text-align:center}
+.camera-flash{position:absolute;top:10px;right:10px;min-height:44px;padding:0 10px;border-radius:22px;background:var(--card);color:var(--ink);font-size:12px;font-weight:700}
+.camera-native{left:10px;right:auto}
+.camera-tools{margin-top:auto;display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;justify-items:center}
+.camera-tools .camera-action{width:48px;height:48px;border-radius:50%;background:var(--card);display:grid;place-items:center}
+.camera-tools .camera-action .ic{width:22px;height:22px}
+.camera-tools .shutter{width:66px;height:66px;border-radius:50%;background:#fff;border:3px solid var(--ink);box-shadow:0 0 0 2px var(--paper),inset 0 0 0 2px var(--ink)}
+.camera-tools .shutter:disabled{opacity:.45;cursor:not-allowed}
 .original-name{grid-column:1/-1;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
 .original-name p{margin:6px 0}
 .original-name button{min-height:32px}
@@ -266,52 +259,12 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .grand{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px;border-radius:12px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);font-weight:700}
 .grand .mono{font-size:20px}
 
-/* people */
-.count-box{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
-.count-box .q{font-family:var(--f-display);font-weight:700;font-size:22px;line-height:1.15;margin:0;text-wrap:balance}
-.stepper{display:flex;align-items:center;gap:12px}
-.stepper .num{width:96px;height:96px;display:grid;place-items:center;font-size:52px;font-weight:600;border:3px solid var(--ink);border-radius:18px;background:var(--card)}
-.arrows{display:flex;flex-direction:column;gap:8px}
-.arrows button{width:42px;height:42px;border-radius:10px;box-shadow:inset 0 0 0 2px var(--ink);display:grid;place-items:center;background:var(--card)}
-.arrows button:disabled{opacity:.35}
+/* shared search */
 .search{display:flex;align-items:center;gap:8px;background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:0 14px}
 .search:focus-within{border-color:var(--pen)}
 .search .ic{color:var(--muted);width:18px;height:18px}
 .search input{border:0;background:transparent;padding:10px 0}
-.results{display:flex;flex-wrap:wrap;gap:6px}
-.pick{display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 6px;border-radius:999px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);font-weight:600;font-size:14px}
-.pick:hover{box-shadow:inset 0 0 0 1.5px var(--ink)}
-.pick small{color:var(--muted);font-weight:500;font-size:12px}
-.pick.pgrp{box-shadow:inset 0 0 0 1.5px var(--pen)}
 .ini{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--hi);color:var(--on-hi);flex:none}
-.pick.pgrp .ini{background:var(--pen);color:var(--card)}
-.slots{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.slot{display:grid;grid-template-columns:28px 1fr 32px;gap:8px;align-items:start;background:var(--card);border-radius:14px;box-shadow:inset 0 0 0 1.5px var(--line);padding:10px 8px 10px 10px}
-.slot .sn{padding-top:9px;color:var(--muted);font-size:13px}
-.slot-b{display:flex;flex-direction:column;gap:6px;min-width:0}
-.slot-m{display:grid;grid-template-columns:100px 1fr;gap:6px}
-.slot-m select,.slot-m input{padding:7px 9px;font-size:14px}
-.slot.me .slot-b{padding:8px 0;font-weight:700}
-.slot.me small{color:var(--muted);font-weight:500}
-
-/* assign */
-.ptabs{display:flex;gap:6px;overflow-x:auto;margin:0 -18px;padding:2px 18px 4px;scrollbar-width:none}
-.ptab{display:flex;align-items:center;gap:6px;padding:6px 10px 6px 6px;border-radius:999px;box-shadow:inset 0 0 0 1.5px var(--line);white-space:nowrap;font-weight:600;font-size:13px;background:var(--card)}
-.ptab.on{box-shadow:inset 0 0 0 2px var(--ink)}
-.ptab .mono{font-size:12px;color:var(--muted)}
-.alist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.alist li{display:grid;grid-template-columns:1fr auto;gap:6px}
-.aitem{display:grid;grid-template-columns:26px 1fr auto;grid-template-rows:auto auto;gap:2px 10px;align-items:center;text-align:left;padding:10px 12px;border-radius:12px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line)}
-.aitem.on{box-shadow:inset 0 0 0 2px var(--accent);background:var(--accent-soft)}
-.aitem .box{grid-row:1/3;width:24px;height:24px;border-radius:7px;box-shadow:inset 0 0 0 2px var(--muted);display:grid;place-items:center}
-.aitem.on .box{background:var(--accent);box-shadow:none;color:var(--accent-ink)}
-.aitem .box .ic{width:16px;height:16px;stroke-width:3}
-.aitem .an{font-weight:600;min-width:0}
-.aitem .who{grid-column:2/4;display:flex;gap:3px;align-items:center;font-size:12px;color:var(--muted);min-height:16px}
-.aitem .who .ini{width:18px;height:18px;font-size:9px}
-.every{padding:0 12px;border-radius:12px;font-size:12px;font-weight:700;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--muted);background:var(--card)}
-.every.on{color:var(--pen);box-shadow:inset 0 0 0 1.5px var(--pen)}
-
 /* summary */
 .pcard{background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line);padding:14px;display:flex;flex-direction:column;gap:10px}
 .pcard header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
@@ -328,8 +281,6 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .request-copy{display:flex;flex-wrap:wrap;gap:6px}
 .request-handoff textarea{width:100%;box-sizing:border-box;margin:10px 0;overflow-wrap:anywhere}
 .request-handoff summary{cursor:pointer;font-size:14px;color:var(--muted)}
-.req-edit{display:grid;grid-template-columns:100px 1fr;gap:6px}
-.req-edit select,.req-edit input{padding:7px 9px;font-size:14px}
 .warn-line{font-size:13px;color:var(--bad);font-weight:600;display:flex;gap:6px;align-items:center}
 .warn-line.ok{color:var(--good)}
 .warn-line .ic{width:16px;height:16px}
@@ -538,12 +489,54 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .pbox .acct div{display:flex;flex-direction:column;gap:2px;min-width:0}
 .pbox .acct b{overflow-wrap:anywhere}
 .center{align-self:center;padding:6px}
-.avatar.has-ini{font-family:var(--f-display);font-weight:800;font-size:15px;background:var(--card)}
 .kv span:first-child{color:var(--muted)}
 
 .toast{position:absolute;left:18px;right:18px;bottom:84px;z-index:9;background:var(--ink);color:var(--paper);padding:12px 14px;border-radius:12px;font-weight:600;font-size:14px;animation:up .2s ease-out}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.screen.match-screen{display:grid;grid-template-rows:auto minmax(0,1fr);gap:0;padding:0;overflow:hidden;min-height:0}
+.match-head{grid-row:1;padding:14px 18px 8px;background:var(--paper);display:grid;gap:10px;min-width:0}
+.match-head .h{margin:0}
+.match-strip{display:flex;align-items:flex-start;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;padding:4px;scrollbar-width:thin}
+.match-person{position:relative;flex:0 0 66px;min-width:0}
+.match-person button[data-act="matchPerson"]{display:grid;justify-items:center;gap:5px;width:100%;padding:3px;font-size:.75rem;line-height:1.2;overflow-wrap:anywhere}
+.match-face{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;background:var(--card);border:1px solid var(--line);font-weight:700}
+.match-person button[aria-pressed=true] .match-face{border-color:var(--pen);box-shadow:0 0 0 2px var(--pen)}
+.match-person button[aria-pressed=true]{font-weight:700}
+.match-remove{position:absolute;right:-1px;top:0;width:22px;height:22px;background:var(--paper);border:1px solid var(--line);border-radius:50%;display:grid;place-items:center}
+.match-remove .ic{width:12px;height:12px}
+.match-add{display:grid;place-items:center;align-self:flex-start;border:1.5px dashed var(--line);border-radius:50%;width:44px;height:44px;flex:none;margin:3px 2px}
+.match-add.wide{flex:1;width:auto;border-radius:12px}
+.match-items,.match-picker{grid-row:2;grid-column:1;min-height:0}
+.match-items{overflow-y:auto;padding:6px 18px 22px;display:flex;flex-direction:column;gap:12px}
+.match-picker{z-index:2;display:flex;flex-direction:column;gap:10px;min-width:0;padding:12px 18px 0;background:var(--paper);border:1px solid var(--line);border-radius:22px 22px 0 0;box-shadow:0 -6px 18px rgba(0,0,0,.12);animation:up .25s ease-out}
+.match-picker[hidden],.match-screen.picker-open + .tabbar{display:none}
+.match-picker-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.match-picker-head h2{margin:0;font:700 20px/1.2 var(--f-display)}
+.match-picker-list{overflow-y:auto;overscroll-behavior:contain;padding:2px 4px 16px;min-height:0}
+.match-picker-list ul,.match-receipt{list-style:none;padding:0;margin:0;display:grid;gap:7px}
+.match-picker-list h3{margin:12px 0 7px}
+.match-pick-row,.match-item{display:flex;align-items:center;gap:9px;width:100%;padding:9px;border:1px solid var(--line);border-radius:12px;text-align:left}
+.match-pick-row{min-height:44px}
+.match-pick-row small,.match-item small{display:block;color:var(--muted);font-size:.75rem}
+.match-pick-row .pick-name,.match-item .item-name{flex:1;min-width:0;overflow-wrap:anywhere}
+.match-item[aria-pressed=true]{border-color:var(--pen);background:var(--card)}
+.match-item .ic{width:17px;height:17px;flex:none}
+.match-item:disabled{opacity:.7}
+.match-items .next{flex:none}
+@media (prefers-reduced-motion:reduce){.match-picker{animation:none}}
+.review-request{display:grid;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+.review-request .eyebrow,.review-request p{margin:0}
+.request-note{width:100%;box-sizing:border-box;resize:none;overflow-y:hidden}
+.request-account{display:flex;justify-content:space-between;gap:8px;overflow-wrap:anywhere}
+.receiving-setup[open] summary{margin-bottom:10px}
+.profile-payments .lines li span:last-child{text-align:right;overflow-wrap:anywhere;min-width:0}
+.shared-qr{display:grid;justify-items:center;gap:12px;text-align:center}
+.shared-qr .qr{width:min(100%,290px);height:auto;aspect-ratio:1}
+.shared-qr .fine{margin:0}
+.request-status{font:700 18px/1.2 var(--f-display);margin:0}
+.request-finish{display:grid;gap:8px}
 </style>
 </head>
 <body>
@@ -579,7 +572,11 @@ const ini = n => (n || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join(
 const fmtDate = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
 const shortDate = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
-const METHODS = {venmo:{label:'Venmo', field:'venmo', ph:'@username', need:'a Venmo username'}, paypal:{label:'PayPal', field:'paypal', ph:'PayPal email', need:'a PayPal email'}, zelle:{label:'Zelle', field:'zelle', ph:'Phone or email', need:'a Zelle phone or email'}, cashapp:{label:'Cash App', field:'cashapp', ph:'$cashtag, phone or email', need:'a Cash App $cashtag, phone or email'}, applecash:{label:'Apple Cash', field:'phone', ph:'iMessage mobile number', need:'their iMessage mobile number'}, cash:{label:'Cash', field:'cash', ph:'No contact needed', need:'no contact details'}, sms:{label:'Text', field:'phone', ph:'Mobile number', need:'a mobile number'}};
+const METHODS = {venmo:{label:'Venmo', field:'venmo', ph:'@username', need:'a Venmo username'}, paypal:{label:'PayPal', field:'paypal', ph:'PayPal email', need:'a PayPal email'}, zelle:{label:'Zelle', field:'zelle', ph:'Phone or email', need:'a Zelle phone or email'}, cashapp:{label:'Cash App', field:'cashapp', ph:'$cashtag, phone or email', need:'a Cash App $cashtag, phone or email'}, applecash:{label:'Apple Cash', field:'applecash', ph:'iMessage mobile number', need:'their iMessage mobile number'}, cash:{label:'Cash', field:'cash', ph:'No contact needed', need:'no contact details'}, sms:{label:'Text', field:'phone', ph:'Mobile number', need:'a mobile number'}};
+
+const PROFILE_METHODS = ['venmo','paypal','zelle','cashapp','applecash'];
+const PROFILE_HINTS = {venmo:'@username',paypal:'PayPal email or PayPal.Me username',zelle:'Enrolled phone or email',cashapp:'$cashtag, phone or email',applecash:'Apple Cash mobile number'};
+const PREVIEW_ACCOUNT_KEY = 'ioya-preview-profile-v1';
 
 const ICONS = {
   home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
@@ -603,9 +600,8 @@ const I = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n
 
 /* ---------- data ---------- */
 function newDraft(){
-  const blank = () => ({id:uid('p'), name:'', method:'venmo', venmo:'', phone:'', paypal:'', contactId:null});
   return {at:'scan', merchant:'', items:[], tax:0, fees:0, printed:0, tipMode:null, tipPct:null, tipInput:'',
-    people:[{id:'me', name:'You', me:true}, blank(), blank(), blank()], assign:{}, msgs:{}, cur:0, results:null, code:null};
+    people:[{id:'me', name:'You', me:true}], assign:{}, msgs:{}, results:null};
 }
 function normalizeTipDraft(d){
   // Older drafts cannot distinguish an automatic 18% from a deliberate choice.
@@ -613,19 +609,21 @@ function normalizeTipDraft(d){
   if (!Object.prototype.hasOwnProperty.call(d, 'tipMode')) Object.assign(d, {tipMode:null, tipPct:null, tipInput:''});
   // Discard old prototype delivery claims; they never represented real requests.
   if (d.results?.some(r => r.handoffVersion !== 1)) { d.results = null; if (d.at === 'sent') d.at = 'summary'; }
+  if (d.people) d.people = d.people.filter(p => p.me || p.name.trim());
+  if (d.at === 'people') d.at = 'assign';
   return d;
 }
 
 /* ---------- data (Supabase) ----------
    Contacts, groups and history are read from Supabase. Only the in-progress draft
    and the current screen are kept in this browser's localStorage. */
-const KEY = 'ioya-draft-v1';
-let S = {view:'home', userId:null, me:{first:'', last:'', phone:''}, account:{email:null, guest:true, since:null}, contacts:[], groups:[], history:[], payMethods:[], selfContactId:null, draft:newDraft(), loading:true, loadError:null};
+const CFG = window.IOYA_CONFIG || {};
+const KEY = CFG.preview ? 'ioya-preview-draft-v1' : 'ioya-draft-v1';
+let S = {view:'scan', userId:null, me:{first:'', last:'', phone:''}, account:{email:null, guest:true, since:null}, paymentAccounts:{}, paymentAccountsError:'', contacts:[], groups:[], history:[], payMethods:[], selfContactId:null, draft:newDraft(), loading:true, loadError:null};
 // Older versions filled empty drafts with a sample receipt (fromSample); drop those instead of resuming them.
-try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.draft && !saved.draft.fromSample) Object.assign(S, {view:saved.view, draft:normalizeTipDraft(saved.draft)}); } catch(e) {}
+try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.draft && !saved.draft.fromSample) Object.assign(S, {view:saved.view === 'people' ? 'assign' : saved.view, draft:normalizeTipDraft(saved.draft)}); } catch(e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({view:S.view, draft:S.draft})); } catch(e) {} };
 
-const CFG = window.IOYA_CONFIG || {};
 const sb = window.supabase && CFG.supabaseUrl && CFG.supabaseAnonKey ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey) : null;
 const METHOD_KEY = {Venmo:'venmo', PayPal:'paypal', Zelle:'zelle', 'Cash App':'cashapp', 'Apple Cash':'applecash', Cash:'cash'};
 const fullName = (f, l) => [f, l].filter(Boolean).join(' ');
@@ -679,10 +677,25 @@ async function readAccount(){
 }
 
 async function loadAll(){
+  if (CFG.preview) {
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem(PREVIEW_ACCOUNT_KEY)); } catch(e) {}
+    Object.assign(S, {userId:1, me:saved?.me || {first:'Taylor',last:'Preview',phone:''},
+      paymentAccounts:saved?.paymentAccounts || {venmo:'ioya-preview-example',paypal:'IOYAPreviewExample',zelle:'preview@example.test'},
+      paymentAccountsError:'', loading:false, loadError:null,
+      payMethods:[{id:1,name:'Venmo'},{id:2,name:'PayPal'},{id:3,name:'Zelle'},{id:4,name:'Cash'},{id:5,name:'Cash App'},{id:6,name:'Apple Cash'}],
+      contacts:[
+        {id:'11',first:'Alex',last:'Rivera',name:'Alex Rivera',method:'venmo',venmo:'ioya-preview-example',paypal:'alex@example.test',phone:'',methods:[]},
+        {id:'12',first:'Sam',last:'Chen',name:'Sam Chen',method:'sms',phone:'8015550102',methods:[]},
+        {id:'13',first:'Jordan',last:'Lee',name:'Jordan Lee',method:'sms',phone:'',methods:[]}
+      ], groups:[{id:'1',name:'Lunch crew',members:['11','12','13']}]});
+    render();
+    return;
+  }
   try {
     if (!sb) throw new Error(window.IOYA_CONFIG ? 'The Supabase library did not load. Check your internet connection.' : 'Supabase settings are missing. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env and restart npm start.');
     if (S.userId == null) await signIn();
-    const [user, methods, contacts, groups, events] = await Promise.all([
+    const [user, methods, contacts, groups, events, profileAccounts] = await Promise.all([
       sb.from('users').select('user_id, user_first_name, user_last_name, phone').eq('user_id', S.userId).single().then(need),
       sb.from('payment_methods').select('pay_method_id, pay_method_name').order('pay_method_id').then(need),
       sb.from('contacts').select(CONTACT_SELECT)
@@ -691,9 +704,12 @@ async function loadAll(){
       sb.from('events').select(`event_id, event_name,
           participants(contact_id, paid_method_id),
           receipts(receipt_id, payer_user_id, merchant_name, receipt_date, tax_cents, fees_cents, tip_percent, tip_cents, total_cents,
-            line_items(item_id, description, price_cents, position, item_assignments(contact_id, share_cents)))`).order('event_id').then(need)
+            line_items(item_id, description, price_cents, position, item_assignments(contact_id, share_cents)))`).order('event_id').then(need),
+      readPaymentAccounts()
     ]);
     await readAccount();
+    S.paymentAccounts = profileAccounts.accounts;
+    S.paymentAccountsError = profileAccounts.error;
     S.me = {first:user.user_first_name, last:user.user_last_name, phone:user.phone || ''};
     S.payMethods = methods.map(m => ({id:m.pay_method_id, name:m.pay_method_name}));
     // The payer's own contact row has the same name and phone as their user row (shows as "You").
@@ -723,9 +739,16 @@ async function loadAll(){
   }
   render();
 }
+async function readPaymentAccounts(){
+  try { return {accounts:need(await sb.rpc('get_my_payment_accounts')) || {},error:''}; }
+  catch(e) {
+    return {accounts:{},error:/get_my_payment_accounts|schema cache/i.test(e.message)
+      ? 'Payment accounts need the profile payment accounts database update.' : 'Could not load payment accounts. Try reloading.'};
+  }
+}
 const CONTACT_SELECT = 'contact_id, cont_first_name, cont_last_name, phone, contacts_payment_method(pay_method_id, pay_method_username, is_preferred, payment_methods(pay_method_name))';
 function normContact(c){
-  const m = {venmo:'', paypal:'', zelle:'', cashapp:''}; let pref = null;
+  const m = {venmo:'', paypal:'', zelle:'', cashapp:'', applecash:''}; let pref = null;
   const list = c.contacts_payment_method.map(x => ({id:x.pay_method_id, name:x.payment_methods.pay_method_name, username:x.pay_method_username, preferred:x.is_preferred}))
     .sort((a, b) => a.id - b.id);
   list.forEach(x => { const k = METHOD_KEY[x.name]; if (k) m[METHODS[k].field] = x.username; if (x.preferred) pref = x; });
@@ -737,7 +760,7 @@ function groupFromRow(g){
   const ids = new Set(S.contacts.map(c => c.id));
   return {id:String(g.group_id), name:g.group_name, members:(g.group_members || []).map(m => String(m.contact_id)).filter(id => ids.has(id))};
 }
-const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', scanText:'', originalNames:{}, cameraOpen:false, cameraLoading:false, cameraError:'', cameraLightMode:null, cameraFlashEnabled:true, capturing:false, q:'', hq:'', hf:'all', cq:'', cf:'all', open:null, saving:false};
+const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', scanText:'', originalNames:{}, cameraOpen:false, cameraLoading:false, cameraError:'', cameraDenied:false, cameraLightMode:null, cameraFlashEnabled:true, capturing:false, contactPicker:false, contactQuery:'', matchPersonId:null, hq:'', hf:'all', cq:'', cf:'all', open:null, saving:false};
 let cameraSession = null;
 
 /* ---------- receipt text parser ----------
@@ -860,7 +883,6 @@ function calc(d){
   return {pre, lines, alloc, totals, unassigned, subtotal, tip, tipValid:tipInfo.valid, extra, computed, mismatch, grand, sumTotals,
     totalsOff: !unassigned.length && Math.abs(sumTotals - (computed + tip)) > 1};
 }
-const handleOf = p => p[METHODS[p.method]?.field] || '';
 
 /* ---------- payment app handoffs ----------
    These links only open a composer. Delivery and payment cannot be observed here.
@@ -881,6 +903,7 @@ function requestTarget(method, raw){
   if (method === 'cashapp' && /^\$[A-Za-z0-9]{1,20}$/.test(value) && /[A-Za-z]/.test(value)) return {value};
   const digits = value.replace(/[+().\s-]/g, '');
   const phone = /^\d{10}$/.test(digits) ? '+1' + digits : /^1\d{10}$/.test(digits) ? '+' + digits : '';
+  if (method === 'sms' && !/^\+1[2-9][0-9]{9}$/.test(phone)) return {error:'Enter a valid U.S. mobile number, including area code.'};
   return phone ? {value:phone} : {error:method === 'zelle' ? 'Enter their enrolled Zelle email or U.S. mobile number.' : method === 'cashapp' ? 'Enter their $cashtag, Cash App email or U.S. mobile number.' : 'Enter a U.S. mobile number, including area code.'};
 }
 function paymentRequest(r){
@@ -888,7 +911,7 @@ function paymentRequest(r){
   if (target.error) return target;
   if (!Number.isSafeInteger(r.amount) || r.amount <= 0) return {error:'The request amount must be a positive number of cents.'};
   if (r.method === 'cashapp' && r.amount < 100) return {error:'Cash App requests start at $1. Choose another method for this share.'};
-  const amount = cIn(r.amount), note = String(r.note || '').trim();
+  const amount = cIn(r.amount), note = acceptsNote(r.method) ? String(r.note || '').trim() : '';
   const body = `${r.name || 'Your'} share: ${money(r.amount)}.${note ? '\n' + note : ''}`;
   const detail = `Request from: ${r.name || 'Friend'}\n${METHODS[r.method].label}: ${target.value}\nAmount: ${money(r.amount)} USD${note ? '\nNote: ' + note : ''}`;
   if (r.method === 'venmo') {
@@ -910,17 +933,17 @@ function paymentRequest(r){
   return {target:target.value, detail, href:`sms:${target.value}${separator}body=${encodeURIComponent(body)}`, label:'Open text message',
     help:'Review the message and add how you want to be paid, then send it in Messages. This does not create a request inside a payment app.'};
 }
-function requestCard(r, index){
+function requestCard(r, index, {showLink = true} = {}){
   const info = paymentRequest(r);
   const tag = index === 'sheet' ? 'sheet' : String(index);
   if (info.error) return `<p class="warn-line" role="alert">${esc(info.error)}</p>`;
   return `<div class="request-handoff">
-    <p class="fine">${esc(info.help)}</p>
-    ${info.href ? `<a class="btn" href="${esc(info.href)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">${info.label}</a>` : ''}
+    <p class="fine">${esc(info.help)}</p>${CFG.preview ? '<p class="fine">Payment app links are disabled in this local preview.</p>' : ''}
+    ${showLink && info.href && !CFG.preview ? `<a class="btn" href="${esc(info.href)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">${info.label}</a>` : ''}
     <div class="request-copy">
       ${r.method !== 'cash' ? `<button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="contact">Copy contact</button>` : ''}
       <button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="amount">Copy amount</button>
-      <button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="note">Copy note</button>
+      ${acceptsNote(r.method) ? `<button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="note">Copy note</button>` : ''}
     </div>
     <details><summary>Request details / copy manually</summary><textarea id="request-detail-${tag}" rows="5" readonly aria-label="Request details for ${esc(r.name)}">${esc(info.detail)}</textarea>
       <button class="btn small ghost" data-act="copyrequest" data-index="${tag}" data-part="all">Copy all details</button></details>
@@ -943,18 +966,17 @@ async function copyRequest(ds){
 
 
 /* ---------- views ---------- */
-const STEPS = ['scan','review','people','assign','summary'];
-const STEP_NAMES = ['Scan','Review','People','Assign','Send'];
-const FLOW = ['scan','scanning','review','people','assign','summary','sent'];
+const STEPS = ['Review Scan','People/Items','Review & Send'];
+const FLOW = ['scan','scanning','review','assign','summary','sent'];
 
 function flowHead(i, back){
   const previous = lastFlowStep == null ? -1 : lastFlowStep;
   return `<div class="flow-h"><button class="iconbtn" data-act="go" data-v="${back}" aria-label="Back">${I('back')}</button>
-  <div class="steps" role="img" aria-label="Step ${i+1} of 5: ${STEP_NAMES[i]}">${STEPS.map((s, k) => {
+  <div class="steps" role="img" aria-label="Step ${i+1} of ${STEPS.length}: ${STEPS[i]}">${STEPS.map((s, k) => {
     const initial = flowStartWidths?.[k] ?? (previous >= k ? 100 : 0);
     return `<i><span style="width:${initial}%"></span></i>`;
   }).join('')}</div>
-  <span class="step-l">${i+1}/5</span></div>`;
+  <span class="step-l">${i+1}/${STEPS.length}</span></div>`;
 }
 
 function allRequests(){
@@ -1089,7 +1111,6 @@ V.home = () => {
   return `
   <header class="top home-top">
     <div class="logo"><img src="/ioya_logo.png" alt="IOYA"></div>
-    ${avatarBtn()}
   </header>
   <p class="tag">Make sure <em>you</em> get <mark>paid</mark>.</p>
   <button class="cta" data-act="start">${I('scan')}<span><b>Pay the tab</b><small>Scan a receipt and split it</small></span></button>
@@ -1164,10 +1185,10 @@ function historyList(){
   }).join('');
 }
 V.history = () => `
-  <header class="top"><h1 class="h">History</h1>${avatarBtn()}</header>
-  ${historyStatusSummary()}
+  <header class="top"><h1 class="h">History</h1></header>
+  ${CFG.preview && previewHistoryEntries().length ? previewHistory() : `${historyStatusSummary()}
   ${findBar('h', 'Search people, places or items', 'Search splits by person, restaurant or item', HFILTERS, 'Filter by payment status')}
-  <div class="hlist" data-live="hlist">${historyList()}</div>`;
+  <div class="hlist" data-live="hlist">${historyList()}</div>`}`;
 
 // Returns null if the contact doesn't match, otherwise the matched details that aren't already shown in its row.
 function contactMatch(c, q){
@@ -1203,7 +1224,7 @@ function contactList(){
   </div>`;
 }
 V.contacts = () => `
-  <header class="top"><h1 class="h">Your Contacts</h1>${avatarBtn()}</header>
+  <header class="top"><h1 class="h">Your Contacts</h1></header>
   <div class="ghead"><h2 class="eyebrow">Groups</h2><button class="btn small ghost" data-act="sheet" data-s="group">${I('plus')} New group</button></div>
   ${S.groups.length ? `<div class="groups">${S.groups.map(g => `<button class="grp" data-act="sheet" data-s="group" data-id="${esc(g.id)}" aria-label="Edit group ${esc(g.name)}, ${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}"><span class="gc">${esc(ini(g.name))}</span><span>${esc(g.name)}</span><small>${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}</small></button>`).join('')}</div>` : '<p class="fine gempty">No groups yet. Keep your frequent split partners together in a group.</p>'}
   <h2 class="eyebrow">Contacts</h2>
@@ -1213,36 +1234,26 @@ V.contacts = () => `
   <p class="fine">Your contacts and groups are saved to your account. Pick a group when adding people to a split.</p>`;
 
 V.scan = () => `
-  ${ui.cameraOpen ? '<div class="camera-heading"><h1 class="h">Scan receipt</h1><button class="link" data-act="closeCamera">Close camera</button></div>' : `${flowHead(0, 'home')}<h1 class="h">Add your receipt</h1><p class="sub">Take a photo, then check the items before you split.</p>`}
+  ${ui.cameraDenied ? `<div class="camera-banner"><span role="alert">Camera access is blocked.</span>
+    <button class="link" data-act="snap">Allow camera</button></div>` : ''}
+  <header class="camera-heading"><h1 class="h">Add your receipt</h1>
+    ${ui.cameraOpen ? '<button class="link" data-act="closeCamera">Close camera</button>' : S.draft.items.length ? '<button class="link" data-act="resume">Resume split</button>' : ''}</header>
   ${ui.scanError ? `<div class="alert bad" role="alert"><b>Couldn't scan this receipt.</b>${esc(ui.scanError)}</div>` : ''}
-  ${ui.cameraError ? `<div class="alert bad" role="alert">${esc(ui.cameraError)}</div>` : ''}
-  ${ui.scanError && ui.scanText ? `<details><summary>Text read from receipt</summary><p class="fine">Compare this with the photo to see which lines were missed. This text stays in this tab and is cleared on the next scan.</p><textarea readonly aria-label="Text read from receipt" style="width:100%;min-height:160px">${esc(ui.scanText)}</textarea></details>` : ''}
-  ${ui.cameraOpen ? `<p class="fine">Keep the whole receipt in view and hold steady.</p><div class="camera-stage"><div class="camera-preview">
-    <video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>
-    ${ui.cameraLoading ? '<p class="camera-status" role="status">Opening camera… Allow camera access when asked.</p>' : ''}
+  ${ui.cameraError && !ui.cameraDenied ? `<div class="alert bad" role="alert">${esc(ui.cameraError)}</div>` : ''}
+  ${ui.scanError && ui.scanText ? `<details><summary>Text read from receipt</summary><textarea readonly aria-label="Text read from scan" style="width:100%;min-height:160px">${esc(ui.scanText)}</textarea></details>` : ''}
+  <div class="camera-stage"><div class="camera-preview">
+    ${ui.cameraOpen ? '<video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>' : '<div class="camera-guide" aria-hidden="true"></div>'}
+    ${ui.cameraError ? '<button class="camera-flash camera-native" data-act="nativeCamera">Phone camera</button>' : ''}
+    ${ui.cameraLoading || ui.capturing ? `<p class="camera-status" role="status">${ui.capturing ? 'Taking photo…' : 'Opening camera…'}</p>` : ''}
+    ${ui.cameraOpen && ui.cameraLightMode ? `<button class="camera-flash" data-act="cameraLight" aria-label="Flash at capture" aria-pressed="${ui.cameraFlashEnabled}" ${ui.cameraLoading || ui.capturing ? 'disabled' : ''}>Flash: ${ui.cameraFlashEnabled ? 'On' : 'Off'}</button>` : ''}
   </div></div>
-  <div class="camera-controls">
-  <p class="fine" role="status">${ui.capturing ? 'Taking photo…' : ui.cameraLoading ? 'Checking flash support…' : ui.cameraLightMode ? (ui.cameraFlashEnabled ? 'Light stays off until capture.' : 'Flash is off.') : 'Flash unavailable here. Use brighter light or the phone camera.'}</p>
   <div class="camera-tools">
-    <button class="btn ghost" data-act="upload">${I('upload')} Upload</button>
-    <button id="capture-photo" class="shutter" data-act="capturePhoto" aria-label="Capture photo" disabled>${I('scan')}</button>
-    ${ui.cameraLightMode ? `<button class="btn ghost" data-act="cameraLight" aria-label="Flash at capture" aria-pressed="${ui.cameraFlashEnabled}" ${ui.cameraLoading || ui.capturing ? 'disabled' : ''}>Flash: ${ui.cameraFlashEnabled ? 'At capture' : 'Off'}</button>` : '<span class="fine">Flash unavailable</span>'}
+    <button class="camera-action" data-act="upload" aria-label="Upload photo" title="Upload photo">${I('upload')}</button>
+    ${ui.cameraOpen ? '<button id="capture-photo" class="shutter" data-act="capturePhoto" aria-label="Capture photo" disabled></button>' : '<button class="shutter" data-act="snap" aria-label="Take photo" title="Take photo"></button>'}
+    <button class="camera-action" data-act="manual" aria-label="Type receipt" title="Type receipt">${I('pencil')}</button>
   </div>
-  <div class="camera-alternatives"><button class="link" data-act="nativeCamera">Phone camera</button><button class="link" data-act="manual">Type items</button></div>
-  </div>` : `<section class="capture-guide" aria-labelledby="capture-title">
-    <div class="capture-icon">${I('history')}</div>
-    <h2 id="capture-title">One clear photo.<br>Every item included.</h2>
-    <ol><li>Lay the receipt flat and fill the photo.</li><li>${cameraAvailable() ? 'Flash fires at capture when supported. Avoid glare.' : 'Turn on flash in the camera if the room is dim. Avoid glare.'}</li><li>Include all the items, tax and final total.</li></ol>
-  </section>`}
-  ${!ui.cameraOpen ? `<div class="capture-actions">
-    ${S.draft.items.length ? '<button class="link" data-act="resume">Resume current split</button>' : ''}
-    <button class="btn" data-act="snap">${I('scan')} Take photo</button>
-    <button class="btn ghost" data-act="upload">${I('upload')} Upload photo</button>${cameraAvailable() ? '<button class="link" data-act="nativeCamera">Use phone camera instead</button>' : ''}
-    <button class="link" data-act="manual">Type items instead</button>
-  </div>` : ''}
   <input type="file" id="file-in" accept="image/*" hidden>
-  <input type="file" id="camera-in" accept="image/*" capture="environment" hidden>
-  ${!ui.cameraOpen ? '<p class="fine">Your photo is read in this browser. English receipts with dollar prices work best. The first scan needs internet to download the reader.</p>' : ''}`;
+  <input type="file" id="camera-in" accept="image/*" capture="environment" hidden>`;
 V.scanning = () => {
   return `
   <div class="scanning">
@@ -1250,7 +1261,6 @@ V.scanning = () => {
     <h1 class="h">Scanning receipt…</h1>
     <p class="sub" role="status" aria-live="polite">${esc(ui.scanStatus)}</p>
     <progress max="100" value="${ui.scanProgress}" aria-label="Reading receipt"></progress>
-    <p class="fine">This may take a minute on your first scan. You can correct the results next.</p>
   </div>
   <div class="next"><button class="btn ghost" data-act="cancelScan">Cancel scan</button></div>`;
 };
@@ -1258,9 +1268,8 @@ V.scanning = () => {
 V.review = () => {
   const d = S.draft;
   return `
-  ${flowHead(1, 'scan')}
+  ${flowHead(0, 'scan')}
   <h1 class="h">Check the items</h1>
-  <p class="sub">Fix anything the scan got wrong before you split.</p>
   ${d.fromScan ? `<div class="alert warn"><b>Check every item and amount against your receipt.</b>Scans can miss or misread lines. Check the printed total, tax, fees and tip before continuing.${(d.scanWarnings || []).map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
   ${d.fromScan && ui.photo ? `<details><summary>Compare with receipt photo</summary><img src="${esc(ui.photo)}" alt="Receipt used for this scan" style="max-width:100%;height:auto"></details>` : ''}
   <label class="field"><span>Where did you eat?</span><input id="merchant" data-in="merchant" value="${esc(d.merchant)}" placeholder="Restaurant name"></label>
@@ -1293,66 +1302,62 @@ V.review = () => {
   <div class="next" data-live="revnext"></div>`;
 };
 
-V.people = () => {
-  const d = S.draft;
-  return `
-  ${flowHead(2, 'review')}
-  <div class="count-box">
-    <p class="q">How many people are splitting the bill?</p>
-    <div class="stepper">
-      <div class="num mono" aria-live="polite">${d.people.length}</div>
-      <div class="arrows">
-        <button data-act="cnt" data-d="1" aria-label="Add a person" ${d.people.length >= 12 ? 'disabled' : ''}>${I('up')}</button>
-        <button data-act="cnt" data-d="-1" aria-label="Remove a person" ${d.people.length <= 2 ? 'disabled' : ''}>${I('down')}</button>
-      </div>
-    </div>
-    <p class="fine">Including you.</p>
-  </div>
-  <h2 class="eyebrow">Select your contacts</h2>
-  <div class="search">${I('search')}<input id="q" data-in="q" value="${esc(ui.q)}" placeholder="Search contacts or groups" aria-label="Search contacts or groups"></div>
-  <div class="results" data-live="results"></div>
-  <h2 class="eyebrow">Names</h2>
-  <ol class="slots">
-    ${d.people.map((p, i) => p.me
-      ? `<li class="slot me"><span class="sn mono">1</span><div class="slot-b">You <small>paid the bill</small></div><span></span></li>`
-      : `<li class="slot"><span class="sn mono">${i+1}</span><div class="slot-b">
-          <input id="sn-${p.id}" data-in="pname" data-id="${p.id}" value="${esc(p.name)}" placeholder="Name" aria-label="Person ${i+1} name">
-          <div class="slot-m">
-            <select id="sm-${p.id}" data-in="pmethod" data-id="${p.id}" aria-label="Request method">${Object.entries(METHODS).map(([k, m]) => `<option value="${k}" ${p.method === k ? 'selected' : ''}>${m.label}</option>`).join('')}</select>
-            <input id="sh-${p.id}" data-in="phandle" data-id="${p.id}" value="${p.method === 'cash' ? '' : esc(handleOf(p))}" placeholder="${METHODS[p.method].ph}" aria-label="${METHODS[p.method].label} contact" ${p.method === 'cash' ? 'disabled' : ''}>
-          </div></div>
-          <button class="iconbtn sm" data-act="rmp" data-id="${p.id}" aria-label="Remove person ${i+1}" ${d.people.length <= 2 ? 'disabled' : ''}>${I('x')}</button></li>`).join('')}
-  </ol>
-  <div class="next" data-live="pplnext"></div>`;
-};
-
-V.assign = () => {
-  const d = S.draft, c = calc(d);
-  const i = Math.min(d.cur, d.people.length - 1), p = d.people[i];
-  const nm = p.me ? 'You' : (p.name || 'Unnamed');
-  const nextP = d.people[i+1];
-  return `
-  ${flowHead(3, 'people')}
-  <div class="ptabs">${d.people.map((q, k) => `<button class="ptab ${k === i ? 'on' : ''}" data-act="cur" data-i="${k}"><span class="ini">${esc(q.me ? 'Y' : ini(q.name))}</span>${esc(q.me ? 'You' : (q.name || 'Person ' + (k+1)))} <span class="mono">${money(c.pre[q.id])}</span></button>`).join('')}</div>
-  <h1 class="h">${p.me ? 'What did <u>you</u> eat?' : `What did <u>${esc(nm)}</u> eat?`}</h1>
-  <p class="sub mono">Person ${i+1} of ${d.people.length} · tap everything they had</p>
-  <ul class="alist">${d.items.map(it => {
-    const who = (d.assign[it.id] || []).filter(id => id in c.pre);
-    const on = who.includes(p.id), everyone = who.length === d.people.length;
-    const names = who.map(id => d.people.find(q => q.id === id)).map(q => `<span class="ini" title="${esc(q.name)}">${esc(q.me ? 'Y' : ini(q.name))}</span>`).join('');
-    return `<li><button class="aitem ${on ? 'on' : ''}" data-act="toggle" data-id="${it.id}" aria-pressed="${on}">
-      <span class="box">${on ? I('check') : ''}</span><span class="an">${esc(it.name || 'Untitled item')}</span><span class="mono">${money(it.price)}</span>
-      <span class="who">${who.length ? names + (who.length > 1 ? `&nbsp;split ${who.length} ways` : '') : 'No one yet'}</span></button>
-      <button class="every ${everyone ? 'on' : ''}" data-act="all" data-id="${it.id}" aria-pressed="${everyone}" title="Shared by everyone">All</button></li>`;
+function activeMatchPerson(){
+  const people = S.draft.people;
+  return people.find(p => p.id === ui.matchPersonId) || people[0];
+}
+function matchStrip(){
+  const people = S.draft.people, selected = activeMatchPerson();
+  return people.map(p => `<div class="match-person">
+    <button data-act="matchPerson" data-id="${esc(p.id)}" aria-pressed="${selected === p}">
+      <span class="match-face" aria-hidden="true">${esc(ini(p.name))}</span><span>${esc(p.name)}</span>
+    </button>
+    ${p.me ? '' : `<button class="match-remove" data-act="rmp" data-id="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">${I('x')}</button>`}
+  </div>`).join('') + `<button class="match-add ${people.some(p => !p.me) ? '' : 'wide'}" data-act="openPicker" aria-label="Add Contacts" aria-controls="match-picker" aria-expanded="${ui.contactPicker}">${people.some(p => !p.me) ? I('plus') : '+ Add Contacts'}</button>`;
+}
+function matchItems(){
+  const d = S.draft, person = activeMatchPerson(), c = calc(d);
+  return `<ul class="match-receipt">${d.items.map(it => {
+    const who = d.people.filter(p => d.assign[it.id]?.includes(p.id));
+    const checked = who.includes(person);
+    return `<li><button class="match-item" data-act="toggle" data-id="${esc(it.id)}" aria-pressed="${checked}" ${person ? '' : 'disabled'}>
+      ${I(checked ? 'check' : 'plus')}<span class="item-name"><b>${esc(it.name || 'Untitled item')}</b>
+      <small>${who.length ? esc(who.map(p => p.name).join(', ')) : 'Unmatched'}</small></span>
+      <span class="mono">${money(it.price)}</span>
+    </button></li>`;
   }).join('')}</ul>
-  ${c.unassigned.length
-    ? `<div class="alert warn"><b>${c.unassigned.length} item${c.unassigned.length === 1 ? ' has' : 's have'} no one yet.</b>Every item needs someone before you can send requests.<button class="link" data-act="evenrest">Split the rest evenly</button></div>`
-    : `<div class="alert ok"><b>Every item has someone.</b></div>`}
-  <div class="next two">
-    <button class="btn ghost" data-act="cur" data-i="${i-1}" ${i === 0 ? 'disabled' : ''}>Previous</button>
-    ${nextP ? `<button class="btn" data-act="cur" data-i="${i+1}">Next: ${esc(nextP.name || 'Person ' + (i+2))}</button>` : `<button class="btn" data-act="go" data-v="summary">See totals</button>`}
-  </div>`;
-};
+  <div class="next"><button class="btn" data-act="matchNext">See totals</button></div>
+  <span class="fine" role="status">${d.items.length - c.unassigned.length} of ${d.items.length} matched</span>`;
+}
+function pickerResults(){
+  const q = ui.contactQuery.trim().toLocaleLowerCase();
+  const selected = new Set(S.draft.people.map(p => p.contactId));
+  const limit = S.draft.people.length >= 12;
+  const order = (a, b) => a.name.localeCompare(b.name);
+  const matches = entry => entry.name.toLocaleLowerCase().includes(q);
+  const groups = S.groups.filter(matches).sort(order).map(g => ({...g, available:g.members.filter(id => !selected.has(id)).length})).filter(g => g.available);
+  const contacts = S.contacts.filter(c => !selected.has(c.id) && matches(c)).sort(order);
+  function row(entry, action, detail, avatar){
+    return `<li><button class="match-pick-row" data-act="${action}" data-id="${esc(entry.id)}" ${limit ? 'disabled' : ''}><span class="match-face" aria-hidden="true">${avatar}</span><span class="pick-name">${esc(entry.name)}${detail ? `<small>${detail}</small>` : ''}</span>${I('plus')}</button></li>`;
+  }
+  return `${limit ? '<p class="fine" role="status">This split has reached 12 people.</p>' : ''}
+    ${groups.length ? `<h3 class="eyebrow">Groups</h3><ul>${groups.map(g => row(g, 'addg', g.available + (g.available === 1 ? ' contact' : ' contacts'), I('contacts'))).join('')}</ul>` : ''}
+    <h3 class="eyebrow">Contacts</h3>
+    ${contacts.length ? `<ul>${contacts.map(c => row(c, 'addc', '', esc(ini(c.name)))).join('')}</ul>`
+    : `<p class="fine" role="status">${q ? 'No available contacts match your search.' : 'No more contacts to add.'}</p>`}`;
+}
+V.assign = () => `
+  <header class="match-head">
+    ${flowHead(1, 'review')}
+    <h1 class="h">Match items</h1>
+    <div id="match-strip" class="match-strip" role="group" aria-label="People in this split">${matchStrip()}</div>
+  </header>
+  <section id="match-items" class="match-items" aria-label="Receipt items" ${ui.contactPicker ? 'inert' : ''}>${matchItems()}</section>
+  <section id="match-picker" class="match-picker" role="dialog" aria-labelledby="match-picker-title" ${ui.contactPicker ? '' : 'hidden'}>
+    <header class="match-picker-head"><h2 id="match-picker-title">Add Contacts</h2><button class="link" data-act="closePicker">Done</button></header>
+    <label class="search">${I('search')}<input id="contact-query" data-in="contact-query" value="${esc(ui.contactQuery)}" placeholder="Search contacts or groups" aria-label="Search contacts or groups" autocomplete="off"></label>
+    <div id="match-picker-list" class="match-picker-list">${ui.contactPicker ? pickerResults() : ''}</div>
+  </section>`;
 
 V.summary = () => {
   const d = S.draft, c = calc(d);
@@ -1361,37 +1366,272 @@ V.summary = () => {
   if (c.mismatch) blockers.push(`<div class="alert bad" role="alert"><b>Items don't match the receipt total.</b>Items, tax and fees add to ${money(c.computed)}, but the receipt says ${money(d.printed)}. <button class="link" data-act="go" data-v="review">Fix the items</button></div>`);
   if (!c.tipValid) blockers.push(`<div class="alert bad" role="alert"><b>Check the custom tip.</b><button class="link" data-act="go" data-v="review">Fix the tip amount</button></div>`);
   return `
-  ${flowHead(4, 'assign')}
+  ${flowHead(2, 'assign')}
   <h1 class="h">Review & send</h1>
-  <p class="sub">${esc(d.merchant || 'This bill')} · <span class="mono">${money(c.grand)}</span> · ${esc(tipState(d).label)}</p>
   ${blockers.join('')}
   ${d.people.map(p => {
     const nm = p.me ? 'You' : (p.name || 'Unnamed');
     return `<article class="pcard">
-      <header><div><b>${esc(nm)}</b><span class="meta">${p.me ? 'Your share. No request is sent.' : p.method === 'cash' ? 'Collect cash in person' : 'Request via ' + METHODS[p.method].label}</span></div><span class="ptotal mono">${money(c.totals[p.id])}</span></header>
+      <header><div><b>${esc(nm)}</b>${p.me ? '<span class="meta">Paid the bill</span>' : ''}</div><span class="ptotal mono">${money(c.totals[p.id])}</span></header>
       <ul class="lines">${c.lines[p.id].map(l => `<li><span>${esc(l.name)}${l.of > 1 ? ` <small>÷${l.of}</small>` : ''}</span><span class="mono">${money(l.share)}</span></li>`).join('') || '<li><span class="fine">Nothing assigned yet</span></li>'}
         <li class="alloc"><span>Tax, tip & fees</span><span class="mono">${money(c.alloc[p.id])}</span></li></ul>
-      ${p.me ? '' : `<div class="req-edit">
-        <select id="xm-${p.id}" data-in="pmethod" data-id="${p.id}" aria-label="Request method for ${esc(nm)}">${Object.entries(METHODS).map(([k, m]) => `<option value="${k}" ${p.method === k ? 'selected' : ''}>${m.label}</option>`).join('')}</select>
-        <input id="xh-${p.id}" data-in="phandle" data-id="${p.id}" value="${p.method === 'cash' ? '' : esc(handleOf(p))}" placeholder="${METHODS[p.method].ph}" aria-label="${METHODS[p.method].label} for ${esc(nm)}" ${p.method === 'cash' ? 'disabled' : ''}>
-      </div><div data-live="warn" data-pid="${p.id}"></div>`}
+      ${p.me || !c.totals[p.id] ? '' : reviewRequest(p,c)}
     </article>`;
   }).join('')}
   ${!c.unassigned.length ? `<p class="check-line">${c.totalsOff ? I('alert') + ' Totals are off by ' + money(c.sumTotals - c.computed - c.tip) : I('check') + ` Everyone's shares add up to <span class="mono">${money(c.sumTotals)}</span>`}</p>` : ''}
+  ${d.people.some(p => needsManual(p,c.totals[p.id]) && c.totals[p.id] > 0) && !CFG.preview ? receivingForm(d,c) : ''}
+  ${CFG.preview ? '<p class="fine">Preview only. No requests will be sent.</p>' : ''}
   <div class="next" data-live="sendbar"></div>`;
 };
+
+function reviewRequest(p,c){
+  const method = methodFor(p,c.totals[p.id]);
+  return `<section class="review-request" aria-label="Request for ${esc(p.name)}"><h2 class="eyebrow">Request</h2>
+    ${method === 'sms'
+      ? `<label class="field"><span>Phone number <small>optional</small></span><input type="tel" autocomplete="off" data-in="requestPhone" data-id="${esc(p.id)}" value="${esc(p.phone)}" placeholder="(555) 000-0000" aria-describedby="route-${esc(p.id)}"></label>
+        <p class="fine" id="route-${esc(p.id)}" data-live="phoneRoute" data-pid="${esc(p.id)}"></p>`
+      : `<p class="request-account"><span>${esc(METHODS[method]?.label || 'Payment method')}</span><b>${esc(method === 'cash' ? 'In person' : recipientHandle(method,p) || '')}</b></p>`}
+    ${acceptsNote(method) ? `<label class="field"><span>Note</span><textarea class="request-note" data-in="pmsg" data-id="${esc(p.id)}" maxlength="160" rows="1">${esc(draftNote(p,c))}</textarea></label>` : ''}
+  </section>`;
+}
+function receivingForm(d,c){
+  const hasReceiving = Object.keys(receivingFor({}).methods).length > 0;
+  return `<details class="pcard receiving-setup" ${hasReceiving && myName() ? '' : 'open'}>
+    <summary>Where friends can pay you</summary>
+    <p class="fine">${hasReceiving ? 'Manual links use the receiving accounts in your profile.' : 'Add a receiving account in Profile or provide an Apple Pay checkout for each manual link.'}</p>
+    <button class="link" data-act="reviewProfile">Open Profile</button>
+    ${d.people.filter(p => needsManual(p,c.totals[p.id]) && c.totals[p.id] > 0).map(p => `<label class="field"><span>Apple Pay checkout for ${esc(p.name)} · ${money(c.totals[p.id])} <small>optional</small></span><input type="url" data-in="receiveCheckout" data-id="${esc(p.id)}" maxlength="1000" value="${esc(d.checkouts?.[p.id]?.amount === c.totals[p.id] ? d.checkouts[p.id].url : '')}" placeholder="Stripe checkout URL"></label>`).join('')}
+  </details>`;
+}
+function receivingFor(r){
+  const {venmo,paypal,zelle,cashapp,applecash} = S.paymentAccounts;
+  const checkout = S.draft.checkouts?.[r.pid];
+  const applePayUrl = CFG.preview ? 'https://buy.stripe.com/test_IOYAPreview' : checkout?.amount === r.amount ? checkout?.url : '';
+  const methods = Object.fromEntries(Object.entries({venmo,paypal,zelle,cashapp:r.amount < 100 ? '' : cashapp,applecash,applePayUrl})
+    .filter(([,value]) => value?.trim()).map(([key,value]) => [key,value.trim()]));
+  return {payeeName:myName().slice(0,80),methods};
+}
+
+const manualState = new Map();
+function manualLink(r){
+  const stored = S.draft.manualLinks?.[r.pid];
+  return stored?.key === manualKey(r) && stored.expiresAt > Date.now() ? stored : null;
+}
+function manualKey(r){ return JSON.stringify([S.userId, r, receivingFor(r)]); }
+function manualCard(r){
+  const state = manualState.get(manualKey(r)) || manualLink(r) || {};
+  if (!state.id) return '';
+  const text = textState(r,state);
+  return `<article class="pcard">
+    <header><div><b>${esc(r.name)}</b><span class="meta">${r.phone ? esc(r.phone) : 'Shared QR code'}</span></div><span class="ptotal mono">${money(r.amount)}</span></header>
+    ${r.phone ? `<p class="request-status">${CFG.preview ? 'Text message · Preview' : text?.status === 'submitted' ? 'Text submitted' : text?.status === 'sending' ? 'Submitting text…' : 'Text not submitted'}</p>
+      ${text?.error ? `<p class="warn-line" role="status">${esc(text.error)}</p><a class="btn small ghost" href="${esc(state.url)}" target="_blank" rel="noopener noreferrer">Open payment link</a>` : ''}
+      ${!CFG.preview && (!text || text.status === 'retryable') ? `<button class="btn small ghost" data-act="retryText" data-id="${esc(r.pid)}">Retry text</button>` : ''}` : ''}
+    ${state.consent ? `<p class="fine">${esc(r.name)} shared their ${esc(METHODS[state.consent.method]?.label || state.consent.method)} details: <b>${esc(state.consent.username)}</b></p>
+      <button class="btn small ghost" data-act="saveconsent" data-id="${esc(r.pid)}" ${state.busy || state.saved ? 'disabled' : ''}>${state.saved ? 'Saved to contact' : 'Save to contact'}</button>`
+    : `<details><summary>Recipient options</summary>
+      <a class="btn small ghost" href="${esc(state.url)}" target="_blank" rel="noopener noreferrer">Open payment page</a>
+      <button class="btn small ghost" data-act="checkconsent" data-id="${esc(r.pid)}" ${state.busy ? 'disabled' : ''}>Check for shared payment details</button></details>`}
+    ${state.message ? `<p class="fine" role="status">${esc(state.message)}</p>` : ''}</article>`;
+}
+function textState(r,link){
+  return S.draft.textStates?.[r.pid]?.id === link.id ? S.draft.textStates[r.pid] : null;
+}
+async function submitText(r,link){
+  if (CFG.preview || !r.phone || !link.id) return;
+  const current = textState(r,link);
+  if (current && current.status !== 'retryable') return;
+  const state = {id:link.id,status:'sending'};
+  (S.draft.textStates ||= {})[r.pid] = state;
+  try {
+    const response = await manualApi('/' + encodeURIComponent(link.id) + '/sms',{phone:r.phone});
+    if (response.status !== 'submitted') throw new Error('Text submission could not be verified.');
+    state.status = 'submitted';
+  } catch(e) {
+    state.status = [429,503].includes(e.status) ? 'retryable' : [400,403,404,502].includes(e.status) ? 'failed' : 'uncertain';
+    state.error = e.status ? e.message : 'Text submission could not be verified. Check with the recipient before trying again.';
+  }
+  save();
+}
+async function retryText(pid){
+  const r = currentManual(pid), link = r && manualLink(r);
+  if (!link) return;
+  const pending = submitText(r,link);
+  render();
+  await pending;
+  if (S.view === 'sent') render();
+}
+function linkedStatus(r,i){
+  const info = paymentRequest(r);
+  const confirmed = S.draft.confirmedRequests?.[r.pid] === JSON.stringify(r);
+  const label = METHODS[r.method]?.label || 'Payment app';
+  return `<article class="pcard"><header><div><b>${esc(r.name)}</b><span class="meta">${esc(r.handle)}</span></div><span class="ptotal mono">${money(r.amount)}</span></header>
+    ${confirmed ? `<p class="request-status">Requested using ${esc(label)}</p>`
+      : CFG.preview ? `<p class="request-status">Payment app · ${esc(label)}</p>`
+      : r.method === 'cash' ? '<p class="request-status">Collect in person</p>'
+      : `<div class="request-finish"><p class="request-status">Ready in ${esc(label)}</p>
+        ${info.href ? `<a class="btn small ghost" href="${esc(info.href)}" target="_blank" rel="noopener noreferrer">${esc(info.label)}</a>` : ''}
+        <button class="btn small ghost" data-act="confirmLinked" data-index="${i}">I sent the request</button>
+        <details><summary>Request instructions</summary>${requestCard(r,i,{showLink:false})}</details></div>`}
+  </article>`;
+}
+function currentManual(pid){
+  const request = preparedRequests().find(r => r.pid === pid && r.method === 'manual');
+  if (S.view === 'sent' && request && S.draft.results?.some(r => JSON.stringify(r) === JSON.stringify(request))) return request;
+}
+async function manualApi(path, body){
+  const session = CFG.preview ? {access_token:'preview'} : need(await sb.auth.getSession()).session;
+  if (!session) throw new Error('Sign in again to manage this request.');
+  const response = await fetch('/api/manual-requests' + path, {
+    method:body ? 'POST' : 'GET',
+    headers:{Authorization:'Bearer ' + session.access_token, ...(body ? {'Content-Type':'application/json'} : {})},
+    ...(body ? {body:JSON.stringify(body)} : {})
+  });
+  const data = await response.json();
+  if (!response.ok) throw Object.assign(new Error(data.error || 'The payment request could not be updated.'), {status:response.status});
+  return data;
+}
+async function createManualRequest(r, draft){
+  const stored = manualLink(r);
+  if (stored) {
+    if (!CFG.preview) return stored;
+    try {
+      await manualApi('/' + encodeURIComponent(stored.id));
+      return stored;
+    } catch(e) {
+      if (e.status !== 404) throw e;
+      manualState.delete(stored.key);
+    }
+  }
+  const key = manualKey(r);
+  const details = receivingFor(r);
+  const created = await manualApi('', {contactId:Number(r.contactId), amountCents:r.amount, items:r.items, ...details});
+  const state = {key,...created,expiresAt:Date.now() + 7 * 86400000};
+  (draft.manualLinks ||= {})[r.pid] = state;
+  save();
+  return state;
+}
+async function checkConsent(pid){
+  const r = currentManual(pid);
+  const state = r && (manualState.get(manualKey(r)) || manualLink(r));
+  if (!state?.id || state.busy) return;
+  manualState.set(manualKey(r), state);
+  state.busy = true; state.message = ''; render();
+  try {
+    const {consent} = await manualApi('/' + encodeURIComponent(state.id) + '/consent');
+    state.consent = consent;
+    if (!consent) state.message = 'No payment details have been shared yet.';
+  } catch(e) {
+    state.message = e.message;
+    if (e.status === 404) {
+      state.expiresAt = 0;
+      delete S.draft.manualLinks?.[r.pid];
+    }
+  }
+  state.busy = false; render();
+}
+async function saveConsent(pid){
+  const r = currentManual(pid);
+  const state = r && manualState.get(manualKey(r));
+  if (!state?.consent || state.busy || state.saved) return;
+  state.busy = true; state.message = ''; render();
+  try {
+    await manualApi('/' + encodeURIComponent(state.id) + '/consent/save', {});
+    if (!CFG.preview) await loadAll();
+    state.saved = true;
+    state.message = CFG.preview ? 'Preview only. No contact was updated.' : 'Payment details saved to Contacts.';
+  } catch(e) { state.message = e.message; }
+  state.busy = false; render();
+}
+
+function previewHistoryEntries(){
+  try { return JSON.parse(localStorage.getItem('ioya-preview-history-v1')) || []; } catch(e) { return []; }
+}
+function finishPreviewSplit(){
+  const d = S.draft, c = calc(d);
+  d.previewHistoryId ||= uid('preview-');
+  const entry = {id:d.previewHistoryId, title:d.merchant || 'Receipt split', total:c.grand,
+    people:d.people.map(p => ({name:p.name, total:c.totals[p.id]}))};
+  const entries = [entry,...previewHistoryEntries().filter(item => item.id !== entry.id)].slice(0,20);
+  try { localStorage.setItem('ioya-preview-history-v1',JSON.stringify(entries)); } catch(e) {}
+  ui.previewHistoryId = entry.id;
+  go('history');
+}
+function previewHistory(){
+  const entries = previewHistoryEntries();
+  if (!entries.length) return '';
+  return `<h2 class="eyebrow">Preview splits</h2>${entries.map(entry => `<details class="pcard" ${entry.id === ui.previewHistoryId ? 'open' : ''}>
+    <summary>${esc(entry.title)} · <span class="mono">${money(entry.total)}</span></summary>
+    <p class="fine">Preview only. No requests were sent.</p>
+    <ul class="lines">${entry.people.map(p => `<li><span>${esc(p.name)}</span><span class="mono">${money(p.total)}</span></li>`).join('')}</ul>
+  </details>`).join('')}`;
+}
+function prepareSplitRequests(){
+  const {ready,blocked,globalBlock} = sendPlan();
+  if (ui.preparing || globalBlock || blocked.length || !ready.length) return;
+  const draft = S.draft, requests = preparedRequests();
+  const manual = requests.filter(r => r.method === 'manual');
+  const finish = () => {
+    ui.sendError = ''; ui.sheet = null;
+    draft.results = requests;
+    if (CFG.preview && !manual.some(r => !r.phone)) finishPreviewSplit();
+    else go('sent');
+  };
+  if (!manual.length) return finish();
+  if (manual.some(r => {
+    const {payeeName,methods} = receivingFor(r);
+    return !payeeName || !Object.keys(methods).length;
+  })) {
+    ui.sendError = 'Add your name and a receiving account in Profile, or provide an eligible checkout link.';
+    refresh(); return;
+  }
+  ui.preparing = true; ui.sendError = ''; refresh();
+  return (async () => {
+    try {
+      const recipients = [], texts = [];
+      for (const r of manual) {
+        const link = await createManualRequest(r, draft);
+        if (r.phone) texts.push({r,link});
+        else recipients.push({id:link.id,name:r.name.trim().slice(0,80)});
+      }
+      if (recipients.length) {
+        const key = JSON.stringify(recipients);
+        if (draft.sharedQr?.key !== key) {
+          const group = await manualApi('/group',{recipients});
+          draft.sharedQr = {key,...group};
+        }
+      } else delete draft.sharedQr;
+      for (const {r,link} of texts) await submitText(r,link);
+      ui.preparing = false; finish();
+    } catch(e) {
+      ui.preparing = false;
+      ui.sendError = e.message;
+      refresh();
+    }
+  })();
+}
 
 V.sent = () => {
   const d = S.draft, results = d.results || [];
   if (JSON.stringify(results) !== JSON.stringify(preparedRequests())) return `<h1 class="h">Your split changed</h1>
-    <p class="sub">Prepare updated requests so the contacts, notes and amounts match your latest changes.</p>
     <div class="next"><button class="btn" data-act="go" data-v="summary">Review updated split</button></div>`;
-  return `<h1 class="h">Finish in your payment apps</h1>
-    <p class="sub">${esc(d.merchant || 'Your split')} · ${results.length} prepared request${results.length === 1 ? '' : 's'}</p>
-    <p class="fine">Follow each person’s instructions below. Review the person and amount, then finish in the app or collect cash in person. IOYA cannot confirm whether a request was sent or paid.</p>
-    ${results.map((r, i) => `<article class="pcard"><header><div><b>${esc(r.name)}</b><span class="meta">${esc(METHODS[r.method]?.label || '')} · ${esc(r.handle)}</span></div><span class="ptotal mono">${money(r.amount)}</span></header>${requestCard(r, i)}</article>`).join('')}
-    <p class="fine">This split is kept in this browser. It is not saved to History yet.</p>
-    <div class="next two"><button class="btn ghost" data-act="go" data-v="summary">Edit split</button><button class="btn" data-act="done">Return home</button></div>`;
+  const manual = results.filter(r => r.method === 'manual'), qr = manual.some(r => !r.phone) && d.sharedQr;
+  const linked = results.map((r, i) => r.method === 'manual' ? '' : linkedStatus(r,i)).join('');
+  const expired = manual.some(r => !manualLink(r));
+  return `${qr && !expired ? '' : `<header class="top"><button class="iconbtn" data-act="go" data-v="summary" aria-label="Back to review">${I('back')}</button>
+    <h1 class="h">Payment requests</h1></header>`}
+    ${qr && !expired ? `<section class="shared-qr pcard">
+      <img class="qr" src="/api/manual-requests/group/${esc(qr.id)}/qr" alt="Shared QR code for this split">
+      <p class="fine">Scan the code, then choose your name.${CFG.preview ? ' Use the preview link on this computer.' : ''}</p>
+      <a class="btn small ghost" href="${esc(qr.url)}" target="_blank" rel="noopener noreferrer">Open shared payment page</a>
+    </section>` : ''}
+    ${expired ? '<p class="alert warn">A payment link expired. Return to review to prepare new links.</p>' : ''}
+    ${linked || manual.length ? `<details class="pcard" ${qr ? '' : 'open'}>
+      <summary>Request details</summary>
+      ${linked}${manual.map(manualCard).join('')}
+    </details>` : ''}
+    <p class="fine">${CFG.preview ? 'Preview only. No requests were sent.' : 'Texts are submitted automatically. Finish any pending payment-app requests in the app.'}</p>
+    <div class="next two"><button class="btn ghost" data-act="go" data-v="summary">Edit split</button><button class="btn" data-act="${CFG.preview ? 'previewHistory' : 'done'}">${CFG.preview ? 'View preview history' : 'Return home'}</button></div>`;
 };
 
 /* ---------- live regions (updated while typing without losing focus) ---------- */
@@ -1418,66 +1658,103 @@ const LIVE = {
   revnext: () => {
     const d = S.draft, c = calc(d);
     const ok = d.items.some(it => it.price > 0) && d.printed && !c.mismatch && c.tipValid;
-    return `<button class="btn" data-act="go" data-v="people" ${ok ? '' : 'disabled'}>Add people</button>`;
-  },
-  results: () => {
-    const d = S.draft, q = ui.q.trim().toLowerCase();
-    const taken = new Set(d.people.map(p => p.contactId).filter(Boolean));
-    const cs = S.contacts.filter(c => !taken.has(c.id) && (!q || c.name.toLowerCase().includes(q)));
-    const gs = S.groups.filter(g => !q || g.name.toLowerCase().includes(q));
-    if (!cs.length && !gs.length) return `<p class="fine">No contacts match "${esc(ui.q)}". Type the name in a slot below instead.</p>`;
-    return gs.map(g => `<button class="pick pgrp" data-act="addg" data-id="${g.id}"><span class="ini">${esc(ini(g.name))}</span>${esc(g.name)} <small>${g.members.length}</small></button>`).join('')
-      + cs.map(c => `<button class="pick" data-act="addc" data-id="${c.id}"><span class="ini">${esc(ini(c.name))}</span>${esc(c.name)} <small>${METHODS[c.method].label}</small></button>`).join('');
-  },
-  pplnext: () => {
-    const missing = S.draft.people.filter(p => !p.me && !p.name.trim()).length;
-    return `${missing ? `<p class="fine">${missing} name${missing === 1 ? '' : 's'} still empty.</p>` : ''}<button class="btn" data-act="go" data-v="assign" ${missing ? 'disabled' : ''}>Assign items</button>`;
+    return `<button class="btn" data-act="go" data-v="assign" ${ok ? '' : 'disabled'}>Match items</button>`;
   },
   requestSheet: () => ui.sheet?.type === 'payment' ? requestCard(ui.sheet.request, 'sheet') : '',
-  warn: el => {
-    const d = S.draft, p = d.people.find(q => q.id === el.dataset.pid), c = calc(d);
-    if (!p) return '';
-    const target = requestIssue(p, c);
-    if (target.error) return `<p class="warn-line">${I('alert')} ${esc(target.error)}</p>`;
-    if (!c.totals[p.id]) return `<p class="warn-line">${I('alert')} Nothing assigned, so no request.</p>`;
-    return `<p class="warn-line ok">${I('check')} Ready to prepare</p>`;
+  phoneRoute: el => {
+    const p = S.draft.people.find(q => q.id === el.dataset.pid);
+    if (!p?.phone?.trim()) return p?.contactId ? 'Leave blank to include this person in the shared QR code.' : 'Enter a phone number or add this person from Contacts.';
+    const result = requestTarget('sms',p.phone);
+    return result.error ? `<span class="warn-line">${esc(result.error)}</span>` : 'Payment link by text';
   },
   sendbar: () => {
     const {ready, blocked, globalBlock} = sendPlan();
-    const label = ready.length ? `Prepare ${ready.length} request${ready.length === 1 ? '' : 's'}` : 'Nothing to request yet';
-    return `${blocked.length && !globalBlock ? `<p class="fine">${blocked.map(p => esc(p.name)).join(', ')} will be skipped until you fix their request details.</p>` : ''}
-      <button class="btn" data-act="sheet" data-s="confirm" ${globalBlock || !ready.length ? 'disabled' : ''}>${label}</button>`;
+    const label = ready.length === 1 ? 'request' : 'requests';
+    return `${blocked.length ? `<p class="warn-line">Check the request details for ${blocked.map(p => esc(p.name)).join(', ')}.</p>` : ''}
+      ${ui.sendError ? `<p class="alert bad" role="alert">${esc(ui.sendError)}</p>` : ''}
+      <button class="btn" data-act="send" ${ui.preparing || globalBlock || blocked.length || !ready.length ? 'disabled' : ''}>${ui.preparing ? 'Preparing…' : CFG.preview ? 'Send ' + label + ' (preview)' : 'Send ' + label}</button>`;
   }
 };
 // Greetings use the first name: the saved contact's first name, or the first word of a typed name.
 function firstName(p){
   const c = p.contactId && S.contacts.find(x => x.id === String(p.contactId));
-  return c ? c.first : p.name.trim().split(/\s+/)[0];
+  return c?.first || p.name.trim().split(/\s+/)[0];
 }
 function autoMessage(p, c){
   const d = S.draft, amt = money(c.totals[p.id]), when = shortDate(today());
-  return p.method === 'sms'
+  return methodFor(p,c.totals[p.id]) === 'sms'
     ? `Hi ${firstName(p)}! Your share of ${d.merchant || 'dinner'} (${when}) is ${amt}.`
     : `Hi ${firstName(p)}! ${d.merchant || 'Dinner'} on ${when}: your share is ${amt}.`;
+}
+function payerAccountValid(method,value){
+  if (!value || value.length > 100) return false;
+  const email = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(value);
+  const phone = value.length <= 40 && /^[0-9+().\s-]+$/.test(value) &&
+    /^1?[2-9][0-9]{9}$/.test(value.replace(/\D/g,''));
+  if (method === 'venmo') return /^@?[a-z0-9_-]{5,30}$/i.test(value);
+  if (method === 'paypal') return email || /^[a-z0-9]{1,20}$/i.test(value);
+  if (method === 'zelle') return email || phone;
+  if (method === 'cashapp') return email || phone || /^\$[a-z0-9]{1,20}$/i.test(value) && /[a-z]/i.test(value);
+  return method === 'applecash' && phone;
+}
+function recipientHandle(method,p){
+  const c = p.contactId && S.contacts.find(c => c.id === String(p.contactId));
+  const account = PROFILE_METHODS.includes(method) ? (c || p) : p;
+  if (method === 'applecash') return account.applecash || (!c && p.method === 'applecash' ? p.phone : '') || '';
+  return account[METHODS[method]?.field] || '';
+}
+function sharedMethod(method,p){
+  const current = p.contactId && S.contacts.find(c => c.id === String(p.contactId));
+  if (method === 'applecash' && p.contactId && (current ? !current.methods?.some(m => m.name === 'Apple Cash') : p.method !== 'applecash')) return false;
+  return payerAccountValid(method,S.paymentAccounts[method]) && !requestTarget(method,recipientHandle(method,p)).error;
+}
+function methodFor(p,amount){
+  if (p.method === 'cash' && !p.contactId) return 'cash';
+  const current = p.contactId && S.contacts.find(c => c.id === String(p.contactId));
+  const preferred = current?.method || p.method;
+  const candidates = PROFILE_METHODS.includes(preferred) ? [preferred] : PROFILE_METHODS;
+  return candidates.find(method =>
+    (method !== 'cashapp' || !p.contactId || amount == null || amount >= 100) && sharedMethod(method,p)) || 'sms';
+}
+function needsManual(p,amount){ return !!p.contactId && methodFor(p,amount) === 'sms'; }
+function acceptsNote(method){ return !['sms','cash'].includes(method); }
+function draftNote(p,c){ return S.draft.msgs?.[p.id] ?? autoMessage(p,c).slice(0,160); }
+function requestItems(p,c){
+  const items = c.lines[p.id].map(line => ({name:(line.name || 'Receipt item').trim().slice(0,120) || 'Receipt item',amountCents:line.share}));
+  if (c.alloc[p.id]) items.push({name:'Tax, tip & fees',amountCents:c.alloc[p.id]});
+  if (items.length <= 100) return items;
+  const rest = items.slice(99).reduce((sum,item) => sum + item.amountCents,0);
+  return [...items.slice(0,99),{name:'Other receipt items',amountCents:rest}];
 }
 function sendPlan(){
   const d = S.draft, c = calc(d);
   const others = d.people.filter(p => !p.me && c.totals[p.id] > 0);
-  return {c, ready: others.filter(p => !requestIssue(p, c).error), blocked: others.filter(p => requestIssue(p, c).error), globalBlock: c.unassigned.length > 0 || c.mismatch || c.totalsOff || !c.tipValid};
+  return {c, ready: others.filter(p => !requestIssue(p,c).error), blocked: others.filter(p => requestIssue(p,c).error), globalBlock: c.unassigned.length > 0 || c.mismatch || c.totalsOff || !c.tipValid};
 }
 function requestIssue(p, c){
-  // Contact validation first preserves useful missing-contact feedback for zero shares.
-  const target = requestTarget(p.method, handleOf(p));
-  return target.error || !c.totals[p.id] ? target : paymentRequest({method:p.method, handle:handleOf(p), amount:c.totals[p.id]});
+  const method = methodFor(p,c.totals[p.id]);
+  const manual = !!p.contactId && method === 'sms';
+  if (manual && !p.phone?.trim()) return {};
+  const handle = recipientHandle(method,p);
+  const target = requestTarget(method, handle);
+  if (!p.contactId && p.method !== 'sms' && p.method !== 'cash' && method === 'sms' && !handle)
+    return {error:'Add this person from Contacts or enter their phone number.'};
+  return target.error || !c.totals[p.id] || manual ? target : paymentRequest({method,handle,amount:c.totals[p.id]});
 }
 function preparedRequests(){
   const {c, ready, globalBlock} = sendPlan();
   if (globalBlock) return [];
-  return ready.map(p => ({pid:p.id, name:p.name, method:p.method, handle:requestTarget(p.method, handleOf(p)).value,
-    amount:c.totals[p.id], note:(S.draft.msgs?.[p.id] || '').trim() || autoMessage(p, c), handoffVersion:1}));
+  return ready.map(p => {
+    const method = methodFor(p,c.totals[p.id]);
+    const routing = method === 'sms' && p.contactId
+      ? {method:'manual',contactId:p.contactId,phone:requestTarget('sms',p.phone).value || '',items:requestItems(p,c)}
+      : {method,handle:requestTarget(method,recipientHandle(method,p)).value};
+    const note = acceptsNote(method) ? {note:draftNote(p,c).trim().slice(0,160) || autoMessage(p,c).slice(0,160)} : {};
+    return {pid:p.id,name:p.name,...routing,amount:c.totals[p.id],...note,handoffVersion:1};
+  });
 }
 function syncTipGlider(animate=false){
-  const wrap = document.querySelector('.tip-seg'), glider = wrap?.querySelector('.tip-glider');
+  const wrap = document.querySelector?.('.tip-seg'), glider = wrap?.querySelector('.tip-glider');
   if (!wrap || !glider) return;
   const selected = wrap.querySelector('button.on');
   if (!selected){ glider.style.left = '3px'; glider.style.width = '0px'; glider.style.opacity = '0'; glider.classList.remove('squash'); return; }
@@ -1515,9 +1792,6 @@ function refresh(animateTip=false){
 /* ---------- sheets ---------- */
 // Header button that opens Profile: the user's initials once they have a name.
 const myName = () => [S.me.first, S.me.last].filter(Boolean).join(' ');
-const avatarBtn = () => S.me.first
-  ? `<button class="avatar has-ini" data-act="sheet" data-s="profile" aria-label="Profile: ${esc(myName())}">${esc(ini(myName()))}</button>`
-  : `<button class="avatar" data-act="sheet" data-s="profile" aria-label="Profile">${I('user')}</button>`;
 
 // Profile sheet. s.step: null (view), 'edit', 'email', 'code', 'signout'.
 // s.mode: 'create' (guest → profile with email; edit → email → code) or 'signin' (email → code) or null (plain edit).
@@ -1526,10 +1800,36 @@ const fieldErr = (s, k) => `<p class="ferr" id="e-${k}" role="alert"${s.errs && 
 const field = (s, k, label, input) => `<label class="field${s.errs && s.errs[k] ? ' invalid' : ''}" id="w-${k}"><span>${label}</span>${input}</label>${fieldErr(s, k)}`;
 const inv = (s, k) => `aria-describedby="e-${k}"${s.errs && s.errs[k] ? ' aria-invalid="true"' : ''}`;
 const alertBox = s => s.alert ? `<div class="alert bad" role="alert">${esc(s.alert)}</div>` : '';
-function profileSheet(s){
+function profileState(){
+  return ui.sheet?.type === 'profile' ? ui.sheet : (ui.profile ||= {});
+}
+function resetProfileState(){
+  if (ui.sheet?.type === 'profile') ui.sheet = {type:'profile',id:null};
+  else ui.profile = {};
+}
+V.profile = () => `${ui.returnToReview ? '<button class="link" data-act="returnReview">Back to split</button>' : ''}
+  ${profileSheet(profileState(),true)}`;
+function profilePaymentAccounts(s){
+  const edit = s.step === 'payments';
+  const values = edit ? s.paymentDraft : S.paymentAccounts;
+  const busy = ui.saving ? 'disabled' : '';
+  return `<section class="pcard profile-payments" aria-label="Payment accounts">
+    <div class="sheet-head"><h2 class="eyebrow">Payment accounts</h2>
+      ${edit ? '' : `<button class="link" data-act="pstep" data-step="payments" ${busy}>Edit accounts</button>`}</div>
+    ${S.paymentAccountsError ? `<p class="warn-line" role="status">${esc(S.paymentAccountsError)}</p>` : ''}
+    ${edit ? `${alertBox(s)}
+      ${PROFILE_METHODS.map(method => field(s,'pay-'+method,METHODS[method].label,
+        `<input id="f-pay-${method}" data-in="payerAccount" data-id="${method}" data-enter="savePayerAccounts" maxlength="100" value="${esc(values[method])}" placeholder="${esc(PROFILE_HINTS[method])}" ${inv(s,'pay-'+method)} ${busy}>`)).join('')}
+      <div class="next two"><button class="btn ghost" data-act="pstep" ${busy}>Cancel</button>
+      <button class="btn" data-act="savePayerAccounts" ${busy}>${ui.saving ? 'Saving…' : 'Save accounts'}</button></div>`
+    : `<ul class="lines">${PROFILE_METHODS.map(method => `<li><span>${METHODS[method].label}</span><span>${values[method] ? esc(values[method]) : 'Not linked'}</span></li>`).join('')}</ul>`}
+  </section>`;
+}
+function profileSheet(s,page = false){
   const busy = ui.saving ? 'disabled' : '';
   const create = s.mode === 'create', signin = s.mode === 'signin';
   const steps = n => create ? `<p class="pstepno">Step ${n} of 3</p>` : '';
+  if (s.step === 'payments') return `<h1 class="h">Profile</h1>${profilePaymentAccounts(s)}`;
   if (s.step === 'edit'){
     const me = s.draft || S.me;
     return `<h2 id="sh-t">${create ? 'Create your profile' : 'Edit profile'}</h2>${steps(1)}
@@ -1567,12 +1867,12 @@ function profileSheet(s){
   // View
   const owed = S.history.reduce((t, h) => t + h.requests.filter(r => r.status !== 'paid').reduce((a, r) => a + r.amount, 0), 0);
   const since = S.account.since ? new Date(S.account.since).toLocaleDateString('en-US', {month:'long', year:'numeric'}) : '';
-  return `<div class="sheet-head"><h2 id="sh-t">Profile</h2>
+  return `<div class="sheet-head">${page ? '<h1 class="h">Profile</h1>' : '<h2 id="sh-t">Profile</h2>'}
       <button class="iconbtn" data-act="pstep" data-step="edit" aria-label="Edit profile" title="Edit profile">${I('pencil')}</button></div>
     <div class="prof-card">
       <div class="pava" aria-hidden="true">${S.me.first ? esc(ini(myName())) : I('user')}</div>
       ${S.me.first ? `<p class="pname">${esc(myName())}</p>` : `<p class="pname empty">Add your name</p>`}
-      ${S.me.phone ? `<p class="pmeta">${esc(S.me.phone)}</p>` : ''}
+      <p class="pmeta">${S.me.phone ? esc(S.me.phone) : 'No phone number saved'}</p>
       <p class="pmeta">${S.account.guest ? `<span class="badge guest">Guest</span>` : `${esc(S.account.email || '')} <span class="badge">${I('check')}Verified</span>`}</p>
       ${since ? `<p class="pmeta">Member since ${esc(since)}</p>` : ''}
     </div>
@@ -1581,6 +1881,7 @@ function profileSheet(s){
       <div><b>${S.contacts.length}</b><span>Contact${S.contacts.length === 1 ? '' : 's'}</span></div>
       <div><b>${money(owed)}</b><span>Owed to you</span></div>
     </div>
+    ${page ? profilePaymentAccounts(s) : ''}
     <p class="eyebrow">Account</p>
     ${S.account.guest
       ? `<div class="pbox"><p><b>You're using IOYA as a guest.</b></p>
@@ -1677,7 +1978,7 @@ function sheetHTML(){
       <label class="field"><span>Phone</span><input id="f-phone" inputmode="tel" value="${esc(c.phone)}" placeholder="(555) 000-0000" autocomplete="off"></label>
       <p class="eyebrow">Payment methods</p>
       ${methods.map(m => `<div class="frow" style="gap:10px">
-        <label class="field" style="flex:1"><span>${esc(m.name)}</span><input id="f-m-${m.id}" value="${esc(has(m.id)?.username || '')}" placeholder="${esc(m.name === 'Venmo' ? '@username' : 'Phone or email')}" autocomplete="off"></label>
+        <label class="field" style="flex:1"><span>${esc(m.name)}</span><input id="f-m-${m.id}" value="${esc(has(m.id)?.username || '')}" placeholder="${esc(PROFILE_HINTS[METHOD_KEY[m.name]] || 'Account details')}" autocomplete="off"></label>
         <label class="checkrow" style="padding-top:18px"><input type="radio" name="f-pref" id="f-pref-${m.id}" value="${m.id}" ${prefId === m.id ? 'checked' : ''}> Preferred</label></div>`).join('')}
       <p class="fine" id="f-err" role="alert" hidden></p>
       <div class="next two">${s.id ? `<button class="btn ghost" data-act="delcontact" data-id="${s.id}" ${ui.saving ? 'disabled' : ''}>Delete</button>` : `<button class="btn ghost" data-act="close">Cancel</button>`}
@@ -1700,16 +2001,16 @@ function sheetHTML(){
         <div class="kv"><span>Date</span><span>${fmtDate(sp.date)}</span></div>
         <div class="kv"><span>Prefers</span><span>${r.pref ? esc(r.pref.name + ' · ' + r.pref.username) : 'No method saved'}</span></div>
         <p class="eyebrow" id="paywith-l">How did ${esc(r.name)} pay?</p>
-        <div class="seg" role="radiogroup" aria-labelledby="paywith-l" style="grid-template-columns:repeat(${S.payMethods.length},1fr)">${S.payMethods.map(m => `<button role="radio" aria-checked="${m.id === choice}" class="${m.id === choice ? 'on' : ''}" data-act="paywith" data-m="${m.id}" style="font-family:var(--f-body)">${esc(m.name)}</button>`).join('')}</div>
+        <div class="seg" role="radiogroup" aria-labelledby="paywith-l" style="grid-template-columns:repeat(${Math.min(S.payMethods.length,4)},1fr)">${S.payMethods.map(m => `<button role="radio" aria-checked="${m.id === choice}" class="${m.id === choice ? 'on' : ''}" data-act="paywith" data-m="${m.id}" style="font-family:var(--f-body)">${esc(m.name)}</button>`).join('')}</div>
         <div class="next"><button class="btn" data-act="markpaid" data-m="${choice}" ${ui.saving ? 'disabled' : ''}>${ui.saving ? 'Saving…' : 'Mark as paid'}</button>
         <button class="btn ghost" data-act="remind">${I('bell')} Prepare reminder</button></div>`;
   }
   if (s.type === 'payment'){
     const r = s.request;
     body = `<h2 id="sh-t">Request from ${esc(r.name)}</h2><p class="sub mono">${money(r.amount)}</p>
-      <label class="field"><span>Request method</span><select data-in="requestMethod">${Object.entries(METHODS).map(([k,m]) => `<option value="${k}" ${r.method === k ? 'selected' : ''}>${m.label}</option>`).join('')}</select></label>
+      <label class="field"><span>Request method</span><select data-in="requestMethod">${Object.entries(METHODS).filter(([k]) => ['cash','sms'].includes(k) || payerAccountValid(k,S.paymentAccounts[k])).map(([k,m]) => `<option value="${k}" ${r.method === k ? 'selected' : ''}>${m.label}</option>`).join('')}</select></label>
       <label class="field"><span>Request from</span><input data-in="requestHandle" value="${r.method === 'cash' ? '' : esc(r.handle)}" placeholder="${METHODS[r.method].ph}" ${r.method === 'cash' ? 'disabled' : ''}></label>
-      <label class="field"><span>Note</span><textarea data-in="requestNote" rows="3">${esc(r.note)}</textarea></label>
+      ${acceptsNote(r.method) ? `<label class="field"><span>Note</span><textarea class="request-note" data-in="requestNote" rows="1">${esc(r.note)}</textarea></label>` : ''}
       <div data-live="requestSheet">${requestCard(r, 'sheet')}</div><p class="fine">Opening the app does not change payment status in IOYA.</p>
       <div class="next"><button class="btn ghost" data-act="close">Close</button></div>`;
   }
@@ -1723,23 +2024,12 @@ function sheetHTML(){
       : `<h2 id="sh-t">This split is no longer here</h2><p class="fine">It may have been removed. Close this and refresh the page.</p>
         <div class="next"><button class="btn ghost" data-act="close">Close</button></div>`;
   }
-  if (s.type === 'confirm'){
-    const {c, ready, blocked} = sendPlan(), d = S.draft;
-    d.msgs = d.msgs || {};
-    body = `<h2 id="sh-t">Prepare ${ready.length} request${ready.length === 1 ? '' : 's'}?</h2>
-      <p class="fine">Leave a note blank to use the bill and amount.</p>
-      ${ready.length > 1 ? `<div class="msg-all"><button class="link" data-act="genmsg" data-pid="all">Auto-generate all</button></div>` : ''}
-      <ul class="conf">${ready.map(p => {
-        const label = p.method === 'sms' ? 'Message' : `${METHODS[p.method].label} note`;
-        return `<li><div class="ct"><span>${esc(p.name)}</span><span class="mono">${money(c.totals[p.id])}</span></div>
-          <div class="cm">${METHODS[p.method].label} ${p.method === 'sms' ? 'to' : 'request to'} ${esc(handleOf(p))}</div>
-          <div class="msg-h"><label for="msg-${p.id}">${label} <small>optional</small></label>
-            <button class="btn small ghost" data-act="genmsg" data-pid="${p.id}">Auto-generate</button></div>
-          <textarea id="msg-${p.id}" data-in="pmsg" data-id="${p.id}" rows="3" placeholder="Write a message, or tap Auto-generate">${esc(d.msgs[p.id] || '')}</textarea></li>`;
-      }).join('')}
-      ${blocked.map(p => `<li class="blocked"><div class="ct"><span>${esc(p.name)}</span><span class="mono">${money(c.totals[p.id])}</span></div><div class="cm">Skipped: ${esc(requestIssue(p, c).error)}</div></li>`).join('')}</ul>
-      <p class="fine">Next, open each request and finish sending in your payment app. Nothing is sent from this screen.</p>
-      <div class="next two"><button class="btn ghost" data-act="close">Go back</button><button class="btn" data-act="send">Prepare requests</button></div>`;
+  if (s.type === 'unmatched'){
+    const {unassigned} = calc(S.draft);
+    body = `<h2 id="sh-t">Match the remaining items</h2>
+      <p class="fine">Select a contact at the top and match them to each of these items.</p>
+      <ul>${unassigned.map(it => `<li>${esc(it.name || 'Untitled item')}</li>`).join('')}</ul>
+      <div class="next"><button class="btn" data-act="fixMatches">Back to matching</button></div>`;
   }
   return `<div class="sheet-bg" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t">${body}</div>`;
 }
@@ -1825,7 +2115,7 @@ function updateContactsFilter(filter, animate=true){
   if (list) list.innerHTML = contactList();
 }
 function syncFlowProgress(view){
-  const step = ({scan:0, scanning:0, review:1, people:2, assign:3, summary:4, sent:4})[view];
+  const step = ({scan:-1, scanning:-1, review:0, assign:1, summary:2, sent:2})[view];
   if (step == null){ lastFlowStep = null; return; }
   const bars = scr.querySelectorAll('.steps i span');
   if (bars.length){
@@ -1871,10 +2161,21 @@ function syncFlowProgress(view){
   }
   lastFlowStep = step;
 }
+function sizeRequestNote(el){
+  el.style.height = 'auto';
+  el.style.height = (el.scrollHeight + el.offsetHeight - el.clientHeight) + 'px';
+}
+function sizeRequestNotes(){
+  document.querySelectorAll('.request-note').forEach(sizeRequestNote);
+}
 function render(){
   const v = S.view;
   const changedView = v !== lastView;
-  scr.classList.toggle('camera-screen', v === 'scan' && ui.cameraOpen);
+  const stripScroll = v === lastView ? document.getElementById('match-strip')?.scrollLeft : 0;
+  const itemScroll = v === lastView ? document.getElementById('match-items')?.scrollTop : 0;
+  scr.classList.toggle('match-screen', v === 'assign');
+  scr.classList.toggle('picker-open', v === 'assign' && ui.contactPicker);
+  scr.classList.toggle('camera-screen', v === 'scan');
   const keepScroll = v === lastView ? scr.scrollTop : 0;
   const oldBars = [...scr.querySelectorAll('.steps i span')];
   flowStartWidths = oldBars.length ? oldBars.map(bar => {
@@ -1882,7 +2183,7 @@ function render(){
     return Math.max(0, Math.min(100, width / track * 100));
   }) : null;
   if (flowProgressFrame !== null){ cancelAnimationFrame(flowProgressFrame); flowProgressFrame = null; }
-  const needsData = !FLOW.includes(v) || v === 'people';
+  const needsData = !FLOW.includes(v) || ['assign','summary','sent'].includes(v);
   scr.innerHTML = needsData && S.loading ? `<p class="fine" role="status">${S.userId == null ? 'Setting up your account…' : 'Loading your splits…'}</p>`
     : needsData && S.loadError ? `<div class="alert bad" role="alert"><b>Couldn't load your data.</b>${esc(S.loadError)}<button class="link" data-act="reload">Try again</button></div>`
     : V[v]();
@@ -1891,11 +2192,14 @@ function render(){
   if (v === 'history') syncHistoryFilterGlider();
   if (v === 'contacts') syncContactsFilterGlider();
   scr.scrollTop = keepScroll; lastView = v;
+  const strip = document.getElementById('match-strip'), items = document.getElementById('match-items');
+  if (strip) strip.scrollLeft = stripScroll || 0;
+  if (items) items.scrollTop = itemScroll || 0;
   refresh();
   const flow = FLOW.includes(v);
   const tabbar = document.getElementById('tabbar');
-  tabbar.innerHTML = [['home','Home','home'],['history','History','history'],['split','Start split','scan'],['contacts','Contacts','contacts']]
-    .map(([k, label, ic]) => { const on = k === 'split' ? flow : k === v; return `<button class="${k === 'split' ? 'scan-tab ' : ''}${on ? 'on' : ''}" data-act="${k === 'split' ? 'start' : 'go'}" data-v="${k}" ${on ? 'aria-current="page"' : ''}>${I(ic)}${label}</button>`; }).join('');
+  tabbar.innerHTML = [['home','Home','home'],['history','History','history'],['split','Split Bill','scan'],['contacts','Contacts','contacts'],['profile','Profile','user']]
+    .map(([k, label, ic]) => { const on = k === 'split' ? flow : k === v; return `<button class="${k === 'split' ? 'scan-tab ' : ''}${on ? 'on' : ''}" data-act="tab" data-v="${k}" ${on ? 'aria-current="page"' : ''}>${I(ic)}${label}</button>`; }).join('');
   const activeTab = tabbar.querySelector('button.on');
   const activeTabIndex = [...tabbar.children].indexOf(activeTab);
   if (activeTab){
@@ -1912,29 +2216,80 @@ function render(){
   }
   lastActiveTabIndex = activeTabIndex;
   document.getElementById('overlay').innerHTML = sheetHTML() + (ui.toast ? `<div class="toast" role="status">${esc(ui.toast)}</div>` : '');
-  document.getElementById('jump').innerHTML = [['home','Home','—'],['history','History','—'],['scan','Scan receipt','R1 R4'],['review','Check items','R2 R3 R11'],['people','People','R5'],['assign','Assign items','R6–R8'],['summary','Review & send','R12–R17'],['sent','Payment requests','R18'],['contacts','Contacts','—']]
+  document.getElementById('jump').innerHTML = [['home','Home','—'],['history','History','—'],['scan','Scan receipt','R1 R4'],['review','Check items','R2 R3 R11'],['assign','Match items','R5–R8'],['summary','Review & send','R12–R17'],['sent','Payment requests','R18'],['contacts','Contacts','—'],['profile','Profile','—']]
     .map(([k, label, r]) => `<button class="${k === v ? 'on' : ''}" data-act="jump" data-v="${k}"><span>${label}</span><small>${r}</small></button>`).join('');
   syncJumpHighlight(changedView);
+  if (CFG.preview && v === 'home') scr.insertAdjacentHTML('afterbegin',
+    '<div class="alert ok"><b>Local IOYA preview</b>Try the redesigned split with fictional contacts.<button class="link" data-act="previewSplit">Try an example split</button></div>');
   if (v === 'scan' && ui.cameraOpen) attachCameraPreview();
+  sizeRequestNotes();
   save();
 }
 function go(v){
+  if (v !== 'profile' && S.view === 'profile') { ui.profile = {}; ui.returnToReview = false; }
+  if (v === 'people') v = 'assign'; // Older drafts and bookmarks used a separate people step.
+  if (v !== 'summary') ui.sendError = '';
+  if (v !== 'assign') { ui.contactPicker = false; ui.contactQuery = ''; }
   if (v !== 'scan') stopCamera();
   if (S.view === 'scanning' && v !== 'scanning') cancelScan();
   // Later split screens need items first; with an empty split, start at Check the items.
-  if (['people','assign','summary','sent'].includes(v) && !S.draft.items.length) v = 'review';
+  if (['assign','summary','sent'].includes(v) && !S.draft.items.length) v = 'review';
   if (v === 'sent' && !S.draft.results) v = 'summary';
   if (FLOW.includes(v)) S.draft.at = v;
   S.view = v; render();
 }
 function toast(t){ ui.toast = t; render(); clearTimeout(toast.t); toast.t = setTimeout(() => { ui.toast = null; render(); }, 2600); }
-const fill = (p, c) => Object.assign(p, {name:c.name, method:c.method, venmo:c.venmo, phone:c.phone, paypal:c.paypal, zelle:c.zelle, cashapp:c.cashapp, contactId:c.id});
 function addContact(cid){
   const d = S.draft, c = S.contacts.find(x => x.id === cid);
-  if (!c || d.people.some(p => p.contactId === cid)) return;
-  let slot = d.people.find(p => !p.me && !p.name.trim());
-  if (!slot){ if (d.people.length >= 12) return toast('A split can have up to 12 people.'); slot = {id:uid('p')}; d.people.push(slot); }
-  fill(slot, c);
+  if (!c || d.people.length >= 12 || d.people.some(p => p.contactId === cid)) return;
+  const p = {...c, id:uid('p'), contactId:c.id};
+  d.people.push(p);
+  return p;
+}
+function matchButton(action, id){
+  return Array.from(scr.querySelectorAll?.(`[data-act="${action}"]`) || []).find(el => id == null || el.dataset.id === id);
+}
+function refreshMatch({strip = false, picker = false} = {}){
+  const items = document.getElementById('match-items');
+  if (items) items.innerHTML = matchItems();
+  if (strip) {
+    const row = document.getElementById('match-strip');
+    if (row) { const left = row.scrollLeft; row.innerHTML = matchStrip(); row.scrollLeft = left; }
+  }
+  if (picker) {
+    const list = document.getElementById('match-picker-list');
+    if (list) list.innerHTML = pickerResults();
+  }
+  save();
+}
+function setContactPicker(open){
+  if (S.view !== 'assign') return;
+  ui.contactPicker = open;
+  ui.contactQuery = '';
+  const panel = document.getElementById('match-picker');
+  const items = document.getElementById('match-items');
+  const button = matchButton('openPicker');
+  scr.classList.toggle('picker-open', open);
+  panel.hidden = !open;
+  items.inert = open;
+  button?.setAttribute('aria-expanded', String(open));
+  if (open) {
+    document.getElementById('contact-query').value = '';
+    document.getElementById('match-picker-list').innerHTML = pickerResults();
+    document.getElementById('match-picker-list').scrollTop = 0;
+    matchButton('closePicker')?.focus();
+  } else button?.focus();
+}
+function addMatchContacts(ids){
+  const added = ids.map(addContact).filter(Boolean);
+  if (!added.length) return;
+  refreshMatch({strip:true,picker:ui.contactPicker});
+  if (ui.contactPicker) {
+    const list = document.getElementById('match-picker-list');
+    const next = list.querySelector('button:not(:disabled)') || matchButton('closePicker');
+    next?.focus({preventScroll:true});
+    matchButton('matchPerson', added.at(-1).id)?.scrollIntoView({block:'nearest',inline:'nearest'});
+  }
 }
 /* ---------- live receipt camera ---------- */
 function cameraAvailable(){ return !!(window.isSecureContext && window.navigator?.mediaDevices?.getUserMedia); }
@@ -1953,9 +2308,9 @@ function cameraOperation(promise, timeout = 5000){
   return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Camera control timed out.')), timeout); })])
     .finally(() => clearTimeout(timer));
 }
-function failCamera(session, message){
+function failCamera(session, message, denied = false){
   if (!cameraActive(session)) return;
-  stopCamera(); ui.cameraError = message; render();
+  stopCamera(); ui.cameraError = message; ui.cameraDenied = denied; render();
 }
 function attachCameraPreview(){
   const session = cameraSession, video = document.getElementById('receipt-camera');
@@ -1972,11 +2327,11 @@ function attachCameraPreview(){
   });
 }
 function usePhotoPicker(id){
-  stopCamera(); ui.cameraError = ''; render(); document.getElementById(id)?.click();
+  stopCamera(); ui.cameraError = ''; ui.cameraDenied = false; render(); document.getElementById(id)?.click();
 }
 async function openCamera(){
   if (!cameraAvailable()) return usePhotoPicker('camera-in');
-  stopCamera(); ui.cameraError = ''; ui.scanError = ''; ui.scanText = '';
+  stopCamera(); ui.cameraError = ''; ui.cameraDenied = false; ui.scanError = ''; ui.scanText = '';
   const session = {stream:null, imageCapture:null, flashModes:[]}; cameraSession = session;
   ui.cameraOpen = true; ui.cameraLoading = true; S.view = 'scan'; render();
   try {
@@ -2008,7 +2363,7 @@ async function openCamera(){
     ui.cameraLoading = false; render();
   } catch(e) {
     const denied = e.name === 'NotAllowedError' || e.name === 'SecurityError';
-    failCamera(session, denied ? 'Camera access was not allowed. You can use the phone camera or upload a photo instead.' : 'The camera could not open. Try the phone camera or upload a photo instead.');
+    failCamera(session, denied ? 'Camera access was not allowed. You can use the phone camera or upload a photo instead.' : 'The camera could not open. Try the phone camera or upload a photo instead.', denied);
   }
 }
 async function toggleCameraLight(){
@@ -2216,10 +2571,23 @@ async function runScan(file){
 }
 /* ---------- actions ---------- */
 const A = {
+  previewSplit: () => {
+    if (!CFG.preview) return;
+    const d = newDraft();
+    Object.assign(d, {merchant:'Demo lunch', items:[{id:'pizza',name:'Margherita pizza',price:2400},
+      {id:'salad',name:'House salad',price:1200},{id:'tea',name:'Iced tea',price:600}], tax:300, printed:4500});
+    S.draft = d; ui.matchPersonId = null; ui.contactPicker = false; ui.contactQuery = ''; go('assign');
+  },
   reload: () => { S.loading = true; S.loadError = null; render(); loadAll(); },
+  tab: ({v}) => {
+    if (S.view === 'profile' && ui.saving) return;
+    if (v === 'split') { if (!FLOW.includes(S.view)) return A.start(); }
+    else if (v === 'profile' && S.view === 'summary') A.reviewProfile();
+    else if (v !== S.view) A.go({v});
+  },
   go: ds => { ui.sheet = null; go(ds.v); },
   jump: ds => { ui.sheet = null; go(ds.v); },
-  start: () => { ui.sheet = null; if (S.view === 'scanning') cancelScan(); S.view = 'scan'; render(); return openCamera(); },
+  start: () => { ui.sheet = null; ui.contactPicker = false; ui.contactQuery = ''; if (S.view === 'scanning') cancelScan(); S.view = 'scan'; render(); return openCamera(); },
   resume: () => { ui.sheet = null; const at = S.draft.at && S.draft.at !== 'scanning' && S.draft.at !== 'scan' ? S.draft.at : 'review'; go(at); },
   snap: () => openCamera(),
   nativeCamera: () => usePhotoPicker('camera-in'),
@@ -2234,22 +2602,51 @@ const A = {
   additem: () => { const it = {id:uid('i'), name:'', price:0}; S.draft.items.push(it); render(); document.getElementById('n-' + it.id)?.focus(); },
   delitem: ds => { const d = S.draft; d.items = d.items.filter(it => it.id !== ds.id); delete d.assign[ds.id]; render(); },
   tip: ds => { Object.assign(S.draft, {tipMode:'percent', tipPct:+ds.p, tipInput:''}); refresh(true); save(); },
-  cnt: ds => { const d = S.draft;
-    if (+ds.d > 0 && d.people.length < 12) d.people.push({id:uid('p'), name:'', method:'venmo', venmo:'', phone:'', paypal:'', contactId:null});
-    if (+ds.d < 0 && d.people.length > 2){ const i = d.people.map(p => !p.me && !p.name.trim()).lastIndexOf(true); d.people.splice(i > 0 ? i : d.people.length - 1, 1); }
-    render(); },
-  rmp: ds => { const d = S.draft; if (d.people.length > 2) d.people = d.people.filter(p => p.id !== ds.id); render(); },
-  addc: ds => { addContact(ds.id); render(); },
-  addg: ds => { const g = S.groups.find(x => x.id === ds.id); g.members.forEach(addContact); ui.q = ''; render(); },
-  cur: ds => { S.draft.cur = Math.max(0, +ds.i); render(); scr.scrollTop = 0; },
-  toggle: ds => { const d = S.draft, p = d.people[Math.min(d.cur, d.people.length - 1)], a = d.assign[ds.id] || [];
-    d.assign[ds.id] = a.includes(p.id) ? a.filter(x => x !== p.id) : [...a, p.id]; render(); },
-  all: ds => { const d = S.draft, ids = d.people.map(p => p.id), a = (d.assign[ds.id] || []).filter(x => ids.includes(x));
-    d.assign[ds.id] = a.length === ids.length ? [] : ids.slice(); render(); },
-  evenrest: () => { const d = S.draft, c = calc(d); c.unassigned.forEach(it => d.assign[it.id] = d.people.map(p => p.id)); render(); },
+  openPicker: () => setContactPicker(true),
+  closePicker: () => setContactPicker(false),
+  matchPerson: ds => {
+    if (!S.draft.people.some(p => p.id === ds.id)) return;
+    ui.matchPersonId = ds.id;
+    refreshMatch({strip:true});
+    matchButton('matchPerson', ds.id)?.focus({preventScroll:true});
+  },
+  rmp: ds => {
+    const d = S.draft;
+    if (!d.people.some(p => p.id === ds.id && !p.me)) return;
+    d.people = d.people.filter(p => p.id !== ds.id);
+    for (const id of Object.keys(d.assign)) d.assign[id] = d.assign[id].filter(pid => pid !== ds.id);
+    delete d.msgs?.[ds.id];
+    delete d.manualLinks?.[ds.id];
+    delete d.textStates?.[ds.id];
+    delete d.confirmedRequests?.[ds.id];
+    if (ui.matchPersonId === ds.id) ui.matchPersonId = null;
+    refreshMatch({strip:true,picker:ui.contactPicker});
+    matchButton('matchPerson', activeMatchPerson()?.id)?.focus({preventScroll:true});
+  },
+  addc: ds => addMatchContacts([ds.id]),
+  addg: ds => addMatchContacts(S.groups.find(g => g.id === ds.id)?.members || []),
+  toggle: ds => {
+    const d = S.draft, p = activeMatchPerson();
+    if (!p || !d.items.some(it => it.id === ds.id)) return;
+    const a = d.assign[ds.id] || [];
+    d.assign[ds.id] = a.includes(p.id) ? a.filter(id => id !== p.id) : [...a, p.id];
+    refreshMatch();
+    matchButton('toggle', ds.id)?.focus({preventScroll:true});
+  },
+  matchNext: () => {
+    if (!calc(S.draft).unassigned.length) return go('summary');
+    ui.sheet = {type:'unmatched'};
+    render();
+    document.querySelector?.('[data-act="fixMatches"]')?.focus();
+  },
+  fixMatches: () => {
+    ui.sheet = null; render();
+    const item = calc(S.draft).unassigned[0];
+    if (item) matchButton('toggle', item.id)?.focus();
+  },
   sheet: ds => { if (ds.s === 'group') return openGroup(ds.id); ui.sheet = {type:ds.s, id:ds.id || null};
     render(); },
-  close: () => { if (ui.saving && ui.sheet?.type === 'group') return; ui.sheet = null; render(); },
+  close: () => { if (ui.sheet?.type === 'unmatched') return A.fixMatches(); if (ui.saving && ui.sheet?.type === 'group') return; ui.sheet = null; render(); },
   savegroup: () => saveGroup(),
   askdeletegroup: () => { if (ui.sheet?.type === 'group' && ui.sheet.id && !ui.saving) { ui.sheet.confirmDelete = true; ui.sheet.error = ''; render(); } },
   keepgroup: () => { if (ui.sheet?.type === 'group' && !ui.saving) { ui.sheet.confirmDelete = false; ui.sheet.error = ''; render(); } },
@@ -2283,11 +2680,19 @@ const A = {
   markpaid: ds => setPaid(+ds.m),
   markunpaid: () => setPaid(null),
   savecontact: ds => saveContact(ds.id || null),
+  reviewProfile: () => { ui.returnToReview = true; go('profile'); },
+  returnReview: () => go('summary'),
   saveprofile: () => saveProfile(),
-  pstep: ds => { Object.assign(ui.sheet, {step:ds.step || null, mode:ds.mode || null, errs:{}, alert:null});
-    if (ds.step !== 'email' && ds.step !== 'code') ui.sheet.draft = null;
+  savePayerAccounts: () => savePayerAccounts(),
+  pstep: ds => {
+    if (ui.saving) return;
+    const state = profileState();
+    Object.assign(state, {step:ds.step || null, mode:ds.mode || null, errs:{}, alert:null});
+    if (ds.step !== 'email' && ds.step !== 'code') state.draft = null;
+    state.paymentDraft = ds.step === 'payments' ? {...S.paymentAccounts} : null;
     render();
-    document.getElementById({edit:'f-first', email:'f-email'}[ds.step] || '')?.focus(); },
+    document.getElementById({edit:'f-first',email:'f-email',code:'f-code',payments:'f-pay-venmo'}[ds.step] || '')?.focus();
+  },
   sendcode: ds => sendCode(!!ds.again),
   verifycode: () => verifyCode(),
   signout: () => signOutAccount(),
@@ -2295,25 +2700,24 @@ const A = {
   remind: () => {
     const sp = S.history.find(x => x.id === ui.sheet.sid), r = currentRequest();
     const contact = S.contacts.find(c => c.id === String(r.contactId));
-    const method = (r.pref && METHOD_KEY[r.pref.name]) || 'sms';
-    ui.sheet = {type:'payment', request:{contactId:r.contactId, name:r.name, method, handle:contact?.[METHODS[method].field] || r.pref?.username || '', amount:r.amount,
+    const method = contact ? methodFor({...contact,contactId:contact.id},r.amount) : 'sms';
+    ui.sheet = {type:'payment', request:{contactId:r.contactId, name:r.name, method, handle:contact ? recipientHandle(method,contact) : '', amount:r.amount,
       note:`Hi ${r.name.split(/\s+/)[0]}! Your share of ${sp.merchant} is ${money(r.amount)}.`}};
     render();
   },
   copyrequest: ds => copyRequest(ds),
-  send: () => {
-    const {c, ready, globalBlock} = sendPlan();
-    if (globalBlock || !ready.length) return toast('Fix the split and request details before preparing requests.');
-    S.draft.results = preparedRequests();
-    ui.sheet = null; go('sent');
+  retryText: ds => retryText(ds.id),
+  confirmLinked: ds => {
+    const r = S.draft.results?.[Number(ds.index)];
+    if (CFG.preview || S.view !== 'sent' || !r || ['manual','cash'].includes(r.method) ||
+      JSON.stringify(S.draft.results) !== JSON.stringify(preparedRequests())) return;
+    (S.draft.confirmedRequests ||= {})[r.pid] = JSON.stringify(r);
+    render();
   },
-  genmsg: ds => {
-    const {c, ready} = sendPlan(), d = S.draft; d.msgs = d.msgs || {};
-    // "All" only fills empty boxes so it never overwrites a message someone typed.
-    ready.filter(p => ds.pid === 'all' ? !(d.msgs[p.id] || '').trim() : p.id === ds.pid).forEach(p => d.msgs[p.id] = autoMessage(p, c));
-    save(); render();
-    document.getElementById(`msg-${ds.pid === 'all' ? ready[0].id : ds.pid}`)?.focus();
-  },
+  checkconsent: ds => checkConsent(ds.id),
+  saveconsent: ds => saveConsent(ds.id),
+  send: () => prepareSplitRequests(),
+  previewHistory: () => { if (CFG.preview) finishPreviewSplit(); },
   done: () => { stopCamera(); cancelScan(); clearPhoto(); ui.scanText = ''; go('home'); toast('Split kept in this browser. Use Resume current split to return.'); }
 };
 // Profile: save_my_profile updates the users row and the "You" contact together (supabase/profile.sql).
@@ -2333,13 +2737,13 @@ const CHECK = {
 const fieldVal = k => { const v = (document.getElementById('f-' + k)?.value || '').trim(); return k === 'code' ? v.replace(/\s/g, '') : k === 'email' ? v.toLowerCase() : v; };
 // Show the errors, keep what was typed, and put the cursor in the first field that needs fixing.
 function showErrs(errs, alert){
-  const sh = ui.sheet; sh.errs = errs; sh.alert = alert || null; ui.saving = false; render();
+  const sh = profileState(); sh.errs = errs; sh.alert = alert || null; ui.saving = false; render();
   const first = Object.keys(errs).find(k => errs[k]);
   if (first) document.getElementById('f-' + first)?.focus();
 }
 // While typing, update that field's message (only once it has been shown), without re-rendering.
 function liveCheck(el){
-  const sh = ui.sheet, k = el.dataset.f; if (!sh) return;
+  const sh = profileState(), k = el.dataset.f; if (!sh) return;
   if (['first', 'last', 'phone'].includes(k)) (sh.draft = sh.draft || {...S.me})[k] = el.value;
   if (k === 'email') sh.email = el.value;
   if (k === 'code') sh.token = el.value;
@@ -2358,7 +2762,7 @@ const errField = m => /first name|names can be/i.test(m) ? 'first' : /phone numb
 function showServerErr(m){ const k = errField(m); k ? showErrs({[k]:m}) : showErrs({}, m); }
 
 async function saveProfile(){
-  const sh = ui.sheet;
+  const sh = profileState();
   const draft = {first:fieldVal('first'), last:fieldVal('last'), phone:fieldVal('phone')};
   sh.draft = draft;
   const errs = {first:CHECK.first(draft.first), last:CHECK.last(draft.last), phone:CHECK.phone(draft.phone)};
@@ -2367,9 +2771,12 @@ async function saveProfile(){
   try {
     const same = draft.first === S.me.first && draft.last === S.me.last && draft.phone === S.me.phone;
     if (!same){
-      need(await sb.rpc('save_my_profile', {p_first_name:draft.first, p_last_name:draft.last, p_phone:draft.phone}));
-      await loadAll();  // reloads the users row and finds the renamed "You" contact
-      if (S.loadError) return;
+      if (CFG.preview) { S.me = draft; savePreviewProfile(); }
+      else {
+        need(await sb.rpc('save_my_profile', {p_first_name:draft.first, p_last_name:draft.last, p_phone:draft.phone}));
+        await loadAll();
+        if (S.loadError) { ui.saving = false; return; }
+      }
     }
     ui.saving = false;
     if (sh.mode === 'create'){ Object.assign(sh, {step:'email', draft:null}); render(); document.getElementById('f-email')?.focus(); }
@@ -2390,7 +2797,8 @@ const authErr = m => /failed to fetch|network|load failed/i.test(m) ? OFFLINE
   : /error sending|smtp/i.test(m) ? 'The email could not be sent. Try again later, or tell the IOYA team.'
   : m;
 async function sendCode(again){
-  const sh = ui.sheet;
+  const sh = profileState();
+  if (CFG.preview) return showErrs({}, 'Email sign-in is unavailable in the local preview.');
   const email = again ? sh.email : fieldVal('email');
   sh.email = email;
   const bad = CHECK.email(email);
@@ -2407,7 +2815,7 @@ async function sendCode(again){
   } catch(e) { showServerErr(authErr(e.message)); }
 }
 async function verifyCode(){
-  const sh = ui.sheet;
+  const sh = profileState();
   const token = fieldVal('code');
   sh.token = token;
   const bad = CHECK.code(token);
@@ -2418,11 +2826,11 @@ async function verifyCode(){
     if (r.error) throw new Error(r.error.message);
     if (sh.mode === 'create'){
       await readAccount();
-      ui.saving = false; ui.sheet = {type:'profile', id:null};
+      ui.saving = false; resetProfileState();
       toast(`Your profile is created. You're signed in as ${S.account.email || sh.email}.`);
     } else {
       // A different account is now signed in: forget this browser's guest and load the profile.
-      S.userId = null; ui.saving = false; ui.sheet = {type:'profile', id:null};
+      S.userId = null; S.paymentAccounts = {}; ui.saving = false; resetProfileState();
       await loadAll();
       if (!S.loadError) toast(`Signed in as ${S.account.email}.`);
     }
@@ -2432,10 +2840,37 @@ async function signOutAccount(){
   ui.saving = true; render();
   const {error} = await sb.auth.signOut({scope:'local'});
   if (error) return showErrs({}, `Couldn't sign out: ${error.message}`);
-  ui.saving = false; ui.sheet = null; S.userId = null;
+  ui.saving = false; ui.sheet = null; resetProfileState(); S.userId = null;
+  S.paymentAccounts = {};
   S.me = {first:'', last:'', phone:''};
   await loadAll();  // starts a fresh guest account
   if (!S.loadError) toast('Signed out. This browser is now using a guest account.');
+}
+
+function savePreviewProfile(){
+  try { localStorage.setItem(PREVIEW_ACCOUNT_KEY,JSON.stringify({me:S.me,paymentAccounts:S.paymentAccounts})); } catch(e) {}
+}
+async function savePayerAccounts(){
+  const state = profileState();
+  if (state.step !== 'payments' || ui.saving) return;
+  const owner = S.userId;
+  const accounts = Object.fromEntries(PROFILE_METHODS.map(method => [method,(state.paymentDraft[method] || '').trim()]).filter(([,value]) => value));
+  const errors = Object.fromEntries(Object.entries(accounts).filter(([method,value]) => !payerAccountValid(method,value)).map(([method]) =>
+    ['pay-'+method,'Enter a valid '+PROFILE_HINTS[method].toLowerCase()+'.']));
+  if (Object.keys(errors).length) return showErrs(errors);
+  ui.saving = true; state.errs = {}; state.alert = null; render();
+  try {
+    const saved = CFG.preview ? accounts : need(await sb.rpc('save_my_payment_accounts',{p_accounts:accounts}));
+    if (S.userId !== owner) { ui.saving = false; return; }
+    S.paymentAccounts = saved || {};
+    S.paymentAccountsError = '';
+    if (CFG.preview) savePreviewProfile();
+    ui.saving = false; state.step = null; state.paymentDraft = null;
+    toast('Payment accounts saved.');
+  } catch(e) {
+    if (S.userId !== owner) { ui.saving = false; return; }
+    showErrs({},/save_my_payment_accounts|schema cache/i.test(e.message) ? 'Apply the profile payment accounts database update before saving.' : e.message);
+  }
 }
 
 // Contacts sync: Supabase functions save_contact / delete_contact (see supabase/contacts-sync.sql).
@@ -2501,11 +2936,13 @@ async function setPaid(methodId){
   }
 }
 document.addEventListener('click', e => {
-  const el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
+  const el = e.target.closest('[data-act]'); if (!el || el.disabled || ui.preparing) return;
   const f = A[el.dataset.act]; if (f){ e.preventDefault(); f(el.dataset, el); }
 });
 document.addEventListener('input', e => {
-  const el = e.target, k = el.dataset.in; if (!k) return;
+  const el = e.target, k = el.dataset.in; if (!k || ui.preparing) return;
+  if (S.view === 'summary') ui.sendError = '';
+  if (k === 'pmsg' || k === 'requestNote') sizeRequestNote(el);
   if (['gname','gquery','gmember'].includes(k) && ui.sheet?.type === 'group') {
     const s = ui.sheet;
     if (ui.saving) return;
@@ -2519,9 +2956,14 @@ document.addEventListener('input', e => {
     return;
   }
   if (k === 'pf') return liveCheck(el);
+  if (k === 'payerAccount') {
+    const state = profileState();
+    if (state.step === 'payments' && !ui.saving) state.paymentDraft[el.dataset.id] = el.value;
+    return;
+  }
   if (['requestMethod','requestHandle','requestNote'].includes(k) && ui.sheet?.type === 'payment') {
     const r = ui.sheet.request;
-    if (k === 'requestMethod') { r.method = el.value; const c = S.contacts.find(c => c.id === String(r.contactId)); r.handle = c?.[METHODS[r.method].field] || ''; render(); }
+    if (k === 'requestMethod') { r.method = el.value; const c = S.contacts.find(c => c.id === String(r.contactId)); r.handle = c ? recipientHandle(r.method,c) : ''; render(); }
     else { r[k === 'requestHandle' ? 'handle' : 'note'] = el.value; refresh(); }
     return;
   }
@@ -2534,12 +2976,15 @@ document.addEventListener('input', e => {
     case 'iprice': item().price = toC(val); break;
     case 'tax': case 'fees': case 'printed': d[k] = toC(val); break;
     case 'tipamount': d.tipInput = val; d.tipMode = val.trim() ? 'amount' : null; d.tipPct = null; break;
-    case 'q': ui.q = val; break;
+    case 'contact-query':
+      ui.contactQuery = val;
+      document.getElementById('match-picker-list').innerHTML = pickerResults();
+      document.getElementById('match-picker-list').scrollTop = 0;
+      return;
     case 'hq': case 'cq': ui[k] = val; break;
-    case 'pmsg': (d.msgs = d.msgs || {})[el.dataset.id] = val; break;
-    case 'pname': person().name = val; person().contactId = null; break;
-    case 'phandle': { const p = person(); p[METHODS[p.method].field] = val.trim(); break; }
-    case 'pmethod': person().method = val; render(); return;
+    case 'pmsg': (d.msgs ||= {})[el.dataset.id] = val; break;
+    case 'requestPhone': person().phone = val; break;
+    case 'receiveCheckout': (d.checkouts ||= {})[el.dataset.id] = {amount:calc(d).totals[el.dataset.id],url:val}; break;
   }
   refresh(); save();
 });
@@ -2548,15 +2993,20 @@ document.addEventListener('change', e => {
   const file = e.target.files[0]; e.target.value = '';
   if (file) runScan(file);
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.sheet) A.close(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (ui.sheet) A.close();
+  else if (ui.contactPicker) A.closePicker();
+});
 // Enter in a profile field presses that step's main button.
 document.addEventListener('keydown', e => { const act = e.target.dataset && e.target.dataset.enter; if (e.key === 'Enter' && act && !ui.saving){ e.preventDefault(); A[act]({}); } });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && ui.cameraOpen){ stopCamera(); if (S.view === 'scan') render(); }
 });
 window.addEventListener?.('pagehide', () => stopCamera());
+window.addEventListener?.('resize', sizeRequestNotes);
 
-if (!V[S.view] || S.view === 'scanning' || S.view === 'sent' && !S.draft.results || ['people','assign','summary'].includes(S.view) && !S.draft.items.length) S.view = 'home';
+if (!V[S.view] || S.view === 'scanning' || S.view === 'sent' && !S.draft.results || ['assign','summary'].includes(S.view) && !S.draft.items.length) S.view = 'home';
 render();
 loadAll();
 })();

@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Pay your share · IOYA</title>
+  <style>
+    :root{
+      --desk:#E8EBF0;--paper:#FAFBFC;--card:#FFF;--ink:#15171C;--muted:#5C6371;
+      --line:#D9DEE6;--accent:#CC6FCC;--accent-soft:#F6E5F6;--focus:#3654D1;
+      --good:#167F46;--bad:#A32718;--on-accent:#15171C;
+      color-scheme:light;
+    }
+    @media(prefers-color-scheme:dark){:root{
+      --desk:#0A0C10;--paper:#12151C;--card:#1A1E27;--ink:#ECEEF2;--muted:#A7AEBC;
+      --line:#363D4B;--accent:#FF7A2E;--accent-soft:#3B2112;--focus:#9EAEFF;
+      --good:#63D99A;--bad:#FF8B7B;
+      color-scheme:dark;
+    }}
+    *{box-sizing:border-box}
+    [hidden]{display:none!important}
+    body{margin:0;background:var(--desk);color:var(--ink);font:15px/1.45 system-ui,sans-serif}
+    main{max-width:500px;margin:36px auto;padding:22px;background:var(--paper);border:1px solid var(--line);border-radius:24px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    .brand{font-family:"Arial Black",system-ui,sans-serif;font-size:27px;font-weight:950;letter-spacing:-.04em}
+    .tag,.kicker{color:var(--muted);font:650 11px/1.4 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.08em}
+    .receipt{background:var(--accent-soft);border-radius:17px;padding:20px}
+    h1,h2,p{margin:0}
+    h1{font-size:22px;line-height:1.2;letter-spacing:-.02em}
+    .amount{font-size:clamp(36px,10vw,53px);font-weight:850;letter-spacing:-.05em;font-variant-numeric:tabular-nums;line-height:1.15;margin:7px 0 12px}
+    .currency{font-size:12px;font-weight:650;letter-spacing:.04em;margin-inline-start:8px}
+    .note{margin-top:7px;white-space:pre-wrap}
+    .stack{display:grid;gap:12px;margin-top:18px}
+    .chooser{display:grid;gap:12px}
+    .chooser .options{display:grid}
+    .chooser .button{justify-content:flex-start;text-align:left;overflow-wrap:anywhere}
+    .back{margin-bottom:12px}
+    .breakdown{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+    .breakdown .detail{font-variant-numeric:tabular-nums}
+    .breakdown .detail span{overflow-wrap:anywhere}
+    .breakdown .detail b{white-space:nowrap}
+    h2{font-size:17px;line-height:1.25}
+    .options{display:flex;flex-wrap:wrap;gap:8px}
+    .option,.button,summary{font:inherit;font-weight:650;cursor:pointer}
+    .option,.button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:11px;color:var(--ink);background:var(--card);text-decoration:none}
+    .payment-options{display:grid;gap:10px}
+    .payment-option{display:grid;grid-template-columns:42px 1fr 18px;align-items:center;gap:12px;width:100%;min-height:62px;padding:10px 14px;text-align:left}
+    .payment-option:hover{border-color:var(--accent)}
+    .payment-option[data-selected]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+    .payment-mark{display:grid;place-items:center;height:34px;border-radius:8px;background:var(--accent-soft);color:var(--ink);font-weight:850;font-size:14px;line-height:1}
+    .payment-arrow{text-align:center;color:var(--muted);font-size:19px;line-height:1}
+    .payment-option[data-selected] .payment-arrow{color:var(--ink)}
+    .method-details > summary{font-size:13px;color:var(--muted)}
+    .method-details .card{margin-top:8px}
+    button:disabled,.button[aria-disabled="true"]{opacity:.65;cursor:not-allowed}
+    :focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+    .card{padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--card);display:grid;gap:12px}
+    .detail{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding-bottom:8px}
+    .detail b,.note,#payee{overflow-wrap:anywhere}
+    .detail .button{flex:none}
+    .fine{font-size:13px;color:var(--muted)}
+    .good{color:var(--good)}
+    .error{color:var(--bad)}
+    form{display:grid;gap:9px;margin-top:10px}
+    label{font-weight:650}
+    input{width:100%;min-height:44px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;color:var(--ink);background:var(--paper)}
+    .copy-fallback{display:grid;gap:5px}
+    footer{border-top:1px solid var(--line);margin-top:20px;padding-top:12px}
+    @media(max-width:540px){main{margin:0;min-height:100dvh;border:0;border-radius:0;padding:22px 16px}}
+  </style>
+</head>
+<body>
+<main>
+  <header><span class="brand">IOYA</span><span class="tag">Split bill request</span></header>
+  <button type="button" class="button back" id="back" hidden>Choose a different name</button>
+  <p id="status" role="status">Loading your request…</p>
+  <section id="chooser" class="chooser" aria-labelledby="chooser-title" hidden>
+    <h1 id="chooser-title" tabindex="-1">Who are you?</h1>
+    <p class="fine">Choose your name to see your share of the bill.</p>
+    <div class="options" id="names"></div>
+  </section>
+  <div id="request" hidden>
+    <section class="receipt" aria-labelledby="title">
+      <h1 id="title" tabindex="-1">Pay your share</h1>
+      <p class="amount"><span id="amount"></span><span class="currency">USD</span></p>
+      <p class="kicker">Requested by</p>
+      <p><strong id="payee"></strong></p>
+      <p id="note" class="note" hidden></p>
+    </section>
+    <section id="breakdown-section" class="stack" aria-labelledby="breakdown-title" hidden>
+      <h2 id="breakdown-title">Your share</h2>
+      <ul id="breakdown" class="card breakdown"></ul>
+    </section>
+    <p id="preview" class="stack fine" hidden>Local preview. Payment apps and checkout are disabled.</p>
+    <section id="payment" class="stack" aria-labelledby="choose">
+      <h2 id="choose">Choose how to pay</h2>
+      <div class="payment-options" id="options"></div>
+      <p id="unavailable" class="fine" hidden>Ask the person who shared this request how they’d like to be paid.</p>
+      <details class="method-details" id="method" hidden>
+        <summary id="method-name"></summary>
+        <div class="card">
+        <p class="fine" id="instructions"></p>
+        <a class="button" id="method-app" target="_blank" rel="noopener noreferrer" hidden></a>
+        <div id="target-row" class="detail" hidden>
+          <div><p class="kicker">Pay this account</p><b id="target"></b></div>
+          <button type="button" id="copy-target" class="button">Copy account</button>
+        </div>
+        <div class="detail">
+          <div><p class="kicker">Amount</p><b id="method-amount"></b></div>
+          <button type="button" id="copy-amount" class="button">Copy amount</button>
+        </div>
+        <div id="note-row" class="detail" hidden>
+          <div><p class="kicker">Memo</p><b id="method-note"></b></div>
+          <button type="button" id="copy-note" class="button">Copy memo</button>
+        </div>
+        <p class="fine" id="copy-status" role="status" hidden></p>
+        <label class="copy-fallback fine" id="copy-fallback" hidden>Copy this value
+          <input readonly id="copy-value">
+        </label>
+        <details id="share" hidden>
+          <summary>Share your account for next time (optional)</summary>
+          <form id="share-form">
+            <p class="fine" id="share-description"></p>
+            <label id="username-label" for="username"></label>
+            <input id="username" name="username" type="text" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" required>
+            <button type="submit" class="button" id="share-button">Share my account</button>
+            <p id="share-status" class="fine" role="status" hidden></p>
+          </form>
+        </details>
+        </div>
+      </details>
+    </section>
+    <footer class="fine">Confirm the recipient and amount in your payment app before sending.</footer>
+  </div>
+</main>
+<script src="/config.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const route = location.hash.slice(1);
+const groupId = route.startsWith('group=') ? route.slice(6) : null;
+const api = '/api/manual-requests/';
+const formatMoney = cents => new Intl.NumberFormat('en-US', {style:'currency', currency:'USD'}).format(cents / 100);
+const preview = window.IOYA_CONFIG?.preview === true;
+const paymentMarks = {venmo:'V',paypal:'PP',zelle:'Z',cashapp:'$',applecash:'Cash',applepay:'Pay'};
+const requestId = /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/;
+let selectedMethod;
+let activeId = null;
+let requestVersion = 0;
+
+function stripeCheckout(raw){
+  try{
+    const url = new URL(raw);
+    if (url.protocol === 'https:' && !url.username && !url.password && !url.port && !url.search &&
+        ['buy.stripe.com','checkout.stripe.com'].includes(url.hostname) && url.pathname !== '/') return url.href;
+  }catch{}
+  return '';
+}
+
+function availableMethods(methods, amount, note){
+  const options = [];
+  const {venmo, paypal, zelle, cashapp, applecash, applePayUrl} = methods || {};
+  const email = value => typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  const phone = value => typeof value === 'string' && /^\+1[2-9][0-9]{9}$/.test(value);
+  if (typeof venmo === 'string' && /^[A-Za-z0-9_-]{5,30}$/.test(venmo)){
+    const query = new URLSearchParams({txn:'pay', recipients:venmo, amount, note:note || 'IOYA split'});
+    options.push({
+      id:'venmo', name:'Venmo', account:'@' + venmo,
+      instructions:'Check the recipient, amount and memo in Venmo. If Venmo opens without them, copy the details below.',
+      href:'https://venmo.com/?' + query,
+      ownLabel:'Your Venmo username'
+    });
+  }
+  if (typeof paypal === 'string' && /^[A-Za-z0-9]{1,20}$/.test(paypal)){
+    options.push({
+      id:'paypal', name:'PayPal', account:'paypal.me/' + paypal,
+      instructions:'The PayPal.Me link includes your share. Add the memo in PayPal if prompted.',
+      href:'https://www.paypal.me/' + paypal + '/' + amount + 'USD',
+      ownLabel:'Your PayPal email or username'
+    });
+  } else if (email(paypal)){
+    options.push({
+      id:'paypal', name:'PayPal', account:paypal, appHref:'https://www.paypal.com/myaccount/transfer/', appLabel:'Open PayPal',
+      instructions:'Open Send in PayPal, then enter this email address, amount and memo.',
+      ownLabel:'Your PayPal email or username'
+    });
+  }
+  if (phone(zelle) || email(zelle)){
+    options.push({
+      id:'zelle', name:'Zelle', account:zelle, appHref:'https://www.zellepay.com/get-started', appLabel:'Find your bank',
+      instructions:'Open Zelle in your banking app and enter this enrolled account, amount and memo.',
+      ownLabel:'Your enrolled Zelle email or mobile number'
+    });
+  }
+  const cashTag = typeof cashapp === 'string' && /^\$(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{1,20}$/.test(cashapp);
+  if (Number(amount) >= 1 && (cashTag || phone(cashapp) || email(cashapp))){
+    options.push({
+      id:'cashapp', name:'Cash App', account:cashapp, appHref:'https://cash.app/login', appLabel:'Open Cash App',
+      instructions:'Open Cash App, enter the amount, choose Pay, and enter this account. Review the recipient before you send.'
+    });
+  }
+  if (phone(applecash)){
+    options.push({
+      id:'applecash', name:'Apple Cash', account:applecash, appHref:'sms:' + applecash, appLabel:'Open Messages',
+      instructions:'On an Apple device with Apple Cash set up, open Messages to this mobile number. Tap +, choose Apple Cash, enter the amount and tap Send.'
+    });
+  }
+  const checkout = stripeCheckout(applePayUrl);
+  if (checkout){
+    options.push({
+      id:'applepay', name:'Apple Pay',
+      instructions:'Apple Pay appears at checkout on supported devices. Review the amount before confirming.',
+      href:checkout
+    });
+  }
+  return options;
+}
+
+async function copy(value, label){
+  const version = requestVersion, method = selectedMethod;
+  $('copy-fallback').hidden = true;
+  $('copy-status').hidden = true;
+  try{
+    await navigator.clipboard.writeText(value);
+    if (version !== requestVersion || method !== selectedMethod) return;
+    $('copy-status').textContent = label + ' copied.';
+    $('copy-status').hidden = false;
+  }catch{
+    if (version !== requestVersion || method !== selectedMethod) return;
+    $('copy-value').value = value;
+    $('copy-fallback').hidden = false;
+    $('copy-value').focus();
+    $('copy-value').select();
+  }
+}
+
+function select(method, amount, displayAmount, note){
+  selectedMethod = method;
+  for (const row of $('options').children){
+    const active = row.dataset.method === method.id;
+    if (active) row.setAttribute('data-selected','');
+    else row.removeAttribute('data-selected');
+    if (!row.href) row.setAttribute('aria-pressed', String(active));
+    row.lastElementChild.textContent = active ? '✓' : '›';
+  }
+  const details = $('method');
+  details.hidden = false;
+  details.open = !method.href;
+  $('method-name').textContent = method.name + ' payment details';
+  $('instructions').textContent = method.instructions;
+  const appLink = $('method-app');
+  appLink.hidden = preview || !method.appHref;
+  appLink.textContent = method.appLabel || '';
+  if (appLink.hidden) appLink.removeAttribute('href');
+  else {
+    appLink.href = method.appHref;
+    appLink.target = method.id === 'applecash' ? '_self' : '_blank';
+  }
+  $('target-row').hidden = !method.account;
+  $('target').textContent = method.account || '';
+  $('method-amount').textContent = displayAmount;
+  $('note-row').hidden = !note;
+  $('method-note').textContent = note;
+  $('copy-status').hidden = true;
+  $('copy-fallback').hidden = true;
+  $('copy-target').onclick = () => copy(method.account, 'Account');
+  $('copy-amount').onclick = () => copy(amount, 'Amount');
+  $('copy-note').onclick = () => copy(note, 'Memo');
+  $('share').hidden = !method.ownLabel;
+  $('share').open = false;
+  $('username-label').textContent = method.ownLabel || '';
+  $('username').value = '';
+  $('share-status').hidden = true;
+}
+
+function paymentRow(method, amount, displayAmount, note){
+  const opensProvider = method.href && !preview;
+  const row = document.createElement(opensProvider ? 'a' : 'button');
+  row.className = 'button payment-option';
+  row.dataset.method = method.id;
+  if (opensProvider) {
+    row.href = method.href;
+    row.target = '_blank';
+    row.rel = 'noopener noreferrer';
+  } else {
+    row.type = 'button';
+    row.setAttribute('aria-pressed','false');
+  }
+  const mark = document.createElement('span');
+  mark.className = 'payment-mark';
+  mark.setAttribute('aria-hidden','true');
+  mark.textContent = paymentMarks[method.id];
+  const label = document.createElement('span');
+  label.textContent = method.name;
+  const arrow = document.createElement('span');
+  arrow.className = 'payment-arrow';
+  arrow.setAttribute('aria-hidden','true');
+  arrow.textContent = '›';
+  row.append(mark,label,arrow);
+  row.onclick = () => select(method, amount, displayAmount, note);
+  return row;
+}
+
+async function sendConsent(event){
+  event.preventDefault();
+  const method = selectedMethod;
+  const username = $('username').value.trim();
+  if (!activeId || !method?.ownLabel || !username || $('share-button').disabled) return;
+  const version = requestVersion, id = activeId;
+  $('share-button').disabled = true;
+  $('share-status').hidden = true;
+  let message = 'Your account details were shared with the person who requested payment.';
+  let failed = false;
+  try{
+    const response = await fetch(api + id + '/consent', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({method:method.id, username})
+    });
+    if (!response.ok){
+      message = 'Sharing is unavailable. You can still continue to your payment app.';
+      if (response.status === 400) message = 'Check your account details and try again.';
+      if (response.status === 409) message = 'Account details have already been shared for this request.';
+      failed = true;
+    }
+  }catch{
+    message = 'Sharing is unavailable. Check your connection and try again.';
+    failed = true;
+  }finally{
+    if (version === requestVersion) $('share-button').disabled = false;
+  }
+  if (version !== requestVersion || selectedMethod !== method) return;
+  const status = $('share-status');
+  status.textContent = message;
+  status.classList.toggle('error', failed);
+  status.classList.toggle('good', !failed);
+  status.hidden = false;
+  if (!failed) $('username').value = '';
+}
+
+function showChooser(){
+  requestVersion++;
+  activeId = null;
+  selectedMethod = null;
+  $('back').hidden = true;
+  $('request').hidden = true;
+  $('status').hidden = true;
+  $('chooser').hidden = false;
+  $('chooser-title').focus();
+}
+
+async function loadGroup(id){
+  if (!requestId.test(id)){
+    $('status').textContent = 'This request link is incomplete. Ask for a new link.';
+    return;
+  }
+  try{
+    const response = await fetch(api + 'group/' + id, {cache:'no-store'});
+    if (response.status === 404 || response.status === 410){
+      $('status').textContent = 'This request is no longer available. Ask for a new link.';
+      return;
+    }
+    if (!response.ok) throw new Error();
+    const {recipients} = await response.json();
+    if (!Array.isArray(recipients) || !recipients.length || recipients.some(entry =>
+      !entry || typeof entry.name !== 'string' || typeof entry.id !== 'string' || !requestId.test(entry.id))) throw new Error();
+    for (const {id: recipientId, name} of recipients){
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'button';
+      button.textContent = name;
+      button.onclick = () => loadRequest(recipientId, name);
+      $('names').append(button);
+    }
+    showChooser();
+  }catch{
+    $('status').textContent = 'Couldn’t load this request. Check your connection and refresh.';
+  }
+}
+
+function showBreakdown(items){
+  const list = $('breakdown');
+  list.replaceChildren();
+  if (Array.isArray(items)){
+    for (const item of items){
+      if (!item || typeof item.name !== 'string' || !Number.isSafeInteger(item.amountCents)) continue;
+      const row = document.createElement('li');
+      const name = document.createElement('span');
+      const value = document.createElement('b');
+      row.className = 'detail';
+      name.textContent = item.name;
+      value.textContent = formatMoney(item.amountCents);
+      row.append(name, value);
+      list.append(row);
+    }
+  }
+  $('breakdown-section').hidden = list.children.length === 0;
+}
+
+async function loadRequest(id, name){
+  const version = ++requestVersion;
+  activeId = null;
+  selectedMethod = null;
+  $('request').hidden = true;
+  $('chooser').hidden = true;
+  $('back').hidden = groupId === null;
+  $('status').hidden = false;
+  $('status').textContent = 'Loading your request…';
+  if (!requestId.test(id)){
+    $('status').textContent = 'This request link is incomplete. Ask for a new link.';
+    return;
+  }
+  try{
+    const response = await fetch(api + id, {cache:'no-store'});
+    if (version !== requestVersion) return;
+    if (response.status === 404 || response.status === 410){
+      $('status').textContent = 'This request is no longer available. Ask for a new link.';
+      return;
+    }
+    if (!response.ok) throw new Error();
+    const request = await response.json();
+    if (version !== requestVersion) return;
+    if (!Number.isSafeInteger(request.amountCents) || request.amountCents <= 0 ||
+        typeof request.payeeName !== 'string') throw new Error();
+    const note = typeof request.note === 'string' ? request.note : '';
+    const amount = (request.amountCents / 100).toFixed(2);
+    const displayAmount = formatMoney(request.amountCents);
+    $('title').textContent = name ? 'Share for ' + name : 'Pay your share';
+    $('amount').textContent = displayAmount;
+    $('payee').textContent = request.payeeName;
+    $('note').textContent = note;
+    $('note').hidden = !note;
+    showBreakdown(request.items);
+    $('share-description').textContent = 'Share the account you enter below so ' + request.payeeName +
+      ' can save it to their IOYA contacts. You can pay either way.';
+    const methods = availableMethods(request.methods, amount, note);
+    $('options').replaceChildren();
+    $('method').hidden = true;
+    $('share-button').disabled = false;
+    for (const method of methods) $('options').append(paymentRow(method,amount,displayAmount,note));
+    $('unavailable').hidden = methods.length !== 0;
+    $('preview').hidden = !preview;
+    $('status').hidden = true;
+    $('request').hidden = false;
+    activeId = id;
+    if (groupId !== null) $('title').focus();
+  }catch{
+    if (version === requestVersion) $('status').textContent = 'Couldn’t load this request. Check your connection and try again.';
+  }
+}
+
+$('share-form').addEventListener('submit', sendConsent);
+$('back').addEventListener('click', showChooser);
+groupId === null ? loadRequest(route) : loadGroup(groupId);
+</script>
+</body>
+</html>

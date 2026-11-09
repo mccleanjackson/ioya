@@ -13,7 +13,7 @@ function fakeSupabase({fail = {}, saved = false} = {}){
   const calls = [];
   let nextUser = 7;
   const state = {session:{user:{id:'guest', is_anonymous:!saved, email:saved ? 'me@example.com' : '', created_at:'2026-11-02T10:00:00Z'}}, userId:7,
-    me:{user_first_name:'', user_last_name:'', phone:null}};
+    paymentAccounts:{}, me:{user_first_name:'', user_last_name:'', phone:null}};
   const err = name => fail[name] ? {error:{message:fail[name]}} : null;
   const query = rows => {
     const q = {select:() => q, eq:() => q, order:() => q,
@@ -45,6 +45,11 @@ function fakeSupabase({fail = {}, saved = false} = {}){
     },
     rpc: async (name, args) => {
       calls.push([name, args]);
+      if (name === 'get_my_payment_accounts') return {data:state.paymentAccounts,error:null};
+      if (name === 'save_my_payment_accounts') {
+        state.paymentAccounts=args.p_accounts;
+        return {data:state.paymentAccounts,error:null};
+      }
       if (name === 'ensure_my_user') return {data:state.userId, error:null};
       if (name === 'save_my_profile'){
         if (fail.save_my_profile) return {data:null, error:{message:fail.save_my_profile}};
@@ -66,7 +71,7 @@ async function load(fake){
     localStorage:{getItem:() => null, setItem(){}},
     setTimeout:() => 0, clearTimeout:() => {}, console
   };
-  const instrumented = script.replace("if (!V[S.view]", "render = () => {}; globalThis.api = {loadAll, S, ui, A, sheetHTML, liveCheck, avatarBtn}; return;\nif (!V[S.view]");
+  const instrumented = script.replace("if (!V[S.view]", "render = () => {}; globalThis.api = {loadAll, S, ui, A, sheetHTML, liveCheck, V}; return;\nif (!V[S.view]");
   vm.runInNewContext(instrumented, context);
   const api = context.api;
   api.type = (values) => { for (const k of Object.keys(fields)) delete fields[k]; Object.entries(values).forEach(([id, value]) => fields[id] = {value, focus(){}}); };
@@ -308,11 +313,11 @@ test('signing out starts a fresh guest account', async () => {
   assert.equal(api.ui.sheet, null);
 });
 
-test('the header button shows initials once there is a name', async () => {
+test('the profile page shows initials once there is a name', async () => {
   const fake = fakeSupabase();
   fake.state.me = {user_first_name:'Jackson', user_last_name:'McClean', phone:null};
   const api = await load(fake);
-  assert.match(api.avatarBtn(), /aria-label="Profile: Jackson McClean">JM</);
+  assert.match(api.V.profile(), /class="pava" aria-hidden="true">JM</);
 });
 
 test('names and emails are escaped in the profile sheet', async () => {
@@ -321,7 +326,24 @@ test('names and emails are escaped in the profile sheet', async () => {
   fake.state.me = {user_first_name:'<img src=x>', user_last_name:'', phone:null};
   const api = await load(fake);
   open(api);
-  const out = api.sheetHTML() + api.avatarBtn();
+  const out = api.sheetHTML() + api.V.profile();
   assert.doesNotMatch(out, /<img src=x>|<b>x<\/b>/);
   assert.match(out, /&lt;img src=x&gt;/);
+});
+
+test('Profile tab shows the phone and account controls and saves payer identifiers',async()=>{
+  const fake=fakeSupabase(),api=await load(fake);
+  api.S.me.phone='8015550102';
+  api.A.tab({v:'profile'});
+  assert.equal(api.S.view,'profile');
+  assert.match(api.V.profile(),/8015550102/);
+  assert.match(api.V.profile(),/Create profile/);
+  assert.match(api.V.profile(),/Payment accounts/);
+  api.A.pstep({step:'payments'});
+  assert.match(api.V.profile(),/Apple Cash/);
+  api.ui.profile.paymentDraft.paypal='TaylorPreview';
+  await api.A.savePayerAccounts();
+  assert.equal(api.S.paymentAccounts.paypal,'TaylorPreview');
+  assert.equal(calls(fake,'save_my_payment_accounts').length,1);
+  assert.match(api.V.profile(),/TaylorPreview/);
 });
