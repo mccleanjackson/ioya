@@ -41,7 +41,7 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 
 ![IOYA system architecture](docs/ioya-architecture.png)
 
-This diagram shows the technologies we use now and the ones we plan to use. Payment links, text requests, saving new splits and email sign-in are planned, not built yet. Each browser already gets its own guest account.
+This diagram shows how IOYA is built today. Gray dashed boxes are planned and not built yet (profile pictures in Supabase Storage). New splits are still kept only in the browser; saving them to the database is also planned. Automatic texts work only when the Twilio settings are added on the server.
 
 ## Tech Stack
 

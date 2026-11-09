@@ -1,91 +1,105 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="810" viewBox="0 0 1400 810" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
-<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#59616E"/></marker></defs><rect width="1400" height="810" fill="#FFFFFF"/>
-<text x="40" y="48" font-size="32" font-weight="700" fill="#1F2329">IOYA system architecture</text>
-<text x="40" y="74" font-size="16" fill="#59616E">Current and planned technologies</text>
-<g fill="none" stroke="#1F2329" stroke-width="2.5"><circle cx="78" cy="372" r="14"/><path d="M78 386v44M56 402h44M78 430l-18 34M78 430l18 34"/></g>
-<text x="78" y="490" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">User</text>
-<text x="78" y="511" text-anchor="middle" font-size="14" fill="#59616E">phone or laptop</text>
-<text x="78" y="530" text-anchor="middle" font-size="14" fill="#59616E">web browser</text>
-<rect x="150" y="90" width="900" height="660" rx="16" fill="none" stroke="#7A3E9D" stroke-width="2.5"/>
-<text x="600.0" y="117" text-anchor="middle" font-size="18" font-weight="700" fill="#7A3E9D">IOYA app</text>
-<rect x="172" y="130" width="446" height="596" rx="16" fill="none" stroke="#3457B2" stroke-width="2.5"/>
-<text x="395.0" y="157" text-anchor="middle" font-size="18" font-weight="700" fill="#3457B2">Runs in the user's browser</text>
-<rect x="192" y="172" width="156" height="534" rx="12" fill="#FFFFFF" stroke="#3457B2" stroke-width="2"/>
-<text x="270.0" y="376.0" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">Frontend</text>
-<text x="270.0" y="399.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">HTML, CSS,</text>
-<text x="270.0" y="422.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">JavaScript</text>
-<text x="270.0" y="445.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E"></text>
-<text x="270.0" y="468.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">one page:</text>
-<text x="270.0" y="491.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">public/</text>
-<text x="270.0" y="514.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">index.html</text>
-<rect x="404" y="262" width="194" height="80" rx="12" fill="#FFFFFF" stroke="#3457B2" stroke-width="2"/>
-<text x="501.0" y="285.0" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">Tesseract.js</text>
-<text x="501.0" y="308.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">reads receipts</text>
-<text x="501.0" y="331.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">on the device</text>
-<polyline points="348,302 404,302" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<rect x="404" y="356" width="194" height="80" rx="12" fill="#FFFFFF" stroke="#3457B2" stroke-width="2"/>
-<text x="501.0" y="390.5" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">Receipt photo</text>
-<text x="501.0" y="413.5" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">from camera or upload</text>
-<polyline points="348,396 404,396" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<rect x="404" y="450" width="194" height="80" rx="12" fill="#FFFFFF" stroke="#3457B2" stroke-width="2"/>
-<text x="501.0" y="484.5" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">Browser storage</text>
-<text x="501.0" y="507.5" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">in-progress split draft</text>
-<polyline points="348,490 404,490" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<rect x="650" y="132" width="376" height="108" rx="12" fill="#FFFFFF" stroke="#1F2329" stroke-width="2"/>
-<text x="838.0" y="169.0" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">Backend: web server</text>
-<text x="838.0" y="192.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">Node + Express, hosted on Render</text>
-<text x="838.0" y="215.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">sends the page and /config.js</text>
-<rect x="650" y="272" width="376" height="454" rx="16" fill="none" stroke="#3F7D58" stroke-width="2.5" stroke-dasharray="9 6"/>
-<text x="838.0" y="299" text-anchor="middle" font-size="18" font-weight="700" fill="#3F7D58">Backend: Supabase</text>
-<rect x="672" y="312" width="332" height="82" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
-<text x="838.0" y="347.5" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">Database: Postgres</text>
-<text x="838.0" y="370.5" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">users, contacts, groups, splits, payments</text>
-<rect x="672" y="430" width="166" height="92" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
-<text x="755.0" y="459.0" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">SQL functions</text>
-<text x="755.0" y="482.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">contacts and</text>
-<text x="755.0" y="505.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">new splits</text>
-<rect x="672" y="560" width="278" height="70" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
-<text x="811.0" y="589.5" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">Auto REST API</text>
-<text x="811.0" y="612.5" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">reads and saves app data</text>
-<rect x="672" y="650" width="332" height="60" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
-<text x="838.0" y="674.5" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">Supabase Auth</text>
-<text x="838.0" y="697.5" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">user login</text>
-<polyline points="755,560 755,522" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
-<polyline points="755,430 755,394" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
-<polyline points="878,560 878,394" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<text x="890" y="472" text-anchor="start" font-size="14" fill="#59616E">reads and</text>
-<text x="890" y="491" text-anchor="start" font-size="14" fill="#59616E">Mark as paid</text>
-<polyline points="985,650 985,394" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<polyline points="348,212 650,212" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<text x="500" y="200" text-anchor="middle" font-size="14" fill="#59616E">loads the page and config</text>
-<polyline points="348,595 672,595" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<text x="476" y="583" text-anchor="middle" font-size="14" fill="#59616E">reads and saves data</text>
-<polyline points="348,680 672,680" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<text x="476" y="668" text-anchor="middle" font-size="14" fill="#59616E">logs users in</text>
-<rect x="1082" y="90" width="282" height="660" rx="16" fill="none" stroke="#3F7D58" stroke-width="2.5"/>
-<text x="1223.0" y="117" text-anchor="middle" font-size="18" font-weight="700" fill="#3F7D58">External services</text>
-<rect x="1104" y="132" width="238" height="108" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
-<text x="1223.0" y="169.0" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">GitHub</text>
-<text x="1223.0" y="192.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">team code; Render</text>
-<text x="1223.0" y="215.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">deploys the main branch</text>
-<polyline points="1104,186 1026,186" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
-<rect x="1104" y="264" width="238" height="126" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
-<text x="1223.0" y="298.5" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">Payment systems</text>
-<text x="1223.0" y="321.5" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">Venmo, PayPal, Zelle</text>
-<text x="1223.0" y="344.5" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">links open with the</text>
-<text x="1223.0" y="367.5" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">amount filled in</text>
-<rect x="1104" y="408" width="238" height="108" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
-<text x="1223.0" y="445.0" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">Text messaging</text>
-<text x="1223.0" y="468.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">payment requests through</text>
-<text x="1223.0" y="491.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">the phone's Messages app</text>
-<rect x="1104" y="534" width="238" height="194" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
-<text x="1223.0" y="591.0" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2329">Public CDNs</text>
-<text x="1223.0" y="614.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">jsDelivr: supabase-js,</text>
-<text x="1223.0" y="637.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">Tesseract.js and its files</text>
-<text x="1223.0" y="660.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">cdnjs: QR code library</text>
-<text x="1223.0" y="683.0" text-anchor="middle" font-size="15" font-weight="400" fill="#59616E">Google Fonts: typefaces</text>
-<polyline points="270,706 270,776 1066,776 1066,327 1104,327" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
-<polyline points="1066,462 1104,462" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
-<polyline points="1066,631 1104,631" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
-<text x="660" y="768" text-anchor="middle" font-size="14" fill="#59616E">the browser connects to these directly</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1420" height="930" viewBox="0 0 1420 930" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#59616E"/></marker></defs><rect width="1420" height="930" fill="#FFFFFF"/>
+<text x="40" y="44" font-size="30" font-weight="700" fill="#1F2329">IOYA system architecture</text>
+<text x="40" y="74" font-size="15" fill="#59616E">Gray dashed boxes are planned, not built yet</text>
+<g fill="none" stroke="#1F2329" stroke-width="2.5"><circle cx="75" cy="165" r="13"/><path d="M75 178v40M55 193h40M75 218l-16 30M75 218l16 30"/></g>
+<text x="75" y="271" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Payer</text>
+<text x="75" y="290" text-anchor="middle" font-size="14" fill="#59616E">splits the bill</text>
+<text x="75" y="308" text-anchor="middle" font-size="14" fill="#59616E">on their phone</text>
+<g fill="none" stroke="#1F2329" stroke-width="2.5"><circle cx="75" cy="680" r="13"/><path d="M75 693v40M55 708h40M75 733l-16 30M75 733l16 30"/></g>
+<text x="75" y="786" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Friend</text>
+<text x="75" y="805" text-anchor="middle" font-size="14" fill="#59616E">opens a payment</text>
+<text x="75" y="823" text-anchor="middle" font-size="14" fill="#59616E">link, no sign-in</text>
+<rect x="150" y="90" width="940" height="820" rx="16" fill="none" stroke="#7A3E9D" stroke-width="2.5"/>
+<text x="620.0" y="116" text-anchor="middle" font-size="18" font-weight="700" fill="#7A3E9D">IOYA app</text>
+<rect x="172" y="130" width="468" height="760" rx="16" fill="none" stroke="#3457B2" stroke-width="2.5"/>
+<text x="406.0" y="156" text-anchor="middle" font-size="18" font-weight="700" fill="#3457B2">Runs in the browser</text>
+<rect x="192" y="262" width="200" height="80" rx="12" fill="#FFFFFF" stroke="#3457B2" stroke-width="2"/>
+<text x="292.0" y="287.0" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Tesseract.js</text>
+<text x="292.0" y="308.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">reads receipts</text>
+<text x="292.0" y="329.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">on the device</text>
+<polyline points="392,302 440,302" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<rect x="192" y="362" width="200" height="80" rx="12" fill="#FFFFFF" stroke="#3457B2" stroke-width="2"/>
+<text x="292.0" y="397.5" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Receipt photo</text>
+<text x="292.0" y="418.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">camera or upload</text>
+<polyline points="392,402 440,402" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<rect x="192" y="462" width="200" height="80" rx="12" fill="#FFFFFF" stroke="#3457B2" stroke-width="2"/>
+<text x="292.0" y="497.5" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Browser storage</text>
+<text x="292.0" y="518.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">split in progress</text>
+<polyline points="392,502 440,502" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<rect x="440" y="172" width="180" height="500" rx="12" fill="#FFFFFF" stroke="#3457B2" stroke-width="2"/>
+<text x="530.0" y="344.0" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Frontend</text>
+<text x="530.0" y="365.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">HTML, CSS,</text>
+<text x="530.0" y="386.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">JavaScript</text>
+<text x="530.0" y="407.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E"></text>
+<text x="530.0" y="428.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">public/</text>
+<text x="530.0" y="449.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">index.html</text>
+<text x="530.0" y="470.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E"></text>
+<text x="530.0" y="491.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">splits, contacts,</text>
+<text x="530.0" y="512.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">groups, profile</text>
+<rect x="192" y="712" width="428" height="108" rx="12" fill="#FFFFFF" stroke="#3457B2" stroke-width="2"/>
+<text x="406.0" y="751.0" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Payment page (/pay)</text>
+<text x="406.0" y="772.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">shows a friend what they owe and opens</text>
+<text x="406.0" y="793.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">their payment app; links expire in 7 days</text>
+<polyline points="118,200 440,200" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<polyline points="118,766 192,766" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<rect x="670" y="130" width="398" height="494" rx="16" fill="none" stroke="#3F7D58" stroke-width="2.5" stroke-dasharray="9 6"/>
+<text x="869.0" y="156" text-anchor="middle" font-size="18" font-weight="700" fill="#3F7D58">Backend: Supabase</text>
+<rect x="692" y="172" width="354" height="72" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
+<text x="869.0" y="203.5" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Database: Postgres</text>
+<text x="869.0" y="224.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">15 tables; each account sees only its own data</text>
+<rect x="692" y="268" width="254" height="72" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
+<text x="819.0" y="299.5" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">SQL functions</text>
+<text x="819.0" y="320.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">contacts, groups, profile, payments</text>
+<rect x="692" y="364" width="354" height="72" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
+<text x="869.0" y="395.5" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Auto REST API</text>
+<text x="869.0" y="416.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">reads and saves data for the signed-in user</text>
+<rect x="692" y="460" width="250" height="72" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
+<text x="817.0" y="491.5" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Supabase Auth</text>
+<text x="817.0" y="512.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">guest accounts, 6-digit email code</text>
+<rect x="692" y="548" width="250" height="62" rx="12" fill="#FFFFFF" stroke="#8A9099" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="817.0" y="574.5" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Supabase Storage</text>
+<text x="817.0" y="595.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">profile pictures</text>
+<polyline points="760,364 760,340" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="760,268 760,244" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="1022,364 1022,244" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<polyline points="620,400 692,400" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<polyline points="620,496 692,496" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<polyline points="620,579 692,579" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<rect x="670" y="652" width="398" height="128" rx="12" fill="#FFFFFF" stroke="#1F2329" stroke-width="2"/>
+<text x="869.0" y="690.5" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Backend: web server</text>
+<text x="869.0" y="711.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">Node + Express, hosted on Render</text>
+<text x="869.0" y="732.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">serves the app, /config.js and /pay</text>
+<text x="869.0" y="753.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">payment-request API: links, QR codes, texts</text>
+<polyline points="620,662 670,662" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<polyline points="620,746 670,746" fill="none" stroke="#59616E" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<polyline points="982,652 982,436" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
+<text x="990" y="560" text-anchor="start" font-size="14" fill="#59616E">payment</text>
+<text x="990" y="578" text-anchor="start" font-size="14" fill="#59616E">requests</text>
+<rect x="1112" y="90" width="282" height="820" rx="16" fill="none" stroke="#3F7D58" stroke-width="2.5"/>
+<text x="1253.0" y="116" text-anchor="middle" font-size="18" font-weight="700" fill="#3F7D58">External services</text>
+<rect x="1134" y="132" width="238" height="148" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
+<text x="1253.0" y="170.0" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Payment apps</text>
+<text x="1253.0" y="191.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">Venmo, PayPal, Zelle,</text>
+<text x="1253.0" y="212.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">Cash App, Apple Cash</text>
+<text x="1253.0" y="233.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">opened with the</text>
+<text x="1253.0" y="254.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">amount ready</text>
+<rect x="1134" y="304" width="238" height="170" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
+<text x="1253.0" y="363.5" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Public CDNs</text>
+<text x="1253.0" y="384.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">jsDelivr: supabase-js,</text>
+<text x="1253.0" y="405.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">Tesseract.js and its files</text>
+<text x="1253.0" y="426.5" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">Google Fonts: typefaces</text>
+<rect x="1134" y="626" width="238" height="96" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
+<text x="1253.0" y="659.0" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">Twilio</text>
+<text x="1253.0" y="680.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">automatic texts with</text>
+<text x="1253.0" y="701.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">the payment link</text>
+<rect x="1134" y="744" width="238" height="96" rx="12" fill="#FFFFFF" stroke="#3F7D58" stroke-width="2"/>
+<text x="1253.0" y="777.0" text-anchor="middle" font-size="17" font-weight="700" fill="#1F2329">GitHub</text>
+<text x="1253.0" y="798.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">team code; Render</text>
+<text x="1253.0" y="819.0" text-anchor="middle" font-size="14" font-weight="400" fill="#59616E">deploys main</text>
+<polyline points="1068,674 1134,674" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="1134,766 1068,766" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="530,172 530,68 1123,68 1123,206 1134,206" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="1123,206 1123,389 1134,389" fill="none" stroke="#59616E" stroke-width="2" marker-end="url(#a)"/>
+<text x="820" y="60" text-anchor="middle" font-size="14" fill="#59616E">the browser opens payment apps and loads libraries directly</text>
 </svg>
