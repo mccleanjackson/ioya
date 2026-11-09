@@ -7,7 +7,7 @@ const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const script=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][0][1];
 
 function app(saved){
-  const context={window:{},document:{getElementById:()=>({}),addEventListener(){}},localStorage:{getItem:()=>saved?JSON.stringify(saved):null,setItem(){}},console};
+  const context={window:{},document:{getElementById:()=>({setAttribute(){}}),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:()=>saved?JSON.stringify(saved):null,setItem(){}},console};
   vm.runInNewContext(script.replace("if (!V[S.view]","render=()=>{};globalThis.api={newDraft,normalizeTipDraft,tipState,calc,S,A,sendPlan,LIVE};return;\nif (!V[S.view]"),context);
   return context.api;
 }
