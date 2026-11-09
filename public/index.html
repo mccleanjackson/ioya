@@ -170,8 +170,11 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 /* flow header */
 .flow-h{display:flex;align-items:center;gap:10px;margin:-6px -6px 0}
 .steps{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
-.steps i{height:4px;border-radius:2px;background:var(--line)}
-.steps i.on{background:var(--accent)}
+.steps i{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.steps i span{display:block;width:0;height:100%;border-radius:inherit;background:var(--accent);transition:width .52s cubic-bezier(.22,.72,.18,1)}
+@keyframes flow-fill-start{0%,100%{transform:scaleX(1)}38%{transform:scaleX(1.14)}70%{transform:scaleX(.96)}}
+@keyframes flow-fill-stop{0%,42%,100%{transform:scaleX(1)}72%{transform:scaleX(1.14)}88%{transform:scaleX(.92)}}
+@keyframes flow-fill-single{0%,100%{transform:scaleX(1)}22%{transform:scaleX(1.14)}45%{transform:scaleX(.96)}78%{transform:scaleX(1)}90%{transform:scaleX(.92)}}
 .step-l{font:500 12px var(--f-mono);color:var(--muted);min-width:28px;text-align:right}
 
 /* receipt capture */
@@ -250,6 +253,12 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .seg{display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border-radius:12px;box-shadow:inset 0 0 0 1.5px var(--line);padding:3px}
 .seg button{padding:8px 0;border-radius:9px;font-weight:600;font-family:var(--f-mono);font-size:14px}
 .seg button.on{background:var(--ink);color:var(--paper)}
+.tip-seg{position:relative;overflow:hidden}
+.tip-glider{position:absolute;z-index:0;top:3px;bottom:3px;left:3px;width:0;border-radius:9px;background:var(--ink);opacity:0;pointer-events:none}
+.tip-glider.ready{transition:left .4s cubic-bezier(.2,1.12,.3,1),width .3s cubic-bezier(.2,.8,.2,1),opacity .15s ease}
+.tip-glider.squash{animation:history-filter-squash .4s cubic-bezier(.2,.8,.2,1)}
+.tip-seg button{position:relative;z-index:1;transition:color .18s ease,background-color .18s ease}
+.tip-seg button.on{background:transparent;color:var(--paper)}
 .grand{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px;border-radius:12px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);font-weight:700}
 .grand .mono{font-size:20px}
 
@@ -362,6 +371,21 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .sclear:hover{color:var(--ink);background:var(--paper)}
 .search input:placeholder-shown + .sclear{visibility:hidden}
 .fchips{display:flex;gap:6px;overflow-x:auto;margin:0 -18px;padding:2px 18px;scrollbar-width:none}
+.history-fchips{position:relative}
+.history-filter-glider{position:absolute;z-index:0;top:2px;bottom:2px;left:0;width:0;border-radius:999px;pointer-events:none}
+.history-filter-glider.ready{transition:left .4s cubic-bezier(.2,1.12,.3,1),width .3s cubic-bezier(.2,.8,.2,1),background-color .18s ease}
+.history-filter-glider[data-f="all"]{background:var(--accent)}
+.history-filter-glider[data-f="unpaid"]{background:var(--history-unpaid)}
+.history-filter-glider[data-f="part"]{background:var(--history-part)}
+.history-filter-glider[data-f="paid"]{background:var(--history-paid)}
+.history-filter-glider.squash{animation:history-filter-squash .4s cubic-bezier(.2,.8,.2,1)}
+@keyframes history-filter-squash{0%,100%{transform:scaleX(1)}34%{transform:scaleX(1.1)}66%{transform:scaleX(.96)}}
+.contact-fchips{position:relative}
+.contact-filter-glider{position:absolute;z-index:0;top:2px;bottom:2px;left:0;width:0;border-radius:999px;background:var(--ink);pointer-events:none}
+.contact-filter-glider.ready{transition:left .4s cubic-bezier(.2,1.12,.3,1),width .3s cubic-bezier(.2,.8,.2,1)}
+.contact-filter-glider.squash{animation:history-filter-squash .4s cubic-bezier(.2,.8,.2,1)}
+.contact-fchips .fchip{position:relative;z-index:1;transition:color .18s ease,background-color .18s ease,box-shadow .18s ease}
+.contact-fchips .fchip.on{background:transparent!important;color:var(--paper);box-shadow:none!important}
 .fchip{flex:none;padding:7px 14px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--muted);background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line)}
 .fchip:hover{color:var(--ink)}
 .fchip.on{background:var(--ink);color:var(--paper);box-shadow:none}
@@ -373,6 +397,8 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-fchips .fchip[data-f="part"].on{background:var(--history-part);color:var(--ink);box-shadow:none}
 .history-fchips .fchip[data-f="unpaid"]{background:var(--history-unpaid-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-unpaid)}
 .history-fchips .fchip[data-f="unpaid"].on{background:var(--history-unpaid);color:var(--ink);box-shadow:none}
+.history-fchips .fchip{position:relative;z-index:1;transition:color .18s ease,background-color .18s ease,box-shadow .18s ease}
+.history-fchips .fchip.on{background:transparent!important;color:var(--ink);box-shadow:none!important}
 .hlist{display:flex;flex-direction:column;gap:14px}
 .fcount{margin:-4px 0 -6px 2px}
 .clist{display:flex;flex-direction:column;gap:14px}
@@ -914,8 +940,12 @@ const STEP_NAMES = ['Scan','Review','People','Assign','Send'];
 const FLOW = ['scan','scanning','review','people','assign','summary','sent'];
 
 function flowHead(i, back){
+  const previous = lastFlowStep == null ? -1 : lastFlowStep;
   return `<div class="flow-h"><button class="iconbtn" data-act="go" data-v="${back}" aria-label="Back">${I('back')}</button>
-  <div class="steps" role="img" aria-label="Step ${i+1} of 5: ${STEP_NAMES[i]}">${STEPS.map((s, k) => `<i class="${k <= i ? 'on' : ''}"></i>`).join('')}</div>
+  <div class="steps" role="img" aria-label="Step ${i+1} of 5: ${STEP_NAMES[i]}">${STEPS.map((s, k) => {
+    const initial = flowStartWidths?.[k] ?? (previous >= k ? 100 : 0);
+    return `<i><span style="width:${initial}%"></span></i>`;
+  }).join('')}</div>
   <span class="step-l">${i+1}/5</span></div>`;
 }
 
@@ -1078,7 +1108,7 @@ function findBar(k, placeholder, label, filters, filterLabel){
   return `<div class="find">
     <div class="search">${I('search')}<input id="${k}q" data-in="${k}q" value="${esc(ui[k + 'q'])}" placeholder="${placeholder}" aria-label="${label}" autocomplete="off" enterkeyhint="search">
       <button class="sclear" data-act="fclear" data-k="${k}" data-keep="filter" aria-label="Clear search">${I('x')}</button></div>
-    <div class="fchips${k === 'h' ? ' history-fchips' : ''}" role="group" aria-label="${filterLabel}">${filters.map(([f, name]) =>
+    <div class="fchips${k === 'h' ? ' history-fchips' : k === 'c' ? ' contact-fchips' : ''}" role="group" aria-label="${filterLabel}">${k === 'h' ? '<span class="history-filter-glider" aria-hidden="true"></span>' : k === 'c' ? '<span class="contact-filter-glider" aria-hidden="true"></span>' : ''}${filters.map(([f, name]) =>
       `<button class="fchip${ui[k + 'f'] === f ? ' on' : ''}" data-act="filter" data-k="${k}" data-f="${f}" aria-pressed="${ui[k + 'f'] === f}">${esc(name)}</button>`).join('')}</div>
   </div>`;
 }
@@ -1246,7 +1276,7 @@ V.review = () => {
   <div data-live="match"></div>
   <div class="tip">
     <div class="tip-h"><span>Tip <small>(optional)</small></span><span class="mono" data-live="tipamt"></span></div>
-    <div class="seg" role="group" aria-label="Tip percentage" data-live="tipchoices"></div>
+    <div class="seg tip-seg" role="group" aria-label="Tip percentage" data-live="tipchoices"></div>
     <label class="frow" for="tip-amount"><span>Custom tip amount</span><span class="money-in">$<input id="tip-amount" data-in="tipamount" inputmode="decimal" maxlength="20" value="${esc(d.tipInput || '')}" placeholder="0.00" aria-describedby="tip-note"></span></label>
     <div id="tip-note" data-live="tipnotice"></div>
     <p class="fine">Percentage tips use the pre-tax subtotal. All tips are shared in proportion to each person's items.</p>
@@ -1362,7 +1392,7 @@ const LIVE = {
   clist: () => contactList(),
   subtotal: () => money(calc(S.draft).subtotal),
   tipamt: () => { const t = tipState(S.draft); return t.chosen && t.valid ? money(t.cents) : '—'; },
-  tipchoices: () => [0,15,18,20,22].map(p => {
+  tipchoices: () => '<span class="tip-glider" aria-hidden="true"></span>' + [0,15,18,20,22].map(p => {
     const selected = S.draft.tipMode === 'percent' && S.draft.tipPct === p;
     return `<button class="${selected ? 'on' : ''}" data-act="tip" data-p="${p}" aria-pressed="${selected}">${p ? p + '%' : 'No tip'}</button>`;
   }).join(''),
@@ -1438,8 +1468,39 @@ function preparedRequests(){
   return ready.map(p => ({pid:p.id, name:p.name, method:p.method, handle:requestTarget(p.method, handleOf(p)).value,
     amount:c.totals[p.id], note:(S.draft.msgs?.[p.id] || '').trim() || autoMessage(p, c), handoffVersion:1}));
 }
-function refresh(){
-  document.querySelectorAll('[data-live]').forEach(el => { const f = LIVE[el.dataset.live]; if (f) el.innerHTML = f(el); });
+function syncTipGlider(animate=false){
+  const wrap = document.querySelector('.tip-seg'), glider = wrap?.querySelector('.tip-glider');
+  if (!wrap || !glider) return;
+  const selected = wrap.querySelector('button.on');
+  if (!selected){ glider.style.left = '3px'; glider.style.width = '0px'; glider.style.opacity = '0'; glider.classList.remove('squash'); return; }
+  const canSlide = animate && glider.classList.contains('ready');
+  if (!canSlide) glider.classList.remove('ready','squash');
+  glider.style.left = `${selected.offsetLeft}px`;
+  glider.style.width = `${selected.offsetWidth}px`;
+  glider.style.opacity = '1';
+  if (!canSlide){ void glider.offsetWidth; glider.classList.add('ready'); }
+  else {
+    glider.classList.remove('squash');
+    void glider.offsetWidth;
+    glider.classList.add('squash');
+    glider.addEventListener('animationend', () => glider.classList.remove('squash'), {once:true});
+  }
+}
+function refresh(animateTip=false){
+  let tipSelectionChanged = false;
+  document.querySelectorAll('[data-live]').forEach(el => {
+    const f = LIVE[el.dataset.live]; if (!f) return;
+    if (el.dataset.live === 'tipchoices' && el.querySelector('.tip-glider')){
+      const previous = el.querySelector('button.on')?.dataset.p || null;
+      const next = S.draft.tipMode === 'percent' ? String(S.draft.tipPct) : null;
+      tipSelectionChanged = previous !== next;
+      el.querySelectorAll('button[data-p]').forEach(button => {
+        const selected = S.draft.tipMode === 'percent' && S.draft.tipPct === Number(button.dataset.p);
+        button.classList.toggle('on', selected); button.setAttribute('aria-pressed', String(selected));
+      });
+    } else el.innerHTML = f(el);
+  });
+  syncTipGlider(animateTip && tipSelectionChanged);
   document.getElementById('tip-amount')?.setAttribute('aria-invalid', String(!tipState(S.draft).valid));
 }
 
@@ -1680,14 +1741,131 @@ const scr = document.getElementById('screen');
 let lastView = null;
 let lastActiveTabIndex = null;
 let tabSquashTimer = null;
+let lastFlowStep = null;
+let flowProgressFrame = null;
+let flowStartWidths = null;
+function syncHistoryFilterGlider(animate=false){
+  const wrap = scr.querySelector('.history-fchips'), glider = wrap?.querySelector('.history-filter-glider');
+  const selected = wrap?.querySelector('.fchip.on');
+  if (!wrap || !glider || !selected) return;
+  const canSlide = animate && glider.classList.contains('ready');
+  if (!canSlide) glider.classList.remove('ready','squash');
+  glider.dataset.f = selected.dataset.f;
+  glider.style.left = `${selected.offsetLeft}px`;
+  glider.style.width = `${selected.offsetWidth}px`;
+  if (!canSlide){ void glider.offsetWidth; glider.classList.add('ready'); }
+  else {
+    glider.classList.remove('squash');
+    void glider.offsetWidth;
+    glider.classList.add('squash');
+    glider.addEventListener('animationend', () => glider.classList.remove('squash'), {once:true});
+  }
+}
+function updateHistoryFilter(filter, animate=true){
+  const changed = ui.hf !== filter;
+  ui.hf = filter;
+  document.querySelectorAll('.history-fchips .fchip').forEach(button => {
+    const on = button.dataset.f === filter;
+    button.classList.toggle('on', on);
+    button.setAttribute('aria-pressed', String(on));
+  });
+  syncHistoryFilterGlider(animate && changed);
+  const list = document.querySelector('[data-live="hlist"]');
+  if (list) list.innerHTML = historyList();
+}
+function syncContactsFilterGlider(animate=false){
+  const wrap = scr.querySelector('.contact-fchips'), glider = wrap?.querySelector('.contact-filter-glider');
+  const selected = wrap?.querySelector('.fchip.on');
+  if (!wrap || !glider || !selected) return;
+  const canSlide = animate && glider.classList.contains('ready');
+  if (!canSlide) glider.classList.remove('ready','squash');
+  glider.style.left = `${selected.offsetLeft}px`;
+  glider.style.width = `${selected.offsetWidth}px`;
+  if (!canSlide){ void glider.offsetWidth; glider.classList.add('ready'); }
+  else {
+    glider.classList.remove('squash');
+    void glider.offsetWidth;
+    glider.classList.add('squash');
+    glider.addEventListener('animationend', () => glider.classList.remove('squash'), {once:true});
+  }
+}
+function updateContactsFilter(filter, animate=true){
+  const changed = ui.cf !== filter;
+  ui.cf = filter;
+  document.querySelectorAll('.contact-fchips .fchip').forEach(button => {
+    const on = button.dataset.f === filter;
+    button.classList.toggle('on', on);
+    button.setAttribute('aria-pressed', String(on));
+  });
+  syncContactsFilterGlider(animate && changed);
+  const list = document.querySelector('[data-live="clist"]');
+  if (list) list.innerHTML = contactList();
+}
+function syncFlowProgress(view){
+  const step = ({scan:0, scanning:0, review:1, people:2, assign:3, summary:4, sent:4})[view];
+  if (step == null){ lastFlowStep = null; return; }
+  const bars = scr.querySelectorAll('.steps i span');
+  if (bars.length){
+    const targets = [...bars].map((bar, index) => step >= index ? 100 : 0);
+    const starts = [...bars].map((bar, index) => flowStartWidths?.[index] ?? (lastFlowStep != null && lastFlowStep >= index ? 100 : 0));
+    const changed = targets.map((width, index) => Math.abs(width - starts[index]) >= 1 ? index : -1).filter(index => index >= 0);
+    const filling = changed.length ? targets[changed[0]] > starts[changed[0]] : true;
+    const sequence = changed.slice().sort((a, b) => filling ? a - b : b - a);
+    const totalDuration = 100;
+    const segmentBase = sequence.length ? totalDuration / sequence.length : totalDuration;
+    const overlap = sequence.length > 1 ? Math.min(24, segmentBase * .15) : 0;
+    const segmentDuration = segmentBase + overlap;
+    const segmentInterval = sequence.length > 1 ? (totalDuration - segmentDuration) / (sequence.length - 1) : 0;
+    const squashDuration = sequence.length > 1 ? Math.max(segmentDuration, 160) : segmentDuration;
+    bars.forEach((bar, index) => {
+      const order = sequence.indexOf(index);
+      bar.style.transitionDuration = `${segmentDuration}ms`;
+      bar.style.transitionDelay = `${order < 0 ? 0 : order * segmentInterval}ms`;
+      bar.style.transitionTimingFunction = 'linear';
+    });
+    const shouldAnimate = !matchMedia('(prefers-reduced-motion: reduce)').matches && changed.length > 0;
+    const setWidths = () => {
+      flowProgressFrame = null;
+      bars.forEach((bar, index) => {
+        if (!bar.isConnected) return;
+        bar.style.width = `${targets[index]}%`;
+        const order = sequence.indexOf(index);
+        const animation = sequence.length === 1 ? 'flow-fill-single'
+          : order === 0 ? 'flow-fill-start'
+          : order === sequence.length - 1 ? 'flow-fill-stop' : '';
+        const animationDelay = order * segmentInterval + (animation === 'flow-fill-stop' ? segmentDuration : 0);
+        bar.style.animation = shouldAnimate && animation
+          ? `${animation} ${squashDuration}ms cubic-bezier(.2,.8,.2,1) ${animationDelay}ms both`
+          : 'none';
+      });
+    };
+    const alreadyThere = changed.length === 0;
+    if (!shouldAnimate || alreadyThere) setWidths();
+    else {
+      bars.forEach(bar => getComputedStyle(bar).width); // Commit the starting widths before asking CSS to transition.
+      flowProgressFrame = requestAnimationFrame(setWidths);
+    }
+  }
+  lastFlowStep = step;
+}
 function render(){
   const v = S.view;
   scr.classList.toggle('camera-screen', v === 'scan' && ui.cameraOpen);
   const keepScroll = v === lastView ? scr.scrollTop : 0;
+  const oldBars = [...scr.querySelectorAll('.steps i span')];
+  flowStartWidths = oldBars.length ? oldBars.map(bar => {
+    const width = parseFloat(getComputedStyle(bar).width) || 0, track = bar.parentElement.clientWidth || 1;
+    return Math.max(0, Math.min(100, width / track * 100));
+  }) : null;
+  if (flowProgressFrame !== null){ cancelAnimationFrame(flowProgressFrame); flowProgressFrame = null; }
   const needsData = !FLOW.includes(v) || v === 'people';
   scr.innerHTML = needsData && S.loading ? `<p class="fine" role="status">${S.userId == null ? 'Setting up your account…' : 'Loading your splits…'}</p>`
     : needsData && S.loadError ? `<div class="alert bad" role="alert"><b>Couldn't load your data.</b>${esc(S.loadError)}<button class="link" data-act="reload">Try again</button></div>`
     : V[v]();
+  syncFlowProgress(v);
+  flowStartWidths = null;
+  if (v === 'history') syncHistoryFilterGlider();
+  if (v === 'contacts') syncContactsFilterGlider();
   scr.scrollTop = keepScroll; lastView = v;
   refresh();
   const flow = FLOW.includes(v);
@@ -2030,7 +2208,7 @@ const A = {
   manual: () => { stopCamera(); cancelScan(); clearPhoto(); ui.scanText = ''; const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = ''; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
   additem: () => { const it = {id:uid('i'), name:'', price:0}; S.draft.items.push(it); render(); document.getElementById('n-' + it.id)?.focus(); },
   delitem: ds => { const d = S.draft; d.items = d.items.filter(it => it.id !== ds.id); delete d.assign[ds.id]; render(); },
-  tip: ds => { Object.assign(S.draft, {tipMode:'percent', tipPct:+ds.p, tipInput:''}); render(); },
+  tip: ds => { Object.assign(S.draft, {tipMode:'percent', tipPct:+ds.p, tipInput:''}); refresh(true); save(); },
   cnt: ds => { const d = S.draft;
     if (+ds.d > 0 && d.people.length < 12) d.people.push({id:uid('p'), name:'', method:'venmo', venmo:'', phone:'', paypal:'', contactId:null});
     if (+ds.d < 0 && d.people.length > 2){ const i = d.people.map(p => !p.me && !p.name.trim()).lastIndexOf(true); d.people.splice(i > 0 ? i : d.people.length - 1, 1); }
@@ -2052,8 +2230,28 @@ const A = {
   keepgroup: () => { if (ui.sheet?.type === 'group' && !ui.saving) { ui.sheet.confirmDelete = false; ui.sheet.error = ''; render(); } },
   deletegroup: () => deleteGroup(),
   req: ds => { ui.sheet = {type:'req', sid:ds.sid, i:+ds.i}; render(); },
-  filter: ds => { ui[ds.k + 'f'] = ds.f; render(); document.querySelector(`[data-act="filter"][data-k="${ds.k}"][data-f="${ds.f}"]`)?.focus(); },
-  fclear: ds => { ui[ds.k + 'q'] = ''; if (ds.keep !== 'filter') ui[ds.k + 'f'] = 'all'; render(); document.getElementById(ds.k + 'q')?.focus(); },
+  filter: ds => {
+    if (ds.k === 'h') updateHistoryFilter(ds.f);
+    else if (ds.k === 'c') updateContactsFilter(ds.f);
+    else { ui[ds.k + 'f'] = ds.f; render(); }
+    document.querySelector(`[data-act="filter"][data-k="${ds.k}"][data-f="${ds.f}"]`)?.focus();
+  },
+  fclear: ds => {
+    ui[ds.k + 'q'] = '';
+    if (ds.keep !== 'filter'){
+      if (ds.k === 'h') updateHistoryFilter('all', true);
+      else if (ds.k === 'c') updateContactsFilter('all', true);
+      else ui[ds.k + 'f'] = 'all';
+    }
+    if (ds.k === 'h'){
+      const input = document.getElementById('hq'); if (input) input.value = '';
+      if (ds.keep === 'filter') { const list = document.querySelector('[data-live="hlist"]'); if (list) list.innerHTML = historyList(); }
+    } else if (ds.k === 'c'){
+      const input = document.getElementById('cq'); if (input) input.value = '';
+      if (ds.keep === 'filter') { const list = document.querySelector('[data-live="clist"]'); if (list) list.innerHTML = contactList(); }
+    } else render();
+    document.getElementById(ds.k + 'q')?.focus();
+  },
   hopen: ds => { ui.open = ui.open === ds.id ? null : ds.id; render(); },
   // Vertical slice: "Mark as paid" writes participants.paid_method_id in Supabase, then shows what came back.
   paywith: ds => { ui.sheet.payWith = +ds.m; render(); },
