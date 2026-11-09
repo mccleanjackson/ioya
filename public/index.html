@@ -33,7 +33,7 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --desk:#0A0C10; --paper:#12151C; --card:#1A1E27; --ink:#ECEEF2; --muted:#9AA2B1; --line:#2B313D;
-  --accent:#FF7A2E; --accent-ink:#1B0D03; --accent-soft:#3B2112;
+  --accent:#CC6FCC; --accent-ink:#15171C; --accent-soft:#3B253C;
   --history-paid:#5258E5; --history-paid-soft:#292B5F;
   --history-part:#FEEB00; --history-part-soft:#3F3914;
   --history-unpaid:#FE4B6B; --history-unpaid-soft:#4B202B;
@@ -44,7 +44,7 @@
 }}
 :root[data-theme="dark"]{
   --desk:#0A0C10; --paper:#12151C; --card:#1A1E27; --ink:#ECEEF2; --muted:#9AA2B1; --line:#2B313D;
-  --accent:#FF7A2E; --accent-ink:#1B0D03; --accent-soft:#3B2112;
+  --accent:#CC6FCC; --accent-ink:#15171C; --accent-soft:#3B253C;
   --history-paid:#5258E5; --history-paid-soft:#292B5F;
   --history-part:#FEEB00; --history-part-soft:#3F3914;
   --history-unpaid:#FE4B6B; --history-unpaid-soft:#4B202B;
@@ -399,6 +399,8 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-fchips .fchip[data-f="unpaid"].on{background:var(--history-unpaid);color:var(--ink);box-shadow:none}
 .history-fchips .fchip{position:relative;z-index:1;transition:color .18s ease,background-color .18s ease,box-shadow .18s ease}
 .history-fchips .fchip.on{background:transparent!important;color:var(--ink);box-shadow:none!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .history-fchips .fchip.on{color:#15171C!important}}
+:root[data-theme="dark"] .history-fchips .fchip.on{color:#15171C!important}
 .hlist{display:flex;flex-direction:column;gap:14px}
 .fcount{margin:-4px 0 -6px 2px}
 .clist{display:flex;flex-direction:column;gap:14px}
@@ -476,6 +478,8 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .meth.venmo{color:var(--ink);background:var(--method-venmo-soft);box-shadow:inset 0 0 0 1.5px var(--method-venmo)}
 .meth.paypal{color:var(--ink);background:var(--method-paypal-soft);box-shadow:inset 0 0 0 1.5px var(--method-paypal)}
 .meth.zelle{color:var(--ink);background:var(--method-zelle-soft);box-shadow:inset 0 0 0 1.5px var(--method-zelle)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .meth.venmo,:root:not([data-theme="light"]) .meth.paypal,:root:not([data-theme="light"]) .meth.zelle{color:#15171C}}
+:root[data-theme="dark"] .meth.venmo,:root[data-theme="dark"] .meth.paypal,:root[data-theme="dark"] .meth.zelle{color:#15171C}
 
 /* sheets */
 .sheet-bg{position:absolute;inset:0;background:rgba(10,12,16,.45);z-index:5;animation:fade .2s}
