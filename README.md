@@ -43,6 +43,18 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 
 This diagram shows how IOYA is built today. Gray dashed boxes are planned and not built yet (profile pictures in Supabase Storage). New splits are still kept only in the browser; saving them to the database is also planned.
 
+## Data Flow Diagrams
+
+Level 1 data flow diagrams showing how data moves between the user, IOYA's main processes, receipt reading and payment apps. We made two versions.
+
+**Version 1**
+
+![IOYA Level 1 data flow diagram, version 1](docs/ioya-dfd-level1-a.png)
+
+**Version 2**
+
+![IOYA Level 1 data flow diagram, version 2](docs/ioya-dfd-level1-b.png)
+
 ## Tech Stack
 
 | Layer | What we used | Why |
