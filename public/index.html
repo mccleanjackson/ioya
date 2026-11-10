@@ -473,6 +473,22 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .prof-card{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:18px 14px 14px;background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line)}
 .pava{width:84px;height:84px;border-radius:50%;box-shadow:inset 0 0 0 2.5px var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:30px;background:var(--card);margin-bottom:6px}
 .pava .ic{width:40px;height:40px;color:var(--muted)}
+.pava{position:relative;overflow:hidden}
+.pava .face-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:var(--card)}
+.pphoto{display:flex;flex-direction:column;align-items:center;gap:8px}
+.pphoto .pava{margin-bottom:0}
+.pphoto-btns{display:flex;gap:16px;align-items:center}
+.pphoto-btns .btn .ic{width:18px;height:18px}
+.crop-view{position:relative;width:260px;height:260px;margin:6px auto 0;overflow:hidden;border-radius:18px;background:#000;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.crop-view:active{cursor:grabbing}
+.crop-view:focus-visible{outline:3px solid var(--pen);outline-offset:3px}
+.crop-view img{position:absolute;left:0;top:0;max-width:none;pointer-events:none}
+.crop-view::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,255,255,.9);box-shadow:0 0 0 400px rgba(10,12,16,.6);pointer-events:none}
+.crop-zoom{display:flex;align-items:center;gap:12px;max-width:300px;margin:0 auto;width:100%}
+.crop-zoom input{flex:1;accent-color:var(--accent)}
+.crop-zoom .ic{width:16px;height:16px;color:var(--muted)}
+.crop-zoom .ic.big{width:22px;height:22px}
+.tabbar .tab-face{width:22px;height:22px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 1.5px currentColor}
 .pname{font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:-.01em;margin:0}
 .pname.empty{color:var(--muted);font-weight:700;font-size:18px}
 .pmeta{font-size:14px;color:var(--muted);margin:0;display:flex;align-items:center;gap:6px;justify-content:center;flex-wrap:wrap}
@@ -696,7 +712,7 @@ async function loadAll(){
     if (!sb) throw new Error(window.IOYA_CONFIG ? 'The Supabase library did not load. Check your internet connection.' : 'Supabase settings are missing. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env and restart npm start.');
     if (S.userId == null) await signIn();
     const [user, methods, contacts, groups, events, profileAccounts] = await Promise.all([
-      sb.from('users').select('user_id, user_first_name, user_last_name, phone').eq('user_id', S.userId).single().then(need),
+      sb.from('users').select('user_id, user_first_name, user_last_name, phone, avatar_path').eq('user_id', S.userId).single().then(need),
       sb.from('payment_methods').select('pay_method_id, pay_method_name').order('pay_method_id').then(need),
       sb.from('contacts').select(CONTACT_SELECT)
         .eq('user_id', S.userId).order('contact_id').then(need),
@@ -710,7 +726,7 @@ async function loadAll(){
     await readAccount();
     S.paymentAccounts = profileAccounts.accounts;
     S.paymentAccountsError = profileAccounts.error;
-    S.me = {first:user.user_first_name, last:user.user_last_name, phone:user.phone || ''};
+    S.me = {first:user.user_first_name, last:user.user_last_name, phone:user.phone || '', avatarUrl:avatarUrlFor(user.avatar_path)};
     S.payMethods = methods.map(m => ({id:m.pay_method_id, name:m.pay_method_name}));
     // The payer's own contact row has the same name and phone as their user row (shows as "You").
     const self = contacts.find(c => c.cont_first_name === user.user_first_name && c.cont_last_name === user.user_last_name && c.phone === user.phone);
@@ -1744,6 +1760,10 @@ function refresh(animateTip=false){
 /* ---------- sheets ---------- */
 // Header button that opens Profile: the user's initials once they have a name.
 const myName = () => [S.me.first, S.me.last].filter(Boolean).join(' ');
+// Profile picture (supabase/avatars.sql). Photos are in the public "avatars" bucket; the link is
+// built from users.avatar_path. Initials stay underneath the photo, so they show if it can't load.
+const avatarUrlFor = path => path && sb ? sb.storage.from('avatars').getPublicUrl(path).data.publicUrl : null;
+const faceHTML = url => `${S.me.first ? esc(ini(myName())) : I('user')}${url ? `<img class="face-img" src="${esc(url)}" alt="">` : ''}`;
 
 // Profile sheet. s.step: null (view), 'edit', 'email', 'code', 'signout'.
 // s.mode: 'create' (guest → profile with email; edit → email → code) or 'signin' (email → code) or null (plain edit).
@@ -1777,16 +1797,69 @@ function profilePaymentAccounts(s){
     : `<ul class="lines">${PROFILE_METHODS.map(method => `<li><span>${METHODS[method].label}</span><span>${values[method] ? esc(values[method]) : 'Not linked'}</span></li>`).join('')}</ul>`}
   </section>`;
 }
+// s.photo: undefined = unchanged, null = remove, {blob, url} = new photo waiting for Save.
+function photoPicker(s){
+  const busy = ui.saving ? 'disabled' : '';
+  // Only saved profiles can have a photo (avatars.sql enforces this too).
+  if (S.account.guest) return `<div class="pphoto"><div class="pava" aria-hidden="true">${faceHTML(null)}</div>
+      <p class="fine center">${s.mode === 'create' ? 'You can add a profile picture once your profile is created.' : 'Create a profile to add a profile picture.'}</p></div>`;
+  const url = s.photo === undefined ? S.me.avatarUrl : s.photo ? s.photo.url : null;
+  return `<div class="pphoto">
+      <div class="pava" aria-hidden="true">${faceHTML(url)}</div>
+      <div class="pphoto-btns"><button class="btn small ghost" id="f-photo" data-act="pickphoto" aria-describedby="e-photo" ${busy}>${I('scan')}${url ? 'Change photo' : 'Add photo'}</button>
+        ${s.photo?.source ? `<button class="link" data-act="adjustphoto" ${busy}>Adjust</button>` : ''}
+        ${url ? `<button class="link" data-act="removephoto" ${busy}>Remove photo</button>` : ''}</div>
+      <input type="file" id="photo-in" accept="image/*" hidden>
+    </div>${fieldErr(s, 'photo')}`;
+}
+// Photo adjuster: drag (or arrow keys) to move, slider / pinch / scroll wheel (or + and -) to zoom.
+// c.x and c.y are where the photo's top-left corner sits inside the CROP-pixel square, so the
+// part inside the circle is exactly what gets saved.
+const CROP = 260;
+const cropScale = c => CROP / Math.min(c.w, c.h) * c.zoom;
+function clampCrop(c){
+  const k = cropScale(c);
+  c.x = Math.min(0, Math.max(CROP - c.w * k, c.x));
+  c.y = Math.min(0, Math.max(CROP - c.h * k, c.y));
+}
+// Zoom while keeping the point under (fx, fy) still (the middle of the circle by default).
+function zoomCrop(c, zoom, fx = CROP / 2, fy = CROP / 2){
+  const before = cropScale(c);
+  c.zoom = Math.min(4, Math.max(1, zoom));
+  const ratio = cropScale(c) / before;
+  c.x = fx - (fx - c.x) * ratio; c.y = fy - (fy - c.y) * ratio;
+  clampCrop(c);
+}
+const cropStyle = c => `width:${c.w * cropScale(c)}px;height:${c.h * cropScale(c)}px;transform:translate(${c.x}px,${c.y}px)`;
+// Move the picture without re-rendering, so dragging stays smooth.
+function applyCrop(){
+  const c = profileState().crop; if (!c) return;
+  const img = document.getElementById('crop-img'); if (img) img.style.cssText = cropStyle(c);
+  const zoom = document.getElementById('crop-zoom'); if (zoom && +zoom.value !== c.zoom) zoom.value = c.zoom;
+}
+function cropEditor(s){
+  const c = s.crop;
+  return `<h2 id="sh-t">Adjust your photo</h2>
+    <p class="fine">Drag the photo to move it. Use the slider, or pinch on a phone, to zoom. The part inside the circle is your profile picture.</p>
+    <div class="crop-view" id="crop-view" tabindex="0" role="group" aria-label="Photo position. Use the arrow keys to move the photo, and plus or minus to zoom.">
+      <img id="crop-img" src="${esc(c.url)}" alt="" draggable="false" style="${cropStyle(c)}"></div>
+    <label class="crop-zoom">${I('user')}
+      <input type="range" id="crop-zoom" data-in="cropzoom" min="1" max="4" step="0.01" value="${c.zoom}" aria-label="Zoom">${I('user').replace('class="ic"', 'class="ic big"')}</label>
+    <div class="next two"><button class="btn ghost" data-act="cropcancel">Cancel</button>
+      <button class="btn" data-act="cropdone">Use photo</button></div>`;
+}
 function profileSheet(s,page = false){
   const busy = ui.saving ? 'disabled' : '';
   const create = s.mode === 'create', signin = s.mode === 'signin';
   const steps = n => create ? `<p class="pstepno">Step ${n} of 3</p>` : '';
   if (s.step === 'payments') return `<h1 class="h">Profile</h1>${profilePaymentAccounts(s)}`;
+  if (s.step === 'edit' && s.crop) return cropEditor(s);
   if (s.step === 'edit'){
     const me = s.draft || S.me;
     return `<h2 id="sh-t">${create ? 'Create your profile' : 'Edit profile'}</h2>${steps(1)}
       ${create ? '<p class="fine">This is how you show up in IOYA.</p>' : ''}
       ${alertBox(s)}
+      ${photoPicker(s)}
       <div class="slot-m" style="grid-template-columns:1fr 1fr">
         <div style="display:flex;flex-direction:column;gap:6px">${field(s, 'first', 'First name', `<input id="f-first" data-in="pf" data-f="first" data-enter="saveprofile" value="${esc(me.first)}" autocomplete="given-name" maxlength="80" ${inv(s, 'first')}>`)}</div>
         <div style="display:flex;flex-direction:column;gap:6px">${field(s, 'last', 'Last name <small>optional</small>', `<input id="f-last" data-in="pf" data-f="last" data-enter="saveprofile" value="${esc(me.last)}" autocomplete="family-name" maxlength="80" ${inv(s, 'last')}>`)}</div>
@@ -1822,7 +1895,7 @@ function profileSheet(s,page = false){
   return `<div class="sheet-head">${page ? '<h1 class="h">Profile</h1>' : '<h2 id="sh-t">Profile</h2>'}
       <button class="iconbtn" data-act="pstep" data-step="edit" aria-label="Edit profile" title="Edit profile">${I('pencil')}</button></div>
     <div class="prof-card">
-      <div class="pava" aria-hidden="true">${S.me.first ? esc(ini(myName())) : I('user')}</div>
+      <div class="pava" aria-hidden="true">${faceHTML(S.me.avatarUrl)}</div>
       ${S.me.first ? `<p class="pname">${esc(myName())}</p>` : `<p class="pname empty">Add your name</p>`}
       <p class="pmeta">${S.me.phone ? esc(S.me.phone) : 'No phone number saved'}</p>
       <p class="pmeta">${S.account.guest ? `<span class="badge guest">Guest</span>` : `${esc(S.account.email || '')} <span class="badge">${I('check')}Verified</span>`}</p>
@@ -2151,7 +2224,8 @@ function render(){
   const flow = FLOW.includes(v);
   const tabbar = document.getElementById('tabbar');
   tabbar.innerHTML = [['home','Home','home'],['history','History','history'],['split','Split Bill','scan'],['contacts','Contacts','contacts'],['profile','Profile','user']]
-    .map(([k, label, ic]) => { const on = k === 'split' ? flow : k === v; return `<button class="${k === 'split' ? 'scan-tab ' : ''}${on ? 'on' : ''}" data-act="tab" data-v="${k}" ${on ? 'aria-current="page"' : ''}>${I(ic)}${label}</button>`; }).join('');
+    .map(([k, label, ic]) => { const on = k === 'split' ? flow : k === v; const icon = k === 'profile' && S.me.avatarUrl ? `<img class="tab-face" src="${esc(S.me.avatarUrl)}" alt="">` : I(ic);
+      return `<button class="${k === 'split' ? 'scan-tab ' : ''}${on ? 'on' : ''}" data-act="tab" data-v="${k}" ${on ? 'aria-current="page"' : ''}>${icon}${label}</button>`; }).join('');
   const activeTab = tabbar.querySelector('button.on');
   const activeTabIndex = [...tabbar.children].indexOf(activeTab);
   if (activeTab){
@@ -2634,11 +2708,32 @@ const A = {
   reviewProfile: () => { ui.returnToReview = true; go('profile'); },
   returnReview: () => go('summary'),
   saveprofile: () => saveProfile(),
+  pickphoto: () => { if (!ui.saving && !S.account.guest) document.getElementById('photo-in')?.click(); },
+  adjustphoto: () => {
+    const s = profileState(); if (ui.saving || !s.photo?.source) return;
+    s.crop = s.photo.source; s.crop.before = {zoom:s.crop.zoom, x:s.crop.x, y:s.crop.y};
+    render(); document.getElementById('crop-view')?.focus();
+  },
+  cropdone: () => finishCrop(),
+  cropcancel: () => {
+    const s = profileState(), c = s.crop; if (!c) return;
+    if (c === s.photo?.source) Object.assign(c, c.before);  // "Adjust" again: keep the earlier framing
+    else releaseCrop(c);                                     // a new photo: throw it away
+    s.crop = null; render(); document.getElementById('f-photo')?.focus();
+  },
+  removephoto: () => {
+    const s = profileState(); if (ui.saving || s.step !== 'edit') return;
+    releasePhoto(s);
+    s.photo = null; s.errs = {...s.errs, photo:''}; render();
+    document.getElementById('f-photo')?.focus();
+  },
   savePayerAccounts: () => savePayerAccounts(),
   pstep: ds => {
     if (ui.saving) return;
     const state = profileState();
     Object.assign(state, {step:ds.step || null, mode:ds.mode || null, errs:{}, alert:null});
+    releasePhoto(state); if (state.crop) releaseCrop(state.crop);
+    delete state.photo; state.crop = null;  // Cancel throws away a photo that wasn't saved
     if (ds.step !== 'email' && ds.step !== 'code') state.draft = null;
     state.paymentDraft = ds.step === 'payments' ? {...S.paymentAccounts} : null;
     render();
@@ -2720,9 +2815,15 @@ async function saveProfile(){
   if (errs.first || errs.last || errs.phone) return showErrs(errs);
   sh.errs = {}; sh.alert = null; ui.saving = true; render();
   try {
-    const same = draft.first === S.me.first && draft.last === S.me.last && draft.phone === S.me.phone;
-    if (!same){
-      if (CFG.preview) { S.me = draft; savePreviewProfile(); }
+    const fieldsSame = draft.first === S.me.first && draft.last === S.me.last && draft.phone === S.me.phone;
+    const same = fieldsSame && sh.photo === undefined;
+    if (sh.photo !== undefined){
+      await savePhoto(sh.photo);
+      releasePhoto(sh);
+      delete sh.photo;
+    }
+    if (!fieldsSame){
+      if (CFG.preview) { S.me = {...S.me, ...draft}; savePreviewProfile(); }
       else {
         need(await sb.rpc('save_my_profile', {p_first_name:draft.first, p_last_name:draft.last, p_phone:draft.phone}));
         await loadAll();
@@ -2733,8 +2834,95 @@ async function saveProfile(){
     if (sh.mode === 'create'){ Object.assign(sh, {step:'email', draft:null}); render(); document.getElementById('f-email')?.focus(); }
     else { Object.assign(sh, {step:null, draft:null}); toast(same ? 'No changes to save.' : 'Profile updated.'); }
   } catch(e) {
+    if (e.field) return showErrs({[e.field]:e.message});
     showServerErr(/failed to fetch|network|load failed/i.test(e.message) ? OFFLINE : /save_my_profile/.test(e.message) ? 'The database is missing the profile update. Run supabase/profile.sql in the Supabase SQL Editor.' : e.message);
   }
+}
+
+// Profile picture. The photo is cropped and shrunk in the browser, shown as a preview, and uploaded
+// only when the person presses Save.
+const PHOTO_MAX_MB = 20;
+function photoProblem(file){
+  if (!/^image\//.test(file.type || '') && !/\.(jpe?g|png|gif|webp|heic|heif|avif)$/i.test(file.name || ''))
+    return 'That file isn\'t a photo. Choose a JPG, PNG or HEIC image.';
+  const mb = file.size / 1048576;
+  return mb > PHOTO_MAX_MB ? `That photo is too large (${Math.round(mb)} MB). Choose one under ${PHOTO_MAX_MB} MB.` : '';
+}
+// Free the memory held by a photo that is no longer needed.
+function releaseCrop(c){ URL.revokeObjectURL(c.url); c.bitmap.close?.(); }
+function releasePhoto(s){ if (s.photo){ URL.revokeObjectURL(s.photo.url); if (s.photo.source) releaseCrop(s.photo.source); } }
+const canvasBlob = (canvas, quality) => new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('encode')), 'image/jpeg', quality));
+// Open the adjuster. The on-screen copy is shrunk (at most 1600 px) so dragging stays smooth; the
+// saved picture is cut from the full-size original.
+async function choosePhoto(file){
+  const s = profileState();
+  if (s.step !== 'edit' || ui.saving || S.account.guest) return;
+  let msg = photoProblem(file), bitmap = null, url = null;
+  if (!msg) {
+    try {
+      bitmap = await createImageBitmap(file);
+      const k = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+      const view = document.createElement('canvas');
+      view.width = Math.round(bitmap.width * k); view.height = Math.round(bitmap.height * k);
+      view.getContext('2d').drawImage(bitmap, 0, 0, view.width, view.height);
+      url = URL.createObjectURL(await canvasBlob(view, 0.9));
+    } catch(e) { bitmap?.close?.(); bitmap = null; msg = 'This browser couldn\'t open that photo. Try a JPG or PNG instead.'; }
+  }
+  if (profileState() !== s || s.step !== 'edit') { if (bitmap) releaseCrop({bitmap, url}); return; }  // they left the form
+  if (msg) { s.errs = {...s.errs, photo:msg}; render(); document.getElementById('f-photo')?.focus(); return; }
+  const c = {bitmap, url, w:bitmap.width, h:bitmap.height, zoom:1, x:0, y:0};
+  const k = cropScale(c);
+  c.x = (CROP - c.w * k) / 2; c.y = (CROP - c.h * k) / 2;  // start centered, filling the circle
+  s.errs = {...s.errs, photo:''}; s.crop = c;
+  render(); document.getElementById('crop-view')?.focus();
+}
+// "Use photo": cut out what's inside the circle as a square JPEG, at most 400×400 (about 50 KB).
+async function finishCrop(){
+  const s = profileState(), c = s.crop; if (!c) return;
+  const k = cropScale(c), side = CROP / k, size = Math.round(Math.min(400, side));
+  const canvas = document.createElement('canvas'); canvas.width = canvas.height = size;
+  const g = canvas.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, size, size);  // see-through PNGs get a white background
+  g.drawImage(c.bitmap, -c.x / k, -c.y / k, side, side, 0, 0, size, size);
+  let blob;
+  try { blob = await canvasBlob(canvas, 0.85); }
+  catch(e) { s.errs = {...s.errs, photo:'This browser couldn\'t open that photo. Try a JPG or PNG instead.'}; releaseCrop(c); s.crop = null; render(); return; }
+  if (profileState() !== s || s.crop !== c) return;
+  if (s.photo){ URL.revokeObjectURL(s.photo.url); if (s.photo.source && s.photo.source !== c) releaseCrop(s.photo.source); }
+  s.photo = {blob, url:URL.createObjectURL(blob), source:c};
+  s.crop = null; render(); document.getElementById('f-photo')?.focus();
+}
+const photoErr = m => /failed to fetch|network|load failed/i.test(m) ? 'The photo couldn\'t be uploaded. Check your internet connection and try again.'
+  : /bucket not found|set_my_avatar|avatar_path/i.test(m) ? 'Profile photos aren\'t set up in the database yet. Run supabase/avatars.sql in the Supabase SQL Editor.'
+  : /too large|exceeded|payload/i.test(m) ? 'That photo is too large to upload. Try a different photo.'
+  : /mime|content type|not supported/i.test(m) ? 'That file type isn\'t supported. Choose a JPG, PNG or HEIC image.'
+  : m;
+const randomName = () => crypto.randomUUID ? crypto.randomUUID()
+  : [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');
+const blobDataUrl = blob => new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(blob); });
+// Upload the new photo (or none), point users.avatar_path at it, then delete the old file.
+// Each file gets a new random name, so browsers never show a stale cached photo.
+async function savePhoto(photo){
+  if (CFG.preview) { S.me = {...S.me, avatarUrl:photo ? await blobDataUrl(photo.blob) : null}; savePreviewProfile(); return; }
+  const bucket = sb.storage.from('avatars');
+  let path = null;
+  try {
+    if (photo){
+      if (S.account.guest) throw new Error('Create a profile to add a profile picture.');
+      const {data:{session}} = await sb.auth.getSession();
+      if (!session) throw new Error('Your account isn\'t set up yet. Refresh the page and try again.');
+      path = `${session.user.id}/${randomName()}.jpg`;
+      const up = await bucket.upload(path, photo.blob, {contentType:'image/jpeg', cacheControl:'31536000', upsert:false});
+      if (up.error) throw new Error(up.error.message);
+    }
+    const old = need(await sb.rpc('set_my_avatar', {p_path:path}));
+    // A leftover old file is harmless, so a failed delete doesn't fail the save.
+    if (old && old !== path) bucket.remove([old]).catch(() => {});
+  } catch(e) {
+    if (path) bucket.remove([path]).catch(() => {});
+    throw Object.assign(new Error(photoErr(e.message)), {field:'photo'});
+  }
+  S.me = {...S.me, avatarUrl:avatarUrlFor(path)};
 }
 
 // Email codes. 'create': attach an email to this guest account (same account, same data).
@@ -2892,6 +3080,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => {
   const el = e.target, k = el.dataset.in; if (!k || ui.preparing) return;
+  if (k === 'cropzoom') { const c = profileState().crop; if (c) { zoomCrop(c, +el.value); applyCrop(); } return; }
   if (S.view === 'summary') ui.sendError = '';
   if (k === 'pmsg' || k === 'requestNote') sizeRequestNote(el);
   if (['gname','gquery','gmember'].includes(k) && ui.sheet?.type === 'group') {
@@ -2938,6 +3127,7 @@ document.addEventListener('input', e => {
   refresh(); save();
 });
 document.addEventListener('change', e => {
+  if (e.target.id === 'photo-in'){ const file = e.target.files[0]; e.target.value = ''; if (file) choosePhoto(file); return; }
   if (!['file-in', 'camera-in'].includes(e.target.id)) return;
   const file = e.target.files[0]; e.target.value = '';
   if (file) runScan(file);
@@ -2954,6 +3144,48 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener?.('pagehide', () => stopCamera());
 window.addEventListener?.('resize', sizeRequestNotes);
+// Photo adjuster: one finger or the mouse drags; two fingers pinch to zoom.
+const cropPointers = new Map();
+document.addEventListener('pointerdown', e => {
+  const view = e.target.closest?.('#crop-view'); if (!view || !profileState().crop) return;
+  e.preventDefault(); view.setPointerCapture?.(e.pointerId); view.focus();
+  cropPointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+});
+document.addEventListener('pointermove', e => {
+  const prev = cropPointers.get(e.pointerId), c = profileState().crop; if (!prev || !c) return;
+  if (cropPointers.size === 1){ c.x += e.clientX - prev.x; c.y += e.clientY - prev.y; clampCrop(c); }
+  else {
+    const other = [...cropPointers].find(([id]) => id !== e.pointerId)[1];
+    const before = Math.hypot(prev.x - other.x, prev.y - other.y), after = Math.hypot(e.clientX - other.x, e.clientY - other.y);
+    const box = document.getElementById('crop-view').getBoundingClientRect();
+    if (before > 0) zoomCrop(c, c.zoom * after / before, (e.clientX + other.x) / 2 - box.left, (e.clientY + other.y) / 2 - box.top);
+  }
+  cropPointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  applyCrop();
+});
+['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, e => cropPointers.delete(e.pointerId)));
+document.addEventListener('wheel', e => {
+  const view = e.target.closest?.('#crop-view'), c = profileState().crop; if (!view || !c) return;
+  e.preventDefault();
+  const box = view.getBoundingClientRect();
+  zoomCrop(c, c.zoom * Math.exp(-e.deltaY / 400), e.clientX - box.left, e.clientY - box.top); applyCrop();
+}, {passive:false});
+document.addEventListener('keydown', e => {
+  const c = profileState().crop; if (!c || e.target.id !== 'crop-view') return;
+  const step = e.shiftKey ? 40 : 10;
+  const moves = {ArrowLeft:[step, 0], ArrowRight:[-step, 0], ArrowUp:[0, step], ArrowDown:[0, -step]};
+  if (moves[e.key]) { c.x += moves[e.key][0]; c.y += moves[e.key][1]; clampCrop(c); }
+  else if (e.key === '+' || e.key === '=') zoomCrop(c, c.zoom + 0.1);
+  else if (e.key === '-' || e.key === '_') zoomCrop(c, c.zoom - 0.1);
+  else if (e.key === 'Enter') { e.preventDefault(); return finishCrop(); }
+  else return;
+  e.preventDefault(); applyCrop();
+});
+// A profile photo that can't load (deleted, offline): show the initials or the person icon instead.
+document.addEventListener('error', e => {
+  if (e.target.classList?.contains('face-img')) e.target.hidden = true;
+  else if (e.target.classList?.contains('tab-face')) e.target.outerHTML = I('user');
+}, true);
 
 if (!V[S.view] || S.view === 'scanning' || S.view === 'sent' && !S.draft.results || ['assign','summary'].includes(S.view) && !S.draft.items.length) S.view = 'home';
 render();

@@ -33,7 +33,7 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 
 **How the diagram becomes tables.** The SQL in [`supabase/schema.sql`](supabase/schema.sql) uses the same 11 tables and columns, written in Postgres's lowercase snake_case style: `Users.UserFirstName` becomes `users.user_first_name`, `Contacts_Payment_Method` becomes `contacts_payment_method`, and so on. `IsPreffered` is spelled `is_preferred` in the database. Money is stored as whole cents, so `1959` means $19.59.
 
-**Accounts.** Two columns are not in the ERD yet. `users.auth_user_id` links a row to its Supabase Auth account; it is empty for the sample users in `seed.sql`. `friend_groups.user_id` records which user owns a group, so each person can create and edit only their own groups.
+**Accounts.** Three columns are not in the ERD yet. `users.auth_user_id` links a row to its Supabase Auth account; it is empty for the sample users in `seed.sql`. `users.avatar_path` names the user's profile picture file in Supabase Storage (empty = no photo). `friend_groups.user_id` records which user owns a group, so each person can create and edit only their own groups.
 
 **The payer is also a contact.** Each user has one row in `contacts` with the same name and phone as their `users` row. That lets the payer be a participant and be assigned items like everyone else, and the app shows that contact as "You."
 
@@ -41,7 +41,7 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 
 ![IOYA system architecture](docs/ioya-architecture.png)
 
-This diagram shows how IOYA is built today. Gray dashed boxes are planned and not built yet (profile pictures in Supabase Storage). New splits are still kept only in the browser; saving them to the database is also planned.
+This diagram shows how IOYA is built today. Gray dashed boxes are planned and not built yet. (Profile pictures in Supabase Storage are now built; the diagram still draws them dashed until it is redrawn.) New splits are still kept only in the browser; saving them to the database is also planned.
 
 ## Data Flow Diagrams
 
@@ -67,7 +67,9 @@ Level 1 data flow diagrams showing how data moves between the user, IOYA's main 
 
 **Accounts.** There is no login screen. The first time a browser opens IOYA, it signs in to Supabase anonymously, which creates a guest account, and the database function `ensure_my_user` creates that person's `users` row and their own "You" contact. The browser keeps the session, so the same person gets the same account on later visits. Clearing the browser's data or using a private window starts a new, empty account. A new account doesn't see the sample data in `seed.sql`, which belongs to the sample user, Demo Payer.
 
-**Profile and saved accounts.** The person icon at the top of each screen opens Profile. There you can set your name and phone; the database function `save_my_profile` (in [`supabase/profile.sql`](supabase/profile.sql)) updates your `users` row and your "You" contact together, so the app keeps recognizing which contact is you. A guest can **save their account** with an email: Supabase emails a 6-digit code, and once it's entered the same account (same data) becomes permanent. On another device or browser, **Already saved? Sign in** asks for the email and a new code, then loads that account. A guest's data is not merged into a saved account. Saved accounts can **sign out**, which gives that browser a fresh guest account. Email addresses are kept by Supabase Auth, not in our tables.
+**Profile and saved accounts.** The **Profile** tab shows your profile card. Press the pencil to set your name, phone and **profile picture**; the database function `save_my_profile` (in [`supabase/profile.sql`](supabase/profile.sql)) updates your `users` row and your "You" contact together, so the app keeps recognizing which contact is you. A guest can **save their account** with an email: Supabase emails a 6-digit code, and once it's entered the same account (same data) becomes permanent. On another device or browser, **Already saved? Sign in** asks for the email and a new code, then loads that account. A guest's data is not merged into a saved account. Saved accounts can **sign out**, which gives that browser a fresh guest account. Email addresses are kept by Supabase Auth, not in our tables.
+
+**Profile pictures.** Only saved profiles can have a photo; guests see "Create a profile to add a profile picture." In edit mode, **Add photo** opens the phone's photo picker (or camera), then **Adjust your photo**: drag to move it, and zoom with the slider, a pinch on a phone, or the mouse wheel (keyboard: arrow keys and + / -). The part inside the circle is saved as a 400×400 JPEG (about 50 KB), made in the browser. It shows as a preview (with **Adjust** to reframe it) and uploads only when you press **Save**; **Cancel** throws it away. The photo then shows on the profile card and as the Profile tab's icon, with your initials as the fallback. Photos are stored in a public Supabase Storage bucket called `avatars`, one folder per account, set up by [`supabase/avatars.sql`](supabase/avatars.sql). Anyone with a photo's exact link can view it (the planned profile QR page needs that), but file names are random, so links can't be guessed and no one can list other people's photos. Each account can upload, replace and delete only its own files. Changing or removing a photo deletes the old file.
 
 **Security.** The browser uses Supabase's public **anon** key. Row Level Security is on for every table, and the rules are in [`supabase/private-data.sql`](supabase/private-data.sql). Each account's data is private: a signed-in person can
 
@@ -200,6 +202,8 @@ The HTTPS address is a new browser origin: its local draft and camera permission
 - "Too many new accounts were created from this network": Supabase limits how many guest accounts one network can create per hour. Wait, or reuse a browser that already has an account.
 - `permission denied` when saving: you are trying to change something other than a contact or "Mark as paid," which the security rules block on purpose.
 - "The database is missing the profile update": run [`supabase/profile.sql`](supabase/profile.sql) once in the SQL Editor.
+- "Profile photos aren't set up in the database yet", or "Couldn't load your data" mentioning `avatar_path`: run [`supabase/avatars.sql`](supabase/avatars.sql) once in the SQL Editor.
+- "This browser couldn't open that photo": some desktop browsers can't read iPhone HEIC photos. Choose a JPG or PNG, or add the photo from the phone (iPhones convert it automatically).
 - The code email never arrives: check spam, then **Authentication → Emails → SMTP Settings** (without your own sender, only Supabase project members get emails) and Supabase's **Logs → Auth** for the error. "The email could not be sent" in the app means the SMTP details are wrong.
 - "That email already has a saved IOYA account": use **Already saved? Sign in** instead of **Save your account**.
 - The email has an 8-digit code but the app asks for 6: set **Email OTP Length** to `6` (setup step 1 under "Set up account emails").
@@ -269,6 +273,7 @@ supabase/contacts-sync.sql  Adds just the contact functions to a project set up 
 supabase/anonymous-accounts.sql  Guest accounts: links users to Supabase Auth and updates the contact functions
 supabase/private-data.sql  Makes each account's data private, gives groups an owner, adds save_group/delete_group
 supabase/profile.sql   Adds save_my_profile (name and phone for the Profile screen)
+supabase/avatars.sql   Profile pictures: the avatars storage bucket and its rules, users.avatar_path, set_my_avatar
 supabase/seed.sql      Sample rows for every table
 docs/ioya-erd.pdf      Our ERD (docs/ioya-erd.png is the same diagram for this README)
 .env.example           Template for your .env file
