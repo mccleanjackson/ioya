@@ -9,11 +9,12 @@ const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][0][1];
 
 // A fake Supabase with a guest session that can be saved with an email, switched or signed out.
 // `fail` makes one auth call return an error: {updateUser:'...'} etc.
-function fakeSupabase({fail = {}, saved = false} = {}){
+// `avatar` starts the account with a saved photo. Storage calls are recorded too.
+function fakeSupabase({fail = {}, saved = false, avatar = null} = {}){
   const calls = [];
   let nextUser = 7;
   const state = {session:{user:{id:'guest', is_anonymous:!saved, email:saved ? 'me@example.com' : '', created_at:'2026-11-02T10:00:00Z'}}, userId:7,
-    paymentAccounts:{}, me:{user_first_name:'', user_last_name:'', phone:null}};
+    paymentAccounts:{}, me:{user_first_name:'', user_last_name:'', phone:null}, avatar, files:avatar ? [avatar] : []};
   const err = name => fail[name] ? {error:{message:fail[name]}} : null;
   const query = rows => {
     const q = {select:() => q, eq:() => q, order:() => q,
@@ -22,7 +23,7 @@ function fakeSupabase({fail = {}, saved = false} = {}){
     return q;
   };
   const tables = {
-    users:() => [{user_id:state.userId, ...state.me}],
+    users:() => [{user_id:state.userId, ...state.me, avatar_path:state.avatar}],
     payment_methods:() => [{pay_method_id:1, pay_method_name:'Venmo'}],
     contacts:() => [{contact_id:50, cont_first_name:state.me.user_first_name, cont_last_name:state.me.user_last_name, phone:state.me.phone, contacts_payment_method:[]},
       ...(state.userId === 7 ? [{contact_id:51, cont_first_name:'Guest', cont_last_name:'Friend', phone:null, contacts_payment_method:[]}] : [])],
@@ -51,6 +52,10 @@ function fakeSupabase({fail = {}, saved = false} = {}){
         return {data:state.paymentAccounts,error:null};
       }
       if (name === 'ensure_my_user') return {data:state.userId, error:null};
+      if (name === 'set_my_avatar'){
+        if (fail.set_my_avatar) return {data:null, error:{message:fail.set_my_avatar}};
+        const old = state.avatar; state.avatar = args.p_path; return {data:old, error:null};
+      }
       if (name === 'save_my_profile'){
         if (fail.save_my_profile) return {data:null, error:{message:fail.save_my_profile}};
         state.me = {user_first_name:args.p_first_name, user_last_name:args.p_last_name, phone:args.p_phone || null};
@@ -58,7 +63,16 @@ function fakeSupabase({fail = {}, saved = false} = {}){
       }
       return {data:null, error:null};
     },
-    from: name => query(tables[name])
+    from: name => query(tables[name]),
+    storage:{from: bucket => ({
+      getPublicUrl: p => ({data:{publicUrl:`https://example.test/storage/v1/object/public/${bucket}/${p}`}}),
+      upload: async (p, blob, opts) => {
+        calls.push(['upload', p, opts]);
+        if (fail.upload) return {data:null, error:{message:fail.upload}};
+        state.files.push(p); return {data:{path:p}, error:null};
+      },
+      remove: async paths => { calls.push(['remove', paths]); state.files = state.files.filter(f => !paths.includes(f)); return {data:[], error:null}; }
+    })}
   };
   return {client, calls, state};
 }
@@ -69,13 +83,20 @@ async function load(fake){
     window:{supabase:{createClient:() => fake.client}, IOYA_CONFIG:{supabaseUrl:'https://example.test', supabaseAnonKey:'test'}},
     document:{getElementById:id => fields[id] || null, addEventListener:() => {}, querySelector:() => null},
     localStorage:{getItem:() => null, setItem(){}},
-    setTimeout:() => 0, clearTimeout:() => {}, console
+    setTimeout:() => 0, clearTimeout:() => {}, console,
+    // Just enough of the browser's image tools for the photo picker.
+    createImageBitmap: async file => { if (file.unreadable) throw new Error('decode'); return {width:3000, height:2000, close(){}}; },
+    URL:{createObjectURL:() => 'blob:preview', revokeObjectURL(){}},
+    crypto:{randomUUID:() => '1b2c3d4e-0000-4000-8000-000000000001'}
   };
-  const instrumented = script.replace("if (!V[S.view]", "render = () => {}; globalThis.api = {loadAll, S, ui, A, sheetHTML, liveCheck, V}; return;\nif (!V[S.view]");
+  context.document.createElement = () => ({getContext:() => ({fillRect(){}, drawImage:(...a) => context.drawn = a}),
+    toBlob:(done, type, q) => done({type, size:48000})});
+  const instrumented = script.replace("if (!V[S.view]", "render = () => {}; globalThis.api = {loadAll, S, ui, A, sheetHTML, liveCheck, V, choosePhoto, zoomCrop, clampCrop}; return;\nif (!V[S.view]");
   vm.runInNewContext(instrumented, context);
   const api = context.api;
   api.type = (values) => { for (const k of Object.keys(fields)) delete fields[k]; Object.entries(values).forEach(([id, value]) => fields[id] = {value, focus(){}}); };
   api.fields = fields;
+  api.context = context;
   await api.loadAll();
   return api;
 }
@@ -130,7 +151,7 @@ test('saving the profile sends trimmed values, reloads "You", and returns to vie
   api.type({'f-first':'  Jackson ', 'f-last':' McClean ', 'f-phone':' (801) 555-1234 '});
   await api.A.saveprofile();
   assert.deepEqual(plain(calls(fake, 'save_my_profile')[0][1]), {p_first_name:'Jackson', p_last_name:'McClean', p_phone:'(801) 555-1234'});
-  assert.deepEqual(plain(api.S.me), {first:'Jackson', last:'McClean', phone:'(801) 555-1234'});
+  assert.deepEqual(plain(api.S.me), {first:'Jackson', last:'McClean', phone:'(801) 555-1234', avatarUrl:null});
   assert.equal(api.S.selfContactId, '50', 'still finds "You" after the rename');
   assert.equal(api.ui.sheet.step, null, 'back to view mode');
   assert.match(api.ui.toast, /Profile updated/);
@@ -346,4 +367,158 @@ test('Profile tab shows the phone and account controls and saves payer identifie
   assert.equal(api.S.paymentAccounts.paypal,'TaylorPreview');
   assert.equal(calls(fake,'save_my_payment_accounts').length,1);
   assert.match(api.V.profile(),/TaylorPreview/);
+});
+
+// ---------- Profile pictures ----------
+const PHOTO = {name:'me.jpg', type:'image/jpeg', size:3 * 1048576};  // the fake decodes every photo as 3000×2000
+const PUBLIC = 'https://example.test/storage/v1/object/public/avatars/';
+// A signed-in profile (guests can't add photos), in edit mode with name and phone unchanged.
+async function editing(opts = {}){
+  const fake = fakeSupabase({saved:true, ...opts});
+  fake.state.me = {user_first_name:'Jackson', user_last_name:'McClean', phone:null};
+  const api = await load(fake);
+  open(api); api.A.pstep({step:'edit'});
+  api.type({'f-first':'Jackson', 'f-last':'McClean', 'f-phone':''});
+  return {fake, api};
+}
+// Choose a photo and press "Use photo" in the adjuster.
+async function pick(api){ await api.choosePhoto(PHOTO); await api.A.cropdone(); }
+const lastDraw = api => plain(api.context.drawn.slice(1)).map(n => Math.round(n));
+
+test('a saved photo shows in the profile circle, over the initials', async () => {
+  const api = await load(fakeSupabase({saved:true, avatar:'guest/old-photo-1.jpg'}));
+  open(api);
+  assert.equal(api.S.me.avatarUrl, PUBLIC + 'guest/old-photo-1.jpg');
+  assert.match(api.sheetHTML(), /class="pava"[^>]*>.*<img class="face-img" src="https:\/\/example\.test\/storage\/v1\/object\/public\/avatars\/guest\/old-photo-1\.jpg"/s);
+});
+
+test('guests are told to create a profile and get no photo button', async () => {
+  const fake = fakeSupabase(), api = await load(fake);
+  open(api); api.A.pstep({step:'edit'});
+  let out = api.sheetHTML();
+  assert.match(out, /Create a profile to add a profile picture\./);
+  assert.doesNotMatch(out, /Add photo|photo-in/);
+  api.A.pstep({step:'edit', mode:'create'});
+  assert.match(api.sheetHTML(), /You can add a profile picture once your profile is created\./);
+  await api.choosePhoto(PHOTO);
+  assert.ok(!api.ui.sheet.crop, 'a photo chosen anyway is ignored');
+});
+
+test('without a photo the edit form offers "Add photo" and no "Remove photo"', async () => {
+  const {api} = await editing();
+  const out = api.sheetHTML();
+  assert.match(out, />Add photo</);
+  assert.doesNotMatch(out, /Remove photo|face-img/);
+});
+
+test('choosing a photo opens the adjuster, centered and filling the circle', async () => {
+  const {fake, api} = await editing();
+  await api.choosePhoto(PHOTO);
+  const c = api.ui.sheet.crop;
+  assert.deepEqual([c.w, c.h, c.zoom, c.x, c.y], [3000, 2000, 1, -65, 0], 'shorter side fills the 260 px circle, centered');
+  const out = api.sheetHTML();
+  assert.match(out, /Adjust your photo/);
+  assert.match(out, /id="crop-zoom"[^>]*type="range"|type="range"[^>]*id="crop-zoom"/);
+  assert.match(out, />Use photo</);
+  assert.doesNotMatch(out, /id="f-first"/, 'the name fields wait until the photo is done');
+  await api.A.cropdone();
+  assert.deepEqual(lastDraw(api), [500, 0, 2000, 2000, 0, 0, 400, 400], 'saved as the centered square, 400×400');
+  assert.match(api.sheetHTML(), /src="blob:preview"[\s\S]*>Change photo<[\s\S]*>Adjust<[\s\S]*>Remove photo</);
+  assert.equal(calls(fake, 'upload').length, 0, 'nothing uploaded until Save');
+});
+
+test('zooming and dragging change exactly what gets saved, and the photo always fills the circle', async () => {
+  const {api} = await editing();
+  await api.choosePhoto(PHOTO);
+  const c = api.ui.sheet.crop;
+  api.zoomCrop(c, 2);  // zoom in around the middle of the circle
+  assert.equal(c.zoom, 2);
+  await api.A.cropdone();
+  assert.deepEqual(lastDraw(api), [1000, 500, 1000, 1000, 0, 0, 400, 400], 'the middle 1000×1000 of the photo');
+  api.A.adjustphoto();
+  c.x = 50; c.y = -99999; api.clampCrop(c);  // dragged too far right and up
+  assert.deepEqual([c.x, c.y], [0, 260 - 2000 * 0.26], 'stops at the photo edges instead of showing a gap');
+  api.zoomCrop(c, 9); assert.equal(c.zoom, 4, 'zoom stops at 4×');
+  api.zoomCrop(c, 0.2); assert.equal(c.zoom, 1, "can't zoom out past filling the circle");
+});
+
+test('Cancel in the adjuster: a new photo is dropped; adjusting again keeps the earlier framing', async () => {
+  const {api} = await editing();
+  await api.choosePhoto(PHOTO);
+  api.A.cropcancel();
+  assert.equal(api.ui.sheet.crop, null);
+  assert.equal(api.ui.sheet.photo, undefined, 'no photo was added');
+  await pick(api);
+  api.A.adjustphoto();
+  api.zoomCrop(api.ui.sheet.crop, 3);
+  api.A.cropcancel();
+  assert.equal(api.ui.sheet.photo.source.zoom, 1, 'the earlier framing is kept');
+});
+
+test('Cancel on the form throws the chosen photo away; nothing is uploaded', async () => {
+  const {fake, api} = await editing();
+  await pick(api);
+  api.A.pstep({});
+  assert.equal(calls(fake, 'upload').length + calls(fake, 'set_my_avatar').length, 0);
+  assert.equal(api.ui.sheet.photo, undefined);
+});
+
+test('Save uploads the photo to your own folder, sets it, and shows it', async () => {
+  const {fake, api} = await editing({avatar:'guest/old-photo-1.jpg'});
+  await pick(api);
+  await api.A.saveprofile();
+  const [, path, opts] = calls(fake, 'upload')[0];
+  assert.equal(path, 'guest/1b2c3d4e-0000-4000-8000-000000000001.jpg');
+  assert.equal(opts.contentType, 'image/jpeg');
+  assert.deepEqual(plain(calls(fake, 'set_my_avatar')[0][1]), {p_path:path});
+  assert.deepEqual(plain(calls(fake, 'remove')[0][1]), ['guest/old-photo-1.jpg'], 'old photo deleted');
+  assert.equal(api.S.me.avatarUrl, PUBLIC + path);
+  assert.equal(calls(fake, 'save_my_profile').length, 0, 'name and phone were unchanged');
+  assert.equal(api.ui.sheet.step, null);
+  assert.match(api.ui.toast, /Profile updated/);
+});
+
+test('Remove photo clears it on Save and deletes the old file', async () => {
+  const {fake, api} = await editing({avatar:'guest/old-photo-1.jpg'});
+  api.A.removephoto();
+  assert.match(api.sheetHTML(), />Add photo</);
+  assert.equal(calls(fake, 'set_my_avatar').length, 0, 'nothing changes until Save');
+  await api.A.saveprofile();
+  assert.deepEqual(plain(calls(fake, 'set_my_avatar')[0][1]), {p_path:null});
+  assert.deepEqual(plain(calls(fake, 'remove')[0][1]), ['guest/old-photo-1.jpg']);
+  assert.equal(api.S.me.avatarUrl, null);
+});
+
+test('files that are not photos, too large, or unreadable get exact red messages', async () => {
+  const {fake, api} = await editing();
+  await api.choosePhoto({name:'notes.pdf', type:'application/pdf', size:1000});
+  assert.equal(errs(api).photo, "That file isn't a photo. Choose a JPG, PNG or HEIC image.");
+  await api.choosePhoto({name:'huge.jpg', type:'image/jpeg', size:25 * 1048576});
+  assert.equal(errs(api).photo, 'That photo is too large (25 MB). Choose one under 20 MB.');
+  await api.choosePhoto({name:'odd.heic', type:'image/heic', size:1000, unreadable:true});
+  assert.equal(errs(api).photo, "This browser couldn't open that photo. Try a JPG or PNG instead.");
+  assert.match(api.sheetHTML(), /id="e-photo" role="alert">.*Try a JPG or PNG instead/s);
+  assert.ok(!api.ui.sheet.crop, 'no adjuster for a bad file');
+  await api.choosePhoto(PHOTO);
+  assert.equal(errs(api).photo, '', 'a good photo clears the message');
+  assert.equal(calls(fake, 'upload').length, 0);
+});
+
+test('a failed upload shows under the photo and keeps the form open', async () => {
+  const {fake, api} = await editing({fail:{upload:'Failed to fetch'}});
+  await pick(api);
+  await api.A.saveprofile();
+  assert.equal(errs(api).photo, "The photo couldn't be uploaded. Check your internet connection and try again.");
+  assert.equal(calls(fake, 'set_my_avatar').length, 0);
+  assert.equal(api.ui.sheet.step, 'edit');
+  assert.equal(api.ui.saving, false);
+});
+
+test('if the database step is missing, the uploaded file is cleaned up and the fix is named', async () => {
+  const {fake, api} = await editing({fail:{set_my_avatar:'Could not find the function public.set_my_avatar(p_path) in the schema cache'}});
+  await pick(api);
+  await api.A.saveprofile();
+  assert.match(errs(api).photo, /Run supabase\/avatars\.sql/);
+  assert.deepEqual(plain(calls(fake, 'remove')[0][1]), [calls(fake, 'upload')[0][1]], 'the new file is deleted again');
+  assert.equal(fake.state.files.length, 0);
 });
