@@ -71,6 +71,8 @@ Level 1 data flow diagrams showing how data moves between the user, IOYA's main 
 
 **Profile pictures.** Only saved profiles can have a photo; guests see "Create a profile to add a profile picture." In edit mode, **Add photo** opens the phone's photo picker (or camera), then **Adjust your photo**: drag to move it, and zoom with the slider, a pinch on a phone, or the mouse wheel (keyboard: arrow keys and + / -). The part inside the circle is saved as a 400×400 JPEG (about 50 KB), made in the browser. It shows as a preview (with **Adjust** to reframe it) and uploads only when you press **Save**; **Cancel** throws it away. The photo then shows on the profile card and as the Profile tab's icon, with your initials as the fallback. Photos are stored in a public Supabase Storage bucket called `avatars`, one folder per account, set up by [`supabase/avatars.sql`](supabase/avatars.sql). Anyone with a photo's exact link can view it (the planned profile QR page needs that), but file names are random, so links can't be guessed and no one can list other people's photos. Each account can upload, replace and delete only its own files. Changing or removing a photo deletes the old file.
 
+**Payment accounts.** The Profile tab lists the payment apps you've linked (Venmo, PayPal, Zelle, Cash App, Apple Cash) so friends can pay you, with readable handles (`@username`, `(801) 555-1234`). With none linked it shows **Add a payment app**. In the editor, each mistake gets its own red message (for example "Venmo usernames are at least 5 characters. This one has 3."), and you can mark one app as **Preferred**: it shows first with a star, and when a contact has no preferred app of their own, payment requests try yours first. Accounts are saved by `save_my_payment_accounts` ([`supabase/profile-payment-accounts.sql`](supabase/profile-payment-accounts.sql)); the preference by `set_my_payment_preference` ([`supabase/payment-preference.sql`](supabase/payment-preference.sql)). Guests can link payment apps too, since they need them to request money.
+
 **Security.** The browser uses Supabase's public **anon** key. Row Level Security is on for every table, and the rules are in [`supabase/private-data.sql`](supabase/private-data.sql). Each account's data is private: a signed-in person can
 
 - **read only their own rows**: their user row, their contacts and those contacts' payment usernames, their groups, and the splits they paid for (with those splits' items, participants and assignments). Everyone signed in can read the list of payment methods;
@@ -203,6 +205,7 @@ The HTTPS address is a new browser origin: its local draft and camera permission
 - `permission denied` when saving: you are trying to change something other than a contact or "Mark as paid," which the security rules block on purpose.
 - "The database is missing the profile update": run [`supabase/profile.sql`](supabase/profile.sql) once in the SQL Editor.
 - "Profile photos aren't set up in the database yet", or "Couldn't load your data" mentioning `avatar_path`: run [`supabase/avatars.sql`](supabase/avatars.sql) once in the SQL Editor.
+- "the preferred app needs a database update": run [`supabase/payment-preference.sql`](supabase/payment-preference.sql) once in the SQL Editor (your accounts were already saved).
 - "This browser couldn't open that photo": some desktop browsers can't read iPhone HEIC photos. Choose a JPG or PNG, or add the photo from the phone (iPhones convert it automatically).
 - The code email never arrives: check spam, then **Authentication → Emails → SMTP Settings** (without your own sender, only Supabase project members get emails) and Supabase's **Logs → Auth** for the error. "The email could not be sent" in the app means the SMTP details are wrong.
 - "That email already has a saved IOYA account": use **Already saved? Sign in** instead of **Save your account**.
@@ -274,6 +277,7 @@ supabase/anonymous-accounts.sql  Guest accounts: links users to Supabase Auth an
 supabase/private-data.sql  Makes each account's data private, gives groups an owner, adds save_group/delete_group
 supabase/profile.sql   Adds save_my_profile (name and phone for the Profile screen)
 supabase/avatars.sql   Profile pictures: the avatars storage bucket and its rules, users.avatar_path, set_my_avatar
+supabase/payment-preference.sql  Preferred payment app: profile_payment_accounts.preferred, get/set_my_payment_preference
 supabase/seed.sql      Sample rows for every table
 docs/ioya-erd.pdf      Our ERD (docs/ioya-erd.png is the same diagram for this README)
 .env.example           Template for your .env file
