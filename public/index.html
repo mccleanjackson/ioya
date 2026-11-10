@@ -433,6 +433,18 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .meth.venmo{color:var(--ink);background:var(--method-venmo-soft);box-shadow:inset 0 0 0 1.5px var(--method-venmo)}
 .meth.paypal{color:var(--ink);background:var(--method-paypal-soft);box-shadow:inset 0 0 0 1.5px var(--method-paypal)}
 .meth.zelle{color:var(--ink);background:var(--method-zelle-soft);box-shadow:inset 0 0 0 1.5px var(--method-zelle)}
+.meth.cashapp{color:var(--ink);background:color-mix(in srgb,#00D632 18%,var(--card));box-shadow:inset 0 0 0 1.5px #00B82B}
+.meth.applecash{color:var(--ink);background:color-mix(in srgb,var(--ink) 10%,var(--card));box-shadow:inset 0 0 0 1.5px var(--ink)}
+.paylist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.paylist li{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.paylist li:first-child{border-top:0}
+.paylist .handle{font-family:var(--f-mono);font-size:13.5px;overflow-wrap:anywhere}
+.paylist .badge .ic{fill:currentColor}
+.profile-payments .pay-add{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;margin-top:4px}
+.profile-payments .pay-add .ic,.pay-empty .btn .ic{width:18px;height:18px}
+.pay-empty{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.payfield{display:flex;flex-direction:column;gap:6px}
+.payfield .checkrow{align-self:flex-start;font-size:13px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .meth.venmo,:root:not([data-theme="light"]) .meth.paypal,:root:not([data-theme="light"]) .meth.zelle{color:#15171C}}
 :root[data-theme="dark"] .meth.venmo,:root[data-theme="dark"] .meth.paypal,:root[data-theme="dark"] .meth.zelle{color:#15171C}
 
@@ -610,7 +622,8 @@ const ICONS = {
   user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>',
   search:'<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
   alert:'<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/>',
-  bell:'<path d="M6 16v-5a6 6 0 1112 0v5l2 2H4z"/><path d="M10 21h4"/>'
+  bell:'<path d="M6 16v-5a6 6 0 1112 0v5l2 2H4z"/><path d="M10 21h4"/>',
+  star:'<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/>'
 };
 const I = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
 
@@ -635,7 +648,7 @@ function normalizeTipDraft(d){
    and the current screen are kept in this browser's localStorage. */
 const CFG = window.IOYA_CONFIG || {};
 const KEY = CFG.preview ? 'ioya-preview-draft-v1' : 'ioya-draft-v1';
-let S = {view:'scan', userId:null, me:{first:'', last:'', phone:''}, account:{email:null, guest:true, since:null}, paymentAccounts:{}, paymentAccountsError:'', contacts:[], groups:[], history:[], payMethods:[], selfContactId:null, draft:newDraft(), loading:true, loadError:null};
+let S = {view:'scan', userId:null, me:{first:'', last:'', phone:''}, account:{email:null, guest:true, since:null}, paymentAccounts:{}, paymentPreferred:null, paymentAccountsError:'', contacts:[], groups:[], history:[], payMethods:[], selfContactId:null, draft:newDraft(), loading:true, loadError:null};
 // Older versions filled empty drafts with a sample receipt (fromSample); drop those instead of resuming them.
 try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.draft && !saved.draft.fromSample) Object.assign(S, {view:saved.view === 'people' ? 'assign' : saved.view, draft:normalizeTipDraft(saved.draft)}); } catch(e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({view:S.view, draft:S.draft})); } catch(e) {} };
@@ -698,6 +711,7 @@ async function loadAll(){
     try { saved = JSON.parse(localStorage.getItem(PREVIEW_ACCOUNT_KEY)); } catch(e) {}
     Object.assign(S, {userId:1, me:saved?.me || {first:'Taylor',last:'Preview',phone:''},
       paymentAccounts:saved?.paymentAccounts || {venmo:'ioya-preview-example',paypal:'IOYAPreviewExample',zelle:'preview@example.test'},
+      paymentPreferred:saved?.paymentPreferred || null,
       paymentAccountsError:'', loading:false, loadError:null,
       payMethods:[{id:1,name:'Venmo'},{id:2,name:'PayPal'},{id:3,name:'Zelle'},{id:4,name:'Cash'},{id:5,name:'Cash App'},{id:6,name:'Apple Cash'}],
       contacts:[
@@ -725,6 +739,7 @@ async function loadAll(){
     ]);
     await readAccount();
     S.paymentAccounts = profileAccounts.accounts;
+    S.paymentPreferred = profileAccounts.preferred || null;
     S.paymentAccountsError = profileAccounts.error;
     S.me = {first:user.user_first_name, last:user.user_last_name, phone:user.phone || '', avatarUrl:avatarUrlFor(user.avatar_path)};
     S.payMethods = methods.map(m => ({id:m.pay_method_id, name:m.pay_method_name}));
@@ -756,7 +771,9 @@ async function loadAll(){
   render();
 }
 async function readPaymentAccounts(){
-  try { return {accounts:need(await sb.rpc('get_my_payment_accounts')) || {},error:''}; }
+  // The preference (payment-preference.sql) is optional: without it, there's simply no star.
+  const preferred = sb.rpc('get_my_payment_preference').then(r => (r && !r.error && r.data) || null, () => null);
+  try { return {accounts:need(await sb.rpc('get_my_payment_accounts')) || {},preferred:await preferred,error:''}; }
   catch(e) {
     return {accounts:{},error:/get_my_payment_accounts|schema cache/i.test(e.message)
       ? 'Payment accounts need the profile payment accounts database update.' : 'Could not load payment accounts. Try reloading.'};
@@ -1668,6 +1685,60 @@ function payerAccountValid(method,value){
   if (method === 'cashapp') return email || phone || /^\$[a-z0-9]{1,20}$/i.test(value) && /[a-z]/i.test(value);
   return method === 'applecash' && phone;
 }
+// The exact red message for a payment account that payerAccountValid() would refuse ('' = fine).
+// Same rules as payerAccountValid() and save_my_payment_accounts() in profile-payment-accounts.sql.
+const EMAIL_RE = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+const NEED_EMAIL = 'Enter a full email address, like you@example.com.';
+// null = this doesn't look like a phone number at all.
+function usPhoneProblem(v){
+  if (v.length > 40 || !/^[0-9+().\s-]+$/.test(v)) return null;
+  let d = v.replace(/\D/g,''); if (d.length === 11 && d[0] === '1') d = d.slice(1);
+  if (d.length !== 10) return `U.S. mobile numbers have 10 digits. This one has ${d.length}.`;
+  return /^[2-9]/.test(d) ? '' : 'That isn\'t a U.S. number: area codes can\'t start with 0 or 1.';
+}
+function payerAccountProblem(method, v){
+  if (!v) return '';
+  if (v.length > 100) return `That's too long. Use at most 100 characters (this has ${v.length}).`;
+  const email = EMAIL_RE.test(v), phone = usPhoneProblem(v);
+  if (method === 'venmo'){
+    const u = v.replace(/^@/, '');
+    if (!/^[a-z0-9_-]*$/i.test(u)) return 'Venmo usernames can only use letters, numbers, - and _ (no spaces).';
+    if (u.length < 5) return `Venmo usernames are at least 5 characters. This one has ${u.length}.`;
+    return u.length > 30 ? `Venmo usernames are at most 30 characters. This one has ${u.length}.` : '';
+  }
+  if (method === 'paypal'){
+    if (email) return '';
+    if (v.includes('@')) return NEED_EMAIL;
+    if (!/^[a-z0-9]+$/i.test(v)) return 'PayPal.Me usernames can only use letters and numbers. You can also enter your PayPal email.';
+    return v.length > 20 ? `PayPal.Me usernames are at most 20 characters. This one has ${v.length}.` : '';
+  }
+  if (method === 'zelle'){
+    if (email) return '';
+    if (v.includes('@')) return NEED_EMAIL;
+    return phone ?? 'Zelle needs the email or U.S. mobile number you enrolled with.';
+  }
+  if (method === 'cashapp'){
+    if (email) return '';
+    if (v.startsWith('$')){
+      const tag = v.slice(1);
+      if (!/^[a-z0-9]+$/i.test(tag)) return '$cashtags can only use letters and numbers after the $.';
+      if (tag.length > 20) return `$cashtags are at most 20 characters after the $. This one has ${tag.length}.`;
+      return /[a-z]/i.test(tag) ? '' : '$cashtags need at least one letter.';
+    }
+    if (v.includes('@')) return NEED_EMAIL;
+    return phone ?? 'Enter your $cashtag (like $alex), email or U.S. mobile number.';
+  }
+  if (method === 'applecash') return phone ?? 'Apple Cash needs the U.S. mobile number on your iMessage account.';
+  return '';
+}
+// How a saved account is shown: @username for Venmo, (801) 555-1234 for phone numbers.
+function showAccount(method, v){
+  if (method === 'venmo') return '@' + v.replace(/^@/, '');
+  const d = /^\+1[2-9]\d{9}$/.test(v) ? v.slice(2) : '';
+  return d ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : v;
+}
+const linkedMethods = () => PROFILE_METHODS.filter(m => S.paymentAccounts[m]);
+const preferredMethod = () => S.paymentPreferred && S.paymentAccounts[S.paymentPreferred] ? S.paymentPreferred : null;
 function recipientHandle(method,p){
   const c = p.contactId && S.contacts.find(c => c.id === String(p.contactId));
   const account = PROFILE_METHODS.includes(method) ? (c || p) : p;
@@ -1683,7 +1754,8 @@ function methodFor(p,amount){
   if (p.method === 'cash' && !p.contactId) return 'cash';
   const current = p.contactId && S.contacts.find(c => c.id === String(p.contactId));
   const preferred = current?.method || p.method;
-  const candidates = PROFILE_METHODS.includes(preferred) ? [preferred] : PROFILE_METHODS;
+  const mine = preferredMethod();
+  const candidates = PROFILE_METHODS.includes(preferred) ? [preferred] : mine ? [mine, ...PROFILE_METHODS.filter(m => m !== mine)] : PROFILE_METHODS;
   return candidates.find(method =>
     (method !== 'cashapp' || !p.contactId || amount == null || amount >= 100) && sharedMethod(method,p)) || 'manual';
 }
@@ -1782,19 +1854,33 @@ function resetProfileState(){
 V.profile = () => `${ui.returnToReview ? '<button class="link" data-act="returnReview">Back to split</button>' : ''}
   ${profileSheet(profileState(),true)}`;
 function profilePaymentAccounts(s){
-  const edit = s.step === 'payments';
-  const values = edit ? s.paymentDraft : S.paymentAccounts;
   const busy = ui.saving ? 'disabled' : '';
-  return `<section class="pcard profile-payments" aria-label="Payment accounts">
-    <div class="sheet-head"><h2 class="eyebrow">Payment accounts</h2>
-      ${edit ? '' : `<button class="link" data-act="pstep" data-step="payments" ${busy}>Edit accounts</button>`}</div>
-    ${S.paymentAccountsError ? `<p class="warn-line" role="status">${esc(S.paymentAccountsError)}</p>` : ''}
-    ${edit ? `${alertBox(s)}
-      ${PROFILE_METHODS.map(method => field(s,'pay-'+method,METHODS[method].label,
-        `<input id="f-pay-${method}" data-in="payerAccount" data-id="${method}" data-enter="savePayerAccounts" maxlength="100" value="${esc(values[method])}" placeholder="${esc(PROFILE_HINTS[method])}" ${inv(s,'pay-'+method)} ${busy}>`)).join('')}
+  if (s.step === 'payments'){
+    const values = s.paymentDraft, pref = s.prefDraft;
+    return `<section class="pcard profile-payments" aria-labelledby="pay-h">
+      <div class="sheet-head"><h2 class="eyebrow" id="pay-h">Payment accounts</h2></div>
+      <p class="fine">Friends pay you with these. Leave an app blank if you don't use it. Mark the one you'd most like to be paid with as Preferred.</p>
+      ${alertBox(s)}
+      ${PROFILE_METHODS.map(method => `<div class="payfield">${field(s,'pay-'+method,METHODS[method].label,
+        `<input id="f-pay-${method}" data-in="payerAccount" data-id="${method}" data-enter="savePayerAccounts" maxlength="100" value="${esc(values[method] || '')}" placeholder="${esc(PROFILE_HINTS[method])}" autocomplete="off" ${inv(s,'pay-'+method)} ${busy}>`)}
+        <label class="checkrow"><input type="radio" name="pay-pref" data-in="payPref" value="${method}" ${pref === method ? 'checked' : ''} ${busy}> Preferred</label></div>`).join('')}
+      <label class="checkrow"><input type="radio" name="pay-pref" data-in="payPref" value="" ${pref ? '' : 'checked'} ${busy}> No preferred app</label>
       <div class="next two"><button class="btn ghost" data-act="pstep" ${busy}>Cancel</button>
-      <button class="btn" data-act="savePayerAccounts" ${busy}>${ui.saving ? 'Saving…' : 'Save accounts'}</button></div>`
-    : `<ul class="lines">${PROFILE_METHODS.map(method => `<li><span>${METHODS[method].label}</span><span>${values[method] ? esc(values[method]) : 'Not linked'}</span></li>`).join('')}</ul>`}
+      <button class="btn" data-act="savePayerAccounts" ${busy}>${ui.saving ? 'Saving…' : 'Save accounts'}</button></div>
+    </section>`;
+  }
+  const linked = linkedMethods(), pref = preferredMethod();
+  const order = pref ? [pref, ...linked.filter(m => m !== pref)] : linked;
+  return `<section class="pcard profile-payments" aria-labelledby="pay-h">
+    <div class="sheet-head"><h2 class="eyebrow" id="pay-h">Payment accounts</h2>
+      ${linked.length ? `<button class="link" data-act="pstep" data-step="payments" ${busy}>Edit</button>` : ''}</div>
+    ${S.paymentAccountsError ? `<p class="warn-line" role="status">${esc(S.paymentAccountsError)}</p>` : ''}
+    ${linked.length ? `<ul class="paylist">${order.map(m => `<li><span class="meth ${m}">${METHODS[m].label}</span>
+        <span class="handle">${esc(showAccount(m, S.paymentAccounts[m]))}</span>
+        ${m === pref ? `<span class="badge">${I('star')}Preferred</span>` : '<span></span>'}</li>`).join('')}</ul>
+      ${linked.length < PROFILE_METHODS.length ? `<button class="link pay-add" data-act="pstep" data-step="payments" data-add="1" ${busy}>${I('plus')}Add a payment app</button>` : ''}`
+    : `<div class="pay-empty"><p class="fine">Link Venmo, Zelle or another app so friends can pay you.</p>
+        <button class="btn small" data-act="pstep" data-step="payments" data-add="1" ${busy}>${I('plus')} Add a payment app</button></div>`}
   </section>`;
 }
 // s.photo: undefined = unchanged, null = remove, {blob, url} = new photo waiting for Save.
@@ -2736,8 +2822,10 @@ const A = {
     delete state.photo; state.crop = null;  // Cancel throws away a photo that wasn't saved
     if (ds.step !== 'email' && ds.step !== 'code') state.draft = null;
     state.paymentDraft = ds.step === 'payments' ? {...S.paymentAccounts} : null;
+    state.prefDraft = ds.step === 'payments' ? preferredMethod() : null;
     render();
-    document.getElementById({edit:'f-first',email:'f-email',code:'f-code',payments:'f-pay-venmo'}[ds.step] || '')?.focus();
+    const firstPay = ds.add ? PROFILE_METHODS.find(m => !S.paymentAccounts[m]) || 'venmo' : 'venmo';
+    document.getElementById({edit:'f-first',email:'f-email',code:'f-code',payments:'f-pay-' + firstPay}[ds.step] || '')?.focus();
   },
   sendcode: ds => sendCode(!!ds.again),
   verifycode: () => verifyCode(),
@@ -2969,7 +3057,7 @@ async function verifyCode(){
       toast(`Your profile is created. You're signed in as ${S.account.email || sh.email}.`);
     } else {
       // A different account is now signed in: forget this browser's guest and load the profile.
-      S.userId = null; S.paymentAccounts = {}; ui.saving = false; resetProfileState();
+      S.userId = null; S.paymentAccounts = {}; S.paymentPreferred = null; ui.saving = false; resetProfileState();
       await loadAll();
       if (!S.loadError) toast(`Signed in as ${S.account.email}.`);
     }
@@ -2980,22 +3068,25 @@ async function signOutAccount(){
   const {error} = await sb.auth.signOut({scope:'local'});
   if (error) return showErrs({}, `Couldn't sign out: ${error.message}`);
   ui.saving = false; ui.sheet = null; resetProfileState(); S.userId = null;
-  S.paymentAccounts = {};
+  S.paymentAccounts = {}; S.paymentPreferred = null;
   S.me = {first:'', last:'', phone:''};
   await loadAll();  // starts a fresh guest account
   if (!S.loadError) toast('Signed out. This browser is now using a guest account.');
 }
 
 function savePreviewProfile(){
-  try { localStorage.setItem(PREVIEW_ACCOUNT_KEY,JSON.stringify({me:S.me,paymentAccounts:S.paymentAccounts})); } catch(e) {}
+  try { localStorage.setItem(PREVIEW_ACCOUNT_KEY,JSON.stringify({me:S.me,paymentAccounts:S.paymentAccounts,paymentPreferred:S.paymentPreferred})); } catch(e) {}
 }
+// Put a database message under the app it's about ("Enter your Venmo username." → Venmo).
+const payErrField = m => { const k = PROFILE_METHODS.find(k => new RegExp(METHODS[k].label, 'i').test(m)); return k ? 'pay-' + k : null; };
 async function savePayerAccounts(){
   const state = profileState();
   if (state.step !== 'payments' || ui.saving) return;
   const owner = S.userId;
   const accounts = Object.fromEntries(PROFILE_METHODS.map(method => [method,(state.paymentDraft[method] || '').trim()]).filter(([,value]) => value));
-  const errors = Object.fromEntries(Object.entries(accounts).filter(([method,value]) => !payerAccountValid(method,value)).map(([method]) =>
-    ['pay-'+method,'Enter a valid '+PROFILE_HINTS[method].toLowerCase()+'.']));
+  const errors = Object.fromEntries(PROFILE_METHODS.map(m => ['pay-' + m, payerAccountProblem(m, accounts[m] || '')]).filter(([,msg]) => msg));
+  const pref = state.prefDraft || null;
+  if (pref && !accounts[pref]) errors['pay-' + pref] = `Add your ${METHODS[pref].label} account to make it your preferred app, or choose another.`;
   if (Object.keys(errors).length) return showErrs(errors);
   ui.saving = true; state.errs = {}; state.alert = null; render();
   try {
@@ -3003,12 +3094,21 @@ async function savePayerAccounts(){
     if (S.userId !== owner) { ui.saving = false; return; }
     S.paymentAccounts = saved || {};
     S.paymentAccountsError = '';
+    if (pref !== preferredMethod()){
+      if (!CFG.preview) need(await sb.rpc('set_my_payment_preference',{p_method:pref}));
+      if (S.userId !== owner) { ui.saving = false; return; }
+      S.paymentPreferred = pref;
+    }
     if (CFG.preview) savePreviewProfile();
-    ui.saving = false; state.step = null; state.paymentDraft = null;
+    ui.saving = false; state.step = null; state.paymentDraft = null; state.prefDraft = null;
     toast('Payment accounts saved.');
   } catch(e) {
     if (S.userId !== owner) { ui.saving = false; return; }
-    showErrs({},/save_my_payment_accounts|schema cache/i.test(e.message) ? 'Apply the profile payment accounts database update before saving.' : e.message);
+    const m = e.message, k = payErrField(m);
+    if (/set_my_payment_preference/i.test(m)) return showErrs({}, 'Your accounts were saved, but the preferred app needs a database update. Run supabase/payment-preference.sql in the Supabase SQL Editor.');
+    if (/save_my_payment_accounts|schema cache/i.test(m)) return showErrs({}, 'Apply the profile payment accounts database update before saving.');
+    if (/failed to fetch|network|load failed/i.test(m)) return showErrs({}, OFFLINE);
+    k ? showErrs({[k]:m}) : showErrs({}, m);
   }
 }
 
@@ -3097,10 +3197,21 @@ document.addEventListener('input', e => {
   }
   if (k === 'pf') return liveCheck(el);
   if (k === 'payerAccount') {
-    const state = profileState();
-    if (state.step === 'payments' && !ui.saving) state.paymentDraft[el.dataset.id] = el.value;
+    const state = profileState(), key = 'pay-' + el.dataset.id;
+    if (state.step !== 'payments' || ui.saving) return;
+    state.paymentDraft[el.dataset.id] = el.value;
+    // Once a message is showing, update it while typing (like the name and phone fields).
+    if (state.errs?.[key] !== undefined && state.errs[key] !== ''){
+      const msg = payerAccountProblem(el.dataset.id, el.value.trim());
+      state.errs[key] = msg;
+      const box = document.getElementById('e-' + key), wrap = document.getElementById('w-' + key);
+      if (box){ box.hidden = !msg; box.querySelector('span').textContent = msg; }
+      wrap?.classList.toggle('invalid', !!msg);
+      if (msg) el.setAttribute('aria-invalid', 'true'); else el.removeAttribute('aria-invalid');
+    }
     return;
   }
+  if (k === 'payPref') { const state = profileState(); if (state.step === 'payments' && !ui.saving) state.prefDraft = el.value || null; return; }
   if (['requestMethod','requestHandle','requestNote'].includes(k) && ui.sheet?.type === 'payment') {
     const r = ui.sheet.request;
     if (k === 'requestMethod') { r.method = el.value; const c = S.contacts.find(c => c.id === String(r.contactId)); r.handle = c ? recipientHandle(r.method,c) : ''; render(); }

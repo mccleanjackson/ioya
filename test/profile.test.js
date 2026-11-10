@@ -47,7 +47,13 @@ function fakeSupabase({fail = {}, saved = false, avatar = null} = {}){
     rpc: async (name, args) => {
       calls.push([name, args]);
       if (name === 'get_my_payment_accounts') return {data:state.paymentAccounts,error:null};
+      if (name === 'get_my_payment_preference') return {data:state.paymentAccounts[state.preferred] ? state.preferred : null, error:null};
+      if (name === 'set_my_payment_preference') {
+        if (fail.set_my_payment_preference) return {data:null, error:{message:fail.set_my_payment_preference}};
+        state.preferred = args.p_method; return {data:args.p_method, error:null};
+      }
       if (name === 'save_my_payment_accounts') {
+        if (fail.save_my_payment_accounts) return {data:null, error:{message:fail.save_my_payment_accounts}};
         state.paymentAccounts=args.p_accounts;
         return {data:state.paymentAccounts,error:null};
       }
@@ -91,7 +97,7 @@ async function load(fake){
   };
   context.document.createElement = () => ({getContext:() => ({fillRect(){}, drawImage:(...a) => context.drawn = a}),
     toBlob:(done, type, q) => done({type, size:48000})});
-  const instrumented = script.replace("if (!V[S.view]", "render = () => {}; globalThis.api = {loadAll, S, ui, A, sheetHTML, liveCheck, V, choosePhoto, zoomCrop, clampCrop}; return;\nif (!V[S.view]");
+  const instrumented = script.replace("if (!V[S.view]", "render = () => {}; globalThis.api = {loadAll, S, ui, A, sheetHTML, liveCheck, V, choosePhoto, zoomCrop, clampCrop, payerAccountProblem, payerAccountValid, methodFor}; return;\nif (!V[S.view]");
   vm.runInNewContext(instrumented, context);
   const api = context.api;
   api.type = (values) => { for (const k of Object.keys(fields)) delete fields[k]; Object.entries(values).forEach(([id, value]) => fields[id] = {value, focus(){}}); };
@@ -521,4 +527,113 @@ test('if the database step is missing, the uploaded file is cleaned up and the f
   assert.match(errs(api).photo, /Run supabase\/avatars\.sql/);
   assert.deepEqual(plain(calls(fake, 'remove')[0][1]), [calls(fake, 'upload')[0][1]], 'the new file is deleted again');
   assert.equal(fake.state.files.length, 0);
+});
+
+// ---------- Payment accounts ----------
+async function payments(accounts = {}, preferred = null, fail = {}){
+  const fake = fakeSupabase({saved:true, fail});
+  Object.assign(fake.state, {paymentAccounts:accounts, preferred});
+  const api = await load(fake);
+  api.A.tab({v:'profile'});
+  return {fake, api};
+}
+const perrs = api => plain(api.ui.profile.errs || {});  // the Profile tab keeps its state in ui.profile
+const editPay = (api, values) => { api.A.pstep({step:'payments'}); Object.assign(api.ui.profile.paymentDraft, values); };
+
+test('with no payment apps, the profile invites you to add one', async () => {
+  const {api} = await payments();
+  const out = api.V.profile();
+  assert.match(out, /Link Venmo, Zelle or another app so friends can pay you\./);
+  assert.match(out, /data-step="payments" data-add="1"[^>]*>.*Add a payment app/s);
+  assert.doesNotMatch(out, /Not linked/);
+});
+
+test('linked apps show with their colors and readable handles; the preferred one is first with a star', async () => {
+  const {api} = await payments({venmo:'jackson-m', zelle:'+18015551234', paypal:'me@example.com'}, 'zelle');
+  const out = api.V.profile();
+  const order = [...out.matchAll(/class="meth (\w+)"/g)].map(m => m[1]);
+  assert.deepEqual(order, ['zelle', 'venmo', 'paypal'], 'preferred first, then the usual order');
+  assert.match(out, /\(801\) 555-1234/, 'phone numbers are formatted');
+  assert.match(out, /@jackson-m/, 'Venmo shows the @');
+  assert.match(out, /class="meth zelle">Zelle<\/span>[\s\S]*?class="badge">.*Preferred/);
+  assert.equal((out.match(/Preferred/g) || []).length, 1);
+  assert.match(out, />Edit</);
+  assert.match(out, /Add a payment app/, 'two apps are still unlinked');
+});
+
+test('every payment-account mistake gets its own exact message, and nothing is sent', async () => {
+  const {fake, api} = await payments();
+  editPay(api, {venmo:'@abc', paypal:'me@example', zelle:'801555123', cashapp:'$123', applecash:'0015551234'});
+  await api.A.savePayerAccounts();
+  assert.deepEqual(perrs(api), {
+    'pay-venmo':'Venmo usernames are at least 5 characters. This one has 3.',
+    'pay-paypal':'Enter a full email address, like you@example.com.',
+    'pay-zelle':'U.S. mobile numbers have 10 digits. This one has 9.',
+    'pay-cashapp':'$cashtags need at least one letter.',
+    'pay-applecash':"That isn't a U.S. number: area codes can't start with 0 or 1."
+  });
+  assert.equal(calls(fake, 'save_my_payment_accounts').length, 0);
+  assert.match(api.V.profile(), /id="e-pay-venmo" role="alert">.*at least 5 characters/s);
+});
+
+test('the exact messages agree with the rules used when sending requests', async () => {
+  const {api} = await payments();
+  const samples = ['abcd', 'abcde', '@abcde', 'has space', 'a'.repeat(31), 'a'.repeat(30), 'me@example.com', 'me@example', 'me@ex.c',
+    'PayMe123', 'Pay.Me', 'p'.repeat(21), '8015551234', '18015551234', '+1 (801) 555-1234', '801-555-123', '1015551234', '0015551234',
+    '$alex', '$123', '$a-b', '$' + 'a'.repeat(21), '#alex', '12345678901234567890123456789012345678901', 'x'.repeat(101)];
+  for (const m of ['venmo', 'paypal', 'zelle', 'cashapp', 'applecash'])
+    for (const v of samples)
+      assert.equal(api.payerAccountProblem(m, v) === '', api.payerAccountValid(m, v), `${m}: "${v}"`);
+});
+
+test('a message clears as soon as the account is fixed', async () => {
+  const {api} = await payments();
+  editPay(api, {venmo:'abc'});
+  await api.A.savePayerAccounts();
+  assert.ok(perrs(api)['pay-venmo']);
+  editPay(api, {venmo:'abcdef'});  // reopening the editor starts clean
+  assert.deepEqual(perrs(api), {});
+});
+
+test('choosing a preferred app saves it, and an empty app cannot be preferred', async () => {
+  const {fake, api} = await payments();
+  editPay(api, {venmo:'jackson-m'}); api.ui.profile.prefDraft = 'zelle';
+  await api.A.savePayerAccounts();
+  assert.equal(perrs(api)['pay-zelle'], 'Add your Zelle account to make it your preferred app, or choose another.');
+  assert.equal(calls(fake, 'save_my_payment_accounts').length, 0);
+  api.ui.profile.prefDraft = 'venmo';
+  await api.A.savePayerAccounts();
+  assert.deepEqual(plain(calls(fake, 'set_my_payment_preference')[0][1]), {p_method:'venmo'});
+  assert.equal(api.S.paymentPreferred, 'venmo');
+  assert.match(api.ui.toast, /Payment accounts saved/);
+  assert.match(api.V.profile(), /class="badge">.*Preferred/);
+  editPay(api, {});  // save again without changing the preference
+  await api.A.savePayerAccounts();
+  assert.equal(calls(fake, 'set_my_payment_preference').length, 1, 'not sent again when unchanged');
+});
+
+test('a database message lands under the app it is about', async () => {
+  const {api} = await payments({}, null, {save_my_payment_accounts:'Enter your Apple Cash U.S. mobile number.'});
+  editPay(api, {applecash:'(801) 555-1234'});
+  await api.A.savePayerAccounts();
+  assert.deepEqual(perrs(api), {'pay-applecash':'Enter your Apple Cash U.S. mobile number.'});
+});
+
+test('if the preference update is missing, the accounts still save and the fix is named', async () => {
+  const {api} = await payments({}, null, {set_my_payment_preference:'Could not find the function public.set_my_payment_preference(p_method) in the schema cache'});
+  editPay(api, {venmo:'jackson-m'}); api.ui.profile.prefDraft = 'venmo';
+  await api.A.savePayerAccounts();
+  assert.equal(api.S.paymentAccounts.venmo, 'jackson-m');
+  assert.match(api.ui.profile.alert, /Run supabase\/payment-preference\.sql/);
+});
+
+test('your preferred app is tried first for a contact who has no preference of their own', async () => {
+  const {api} = await payments({venmo:'jackson-m', zelle:'+18015551234'}, null);
+  api.S.contacts.push({id:'90', first:'Sam', last:'Lee', name:'Sam Lee', phone:'', venmo:'sam-lee-1', zelle:'sam@example.com', paypal:'', cashapp:'', applecash:'', method:'sms', pref:null, methods:[]});
+  const p = {contactId:'90', method:'sms'};
+  assert.equal(api.methodFor(p, 2000), 'venmo', 'no preference: the usual order');
+  api.S.paymentPreferred = 'zelle';
+  assert.equal(api.methodFor(p, 2000), 'zelle', 'your preferred app goes first');
+  api.S.contacts.at(-1).method = 'venmo';
+  assert.equal(api.methodFor({contactId:'90', method:'venmo'}, 2000), 'venmo', "the contact's own preference still wins");
 });
