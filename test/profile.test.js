@@ -148,6 +148,17 @@ test('a guest sees "Create profile" and a small "Log in" link; no "Log out"', as
   assert.doesNotMatch(out, /Log out|Change password/);
 });
 
+test('admins get an Admin tools button on the Profile tab; everyone else does not', async () => {
+  const fake = fakeSupabase({saved:true});
+  let api = await load(fake);
+  open(api);
+  assert.doesNotMatch(api.sheetHTML(), /Admin tools/);
+  fake.state.me = {...fake.state.me, is_admin:true};
+  api = await load(fake);
+  open(api);
+  assert.match(api.sheetHTML(), /<a class="btn small admin-link" href="\/admin#users">.*Admin tools/s);
+});
+
 test('a logged-in user sees their email, "Change password" and "Log out", and no create or log-in buttons', async () => {
   const api = await load(fakeSupabase({saved:true}));
   open(api);
@@ -166,7 +177,7 @@ test('saving the profile sends trimmed values, reloads "You", and returns to vie
   api.type({'f-first':'  Jackson ', 'f-last':' McClean ', 'f-phone':' (801) 555-1234 '});
   await api.A.saveprofile();
   assert.deepEqual(plain(calls(fake, 'save_my_profile')[0][1]), {p_first_name:'Jackson', p_last_name:'McClean', p_phone:'(801) 555-1234'});
-  assert.deepEqual(plain(api.S.me), {first:'Jackson', last:'McClean', phone:'(801) 555-1234', avatarUrl:null});
+  assert.deepEqual(plain(api.S.me), {first:'Jackson', last:'McClean', phone:'(801) 555-1234', avatarUrl:null, admin:false});
   assert.equal(api.S.selfContactId, '50', 'still finds "You" after the rename');
   assert.equal(api.ui.sheet.step, null, 'back to view mode');
   assert.match(api.ui.toast, /Profile updated/);
