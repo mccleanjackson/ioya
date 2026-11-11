@@ -6,7 +6,7 @@
 <title>IOYA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Finlandica:wght@400;500;600&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: a phone-frame prototype on a desk surface, with a screen index beside it on wide screens; full-bleed app on phones. */
 :root{
@@ -33,7 +33,7 @@
   --f-logo:"Bungee", "Arial Black", system-ui, sans-serif;
   --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --f-body:"Figtree", -apple-system, "Segoe UI", system-ui, sans-serif;
-  --f-mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --f-mono:"Finlandica", ui-monospace, "SF Mono", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --desk:#0A0C10; --paper:#12151C; --card:#1A1E27; --ink:#ECEEF2; --muted:#9AA2B1; --line:#2B313D;
@@ -1201,14 +1201,14 @@ V.home = () => {
   <header class="top home-top">
     <div class="logo"><img src="/ioya_logo.png" alt="IOYA"></div>
   </header>
-  <p class="tag">Make sure <em>you</em> get <mark>paid</mark>.</p>
-  <button class="cta" data-act="start">${I('scan')}<span><b>Pay the tab</b><small>Scan a receipt and split it</small></span></button>
+  <p class="tag">Keep track of the bill with just <mark> one simple system.</mark></p>
+  <button class="cta" data-act="start">${I('scan')}<span><b>Pay New Tab</b><small>Click here to split a new receipt!</small></span></button>
   ${S.draft.items.length ? '<button class="link" data-act="resume">Resume current split</button>' : ''}
   <div class="chips">
     <button class="chip" data-act="go" data-v="history">${I('history')}History</button>
     <button class="chip" data-act="go" data-v="contacts">${I('contacts')}Contacts</button>
   </div>
-  <h2 class="eyebrow">Recent payments</h2>
+  <h2 class="eyebrow">Recent Payments</h2>
   <section class="board" aria-label="Recent payments">
     <div class="board-grid">
       <div class="col"><div class="col-h paid">Paid <span>${paid.length}</span></div>
@@ -1216,9 +1216,9 @@ V.home = () => {
       <div class="col"><div class="col-h unpaid">Unpaid <span>${unpaid.length}</span></div>
         ${unpaid.slice(0, 6).map(x => reqRow(x, true)).join('') || `<div class="empty">${S.history.length ? 'Everyone has paid you back.' : 'No splits yet'}</div>`}</div>
     </div>
-    <p class="owed"><span>Friends owe you</span><span class="mono">${money(owed)}</span></p>
+    <p class="owed"><span>Friends owe you:</span><span class="mono">${money(owed)}</span></p>
   </section>
-  <p class="fine">${all.length ? 'Tap anyone to mark them paid.' : 'Tap Pay the tab to scan a receipt and split it.'}</p>`;
+  <p class="fine">${all.length ? 'Select anyone to mark them "paid."' : 'Select "Pay New Tab" to scan a receipt and split it.'}</p>`;
 };
 
 // Search box and filter chips shared by History (k = 'h') and Contacts (k = 'c'). State lives in ui[k + 'q'] and ui[k + 'f'].
@@ -2003,10 +2003,10 @@ function profileSheet(s,page = false){
       ${alertBox(s)}
       ${photoPicker(s)}
       <div class="slot-m" style="grid-template-columns:1fr 1fr">
-        <div style="display:flex;flex-direction:column;gap:6px">${field(s, 'first', 'First name', `<input id="f-first" data-in="pf" data-f="first" data-enter="saveprofile" value="${esc(me.first)}" autocomplete="given-name" maxlength="80" ${inv(s, 'first')}>`)}</div>
-        <div style="display:flex;flex-direction:column;gap:6px">${field(s, 'last', 'Last name <small>optional</small>', `<input id="f-last" data-in="pf" data-f="last" data-enter="saveprofile" value="${esc(me.last)}" autocomplete="family-name" maxlength="80" ${inv(s, 'last')}>`)}</div>
+        <div style="display:flex;flex-direction:column;gap:6px">${field(s, 'first', 'First Name:', `<input id="f-first" data-in="pf" data-f="first" data-enter="saveprofile" value="${esc(me.first)}" autocomplete="given-name" maxlength="80" ${inv(s, 'first')}>`)}</div>
+        <div style="display:flex;flex-direction:column;gap:6px">${field(s, 'last', 'Last Name: <small>(optional)</small>', `<input id="f-last" data-in="pf" data-f="last" data-enter="saveprofile" value="${esc(me.last)}" autocomplete="family-name" maxlength="80" ${inv(s, 'last')}>`)}</div>
       </div>
-      ${field(s, 'phone', 'Phone <small>optional</small>', `<input id="f-phone" type="tel" inputmode="tel" data-in="pf" data-f="phone" data-enter="saveprofile" value="${esc(me.phone)}" placeholder="(555) 000-0000" autocomplete="tel" ${inv(s, 'phone')}>`)}
+      ${field(s, 'phone', 'Phone Number<small>optional</small>', `<input id="f-phone" type="tel" inputmode="tel" data-in="pf" data-f="phone" data-enter="saveprofile" value="${esc(me.phone)}" placeholder="(555) 000-0000" autocomplete="tel" ${inv(s, 'phone')}>`)}
       <div class="next two"><button class="btn ghost" data-act="pstep" ${busy}>Cancel</button>
         <button class="btn" data-act="saveprofile" ${busy}>${ui.saving ? 'Saving…' : create ? 'Continue' : 'Save'}</button></div>`;
   }
@@ -2139,16 +2139,17 @@ function sheetHTML(){
     const has = id => c.methods.find(x => x.id === id);
     const prefId = (c.methods.find(x => x.preferred) || {}).id;
     body = `<h2 id="sh-t">${s.id ? 'Edit ' + esc(c.name) : 'New contact'}</h2>
+      <p class="eyebrow">General Info</p>
       <div class="slot-m" style="grid-template-columns:1fr 1fr">
-        <label class="field"><span>First name</span><input id="f-first" value="${esc(c.first)}" autocomplete="off"></label>
-        <label class="field"><span>Last name <small>optional</small></span><input id="f-last" value="${esc(c.last)}" autocomplete="off"></label>
+        <label class="field"><span>First Name:</span><input id="f-first" value="${esc(c.first)}" autocomplete="off"></label>
+        <label class="field"><span>Last Name: <small>(optional)</small></span><input id="f-last" value="${esc(c.last)}" autocomplete="off"></label>
       </div>
-      <label class="field"><span>Phone</span><input id="f-phone" inputmode="tel" value="${esc(c.phone)}" placeholder="(555) 000-0000" autocomplete="off"></label>
-      <p class="eyebrow">Payment methods</p>
+      <label class="field"><span>Phone Number:</span><input id="f-phone" inputmode="tel" value="${esc(c.phone)}" placeholder="(555) 000-0000" autocomplete="off"></label>
+      <p class="eyebrow">Payment Methods</p>
       ${methods.map(m => `<div class="frow" style="gap:10px">
-        <label class="field" style="flex:1"><span>${esc(m.name)}</span><input id="f-m-${m.id}" value="${esc(has(m.id)?.username || '')}" placeholder="${esc(PROFILE_HINTS[METHOD_KEY[m.name]] || 'Account details')}" autocomplete="off"></label>
+        <label class="field" style="flex:1"><span>${esc(m.name)}:</span><input id="f-m-${m.id}" value="${esc(has(m.id)?.username || '')}" placeholder="${esc(PROFILE_HINTS[METHOD_KEY[m.name]] || 'Account details')}" autocomplete="off"></label>
         <label class="checkrow" style="padding-top:18px"><input type="radio" name="f-pref" id="f-pref-${m.id}" value="${m.id}" ${prefId === m.id ? 'checked' : ''}> Preferred</label></div>`).join('')}
-      ${cashMethod ? `<div class="frow" style="gap:10px"><div class="field" style="flex:1"><span>Cash</span></div><label class="checkrow" style="padding-top:18px"><input type="checkbox" id="f-cash-enabled" data-cash-available ${has(cashMethod.id) ? 'checked' : ''}> Available</label><label class="checkrow" style="padding-top:18px"><input type="radio" name="f-pref" id="f-pref-${cashMethod.id}" data-cash-preferred value="${cashMethod.id}" ${prefId === cashMethod.id ? 'checked' : ''}> Preferred</label></div>` : ''}
+      ${cashMethod ? `<div class="frow" style="gap:10px"><div class="field" style="flex:1"><span>Cash:</span></div><label class="checkrow" style="padding-top:18px"><input type="checkbox" id="f-cash-enabled" data-cash-available ${has(cashMethod.id) ? 'checked' : ''}> Available</label><label class="checkrow" style="padding-top:18px"><input type="radio" name="f-pref" id="f-pref-${cashMethod.id}" data-cash-preferred value="${cashMethod.id}" ${prefId === cashMethod.id ? 'checked' : ''}> Preferred</label></div>` : ''}
       <p class="fine" id="f-err" role="alert" hidden></p>
       <div class="next two">${s.id ? `<button class="btn ghost" data-act="delcontact" data-id="${s.id}" ${ui.saving ? 'disabled' : ''}>Delete</button>` : `<button class="btn ghost" data-act="close">Cancel</button>`}
         <button class="btn" data-act="savecontact" data-id="${s.id || ''}" ${ui.saving ? 'disabled' : ''}>${ui.saving ? 'Saving…' : 'Save'}</button></div>`;
