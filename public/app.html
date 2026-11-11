@@ -570,6 +570,8 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 /* .pbox .acct div (below) makes boxes a column; the button row must win over it */
 .pbox .acct .acct-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .pbox .acct .acct-btns .btn{width:100%;margin:0}
+.pbox .acct .admin-link{width:100%;text-decoration:none;background:var(--ink);color:var(--paper)}
+.pbox .acct .admin-link .ic{width:18px;height:18px}
 .pbox .acct div{display:flex;flex-direction:column;gap:2px;min-width:0}
 .pbox .acct b{overflow-wrap:anywhere}
 .center{align-self:center;padding:6px}
@@ -787,7 +789,7 @@ async function loadAll(){
     if (!sb) throw new Error(window.IOYA_CONFIG ? 'The Supabase library did not load. Check your internet connection.' : 'Supabase settings are missing. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env and restart npm start.');
     if (S.userId == null) await signIn();
     const [user, methods, contacts, groups, events, profileAccounts] = await Promise.all([
-      sb.from('users').select('user_id, user_first_name, user_last_name, phone, avatar_path').eq('user_id', S.userId).single().then(need),
+      sb.from('users').select('user_id, user_first_name, user_last_name, phone, avatar_path, is_admin').eq('user_id', S.userId).single().then(need),
       sb.from('payment_methods').select('pay_method_id, pay_method_name').order('pay_method_id').then(need),
       sb.from('contacts').select(CONTACT_SELECT)
         .eq('user_id', S.userId).order('contact_id').then(need),
@@ -802,7 +804,7 @@ async function loadAll(){
     S.paymentAccounts = profileAccounts.accounts;
     S.paymentPreferred = profileAccounts.preferred || null;
     S.paymentAccountsError = profileAccounts.error;
-    S.me = {first:user.user_first_name, last:user.user_last_name, phone:user.phone || '', avatarUrl:avatarUrlFor(user.avatar_path)};
+    S.me = {first:user.user_first_name, last:user.user_last_name, phone:user.phone || '', avatarUrl:avatarUrlFor(user.avatar_path), admin:user.is_admin === true};
     S.payMethods = methods.map(m => ({id:m.pay_method_id, name:m.pay_method_name}));
     // The payer's own contact row has the same name and phone as their user row (shows as "You").
     const self = contacts.find(c => c.cont_first_name === user.user_first_name && c.cont_last_name === user.user_last_name && c.phone === user.phone);
@@ -2081,7 +2083,8 @@ function profileSheet(s,page = false){
         <p class="fine center">Already have a profile? <button class="link" data-act="pstep" data-step="email" data-mode="signin" ${busy}>Log in</button></p>`
       : `<div class="pbox"><div class="acct"><div><span class="fine">Signed in as</span><b>${esc(S.account.email || '')}</b></div>
           <div class="acct-btns"><button class="btn small ghost" data-act="pstep" data-step="password" data-mode="change" ${busy}>Change password</button>
-          <button class="btn small ghost" data-act="pstep" data-step="signout" ${busy}>Log out</button></div></div></div>`}`;
+          <button class="btn small ghost" data-act="pstep" data-step="signout" ${busy}>Log out</button></div>
+          ${S.me.admin ? `<a class="btn small admin-link" href="/admin#users">${I('user')}Admin tools: Maintain Users and more</a>` : ''}</div></div>`}`;
 }
 function openGroup(id){
   const group = id && S.groups.find(g => g.id === String(id));

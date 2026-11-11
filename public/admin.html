@@ -11,51 +11,129 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
 /* Admin "Maintain" pages (/admin#users, #contacts, #groups, #splits, #methods). Only admins
-   (users.is_admin, checked by is_admin() in the database) can see or change anything here. */
+   (users.is_admin, checked by is_admin() in every admin database function) can see or change
+   anything here. Each table is described once in TABLES (columns, filters, form, save, delete);
+   the list, search, sorting, form, red errors and delete confirmation are shared. */
 :root{
   --paper:#FAFBFC; --card:#FFFFFF; --ink:#15171C; --muted:#5C6371; --line:#D9DEE6; --soft:#F1F3F7;
   --accent:#CC6FCC; --accent-dark:#A94BA9; --accent-soft:#F6E5F6; --pen:#3654D1;
-  --bad:#C3311E; --bad-soft:#FBE2DE;
+  --good:#167F46; --good-soft:#DCF2E5; --bad:#C3311E; --bad-soft:#FBE2DE; --warn-soft:#FFF3D6;
   --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --f-body:"Figtree", -apple-system, "Segoe UI", system-ui, sans-serif;
   --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
   color-scheme:light;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 var(--f-body)}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--f-body)}
 a{color:inherit}
-button{font:inherit;color:inherit}
-:focus-visible{outline:3px solid var(--pen);outline-offset:3px;border-radius:6px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--pen);outline-offset:2px;border-radius:6px}
+[hidden]{display:none!important}
 .top{background:var(--card);border-bottom:1px solid var(--line)}
-.top .in{max-width:1200px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font:800 18px var(--f-display)}
+.top .in{max-width:1240px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
 .brand .logo{display:block;width:96px;height:36px;overflow:hidden}
 .brand .logo img{width:126px;max-width:none;margin:-25px 0 0 -15px}
 .brand small{font:600 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-dark);background:var(--accent-soft);padding:6px 9px;border-radius:999px}
 .who{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted)}
-.btn{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 16px;border-radius:10px;border:0;cursor:pointer;font-weight:700;text-decoration:none;background:var(--ink);color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:10px;border:0;font-weight:700;text-decoration:none;background:var(--ink);color:#fff;white-space:nowrap}
+.btn.accent{background:var(--accent);color:#fff}
 .btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
-.layout{max-width:1200px;margin:0 auto;padding:28px 20px 60px;display:grid;grid-template-columns:240px 1fr;gap:28px}
+.btn.danger{background:var(--bad);color:#fff}
+.btn.small{min-height:32px;padding:0 10px;font-size:13px;border-radius:8px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn svg{width:18px;height:18px}
+.layout{max-width:1240px;margin:0 auto;padding:28px 20px 60px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:28px}
 .side{display:flex;flex-direction:column;gap:4px}
 .side a{display:block;padding:10px 12px;border-radius:10px;text-decoration:none;font-weight:600;color:var(--muted)}
 .side a:hover{background:var(--soft);color:var(--ink)}
 .side a[aria-current="page"]{background:var(--accent-soft);color:var(--ink)}
-h1{font:800 32px/1.1 var(--f-display);margin:0 0 6px}
-.lede{color:var(--muted);margin:0 0 22px}
-.card{background:var(--card);border-radius:18px;box-shadow:inset 0 0 0 1.5px var(--line);padding:28px}
-.alert{border-radius:12px;padding:14px 16px;background:var(--bad-soft);color:#7E1F12}
-@media (max-width:800px){.layout{grid-template-columns:1fr}.side{flex-direction:row;overflow-x:auto}}
+.page-h{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+h1{font:800 30px/1.1 var(--f-display);margin:0 0 4px}
+.lede{color:var(--muted);margin:0}
+.card{background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line)}
+.tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+.search{display:flex;align-items:center;gap:8px;background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:0 10px;min-width:260px;flex:1;max-width:380px}
+.search svg{width:16px;height:16px;color:var(--muted);flex:none}
+.search input{border:0;background:none;height:38px;width:100%;outline:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:0;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;background:var(--soft);color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff}
+.chip .n{opacity:.7;margin-left:4px;font-family:var(--f-mono);font-size:12px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.nowrap{white-space:nowrap}
+td.wrap{max-width:240px;overflow-wrap:anywhere}
+th{font:600 12px/1.2 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--paper);white-space:nowrap}
+th button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+th button:focus-visible{outline:3px solid var(--pen);outline-offset:2px;border-radius:4px}
+th .arrow{font-size:10px;opacity:.8}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:#FBF7FB}
+tbody tr:last-child td{border-bottom:0}
+.mono{font-family:var(--f-mono);font-size:13px}
+.muted{color:var(--muted)}
+.namecell{display:flex;align-items:center;gap:10px;min-width:180px}
+.ava{width:32px;height:32px;border-radius:50%;background:var(--accent-soft);display:grid;place-items:center;font:800 12px var(--f-display);overflow:hidden;flex:none}
+.ava img{width:100%;height:100%;object-fit:cover}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.tag.admin{background:var(--accent-soft);color:var(--accent-dark)}
+.tag.profile{background:var(--good-soft);color:var(--good)}
+.tag.guest{background:var(--soft);color:var(--muted)}
+.tag.none{background:var(--warn-soft);color:#7A5300}
+.row-acts{display:flex;gap:6px;justify-content:flex-end;white-space:nowrap}
+.empty{padding:40px 16px;text-align:center;color:var(--muted)}
+.foot{padding:10px 16px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
+.alert{border-radius:12px;padding:12px 14px;margin:0 0 14px;background:var(--bad-soft);color:#7E1F12}
+.alert.info{background:var(--soft);color:var(--muted)}
+/* dialog */
+.dlg-bg{position:fixed;inset:0;background:rgba(21,23,28,.45);display:grid;place-items:center;padding:20px;z-index:20}
+.dlg{background:var(--card);border-radius:18px;width:min(560px,100%);max-height:calc(100vh - 40px);overflow:auto;box-shadow:0 30px 60px -20px rgba(21,23,28,.4)}
+.dlg header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:20px 22px 0}
+.dlg h2{font:800 22px/1.2 var(--f-display);margin:0}
+.dlg .sub{color:var(--muted);margin:4px 0 0;font-size:14px}
+.dlg .body{padding:16px 22px}
+.dlg .acts{display:flex;justify-content:flex-end;gap:10px;padding:0 22px 20px;flex-wrap:wrap}
+.x{background:none;border:0;padding:6px;border-radius:8px;color:var(--muted)}
+.x svg{width:20px;height:20px;display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field>span{font-weight:600;font-size:14px}
+.field small{color:var(--muted);font-weight:500}
+.field input[type=text],.field input[type=email],.field input[type=tel]{height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--paper);padding:0 12px;font-size:15px}
+.field input:focus{outline:none;border-color:var(--pen);box-shadow:0 0 0 3px rgba(54,84,209,.15)}
+.field input[disabled]{background:var(--soft);color:var(--muted)}
+.field.invalid input{border-color:var(--bad);background:#FFF8F7}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.ferr{display:flex;gap:6px;align-items:flex-start;color:var(--bad);font-size:13.5px;font-weight:600;margin:-2px 0 0}
+.ferr svg{width:16px;height:16px;flex:none;margin-top:2px}
+main:focus{outline:none}
+.fwrap{min-width:0}
+.check{display:flex;align-items:flex-start;gap:10px;margin:2px 0 12px}
+.check input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent)}
+.check b{display:block}
+.check span{color:var(--muted);font-size:13px}
+dl.kv{display:grid;grid-template-columns:max-content 1fr;gap:8px 18px;margin:0}
+dl.kv dt{color:var(--muted)}
+dl.kv dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.danger-box{background:var(--bad-soft);color:#7E1F12;border-radius:12px;padding:12px 14px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;box-shadow:0 18px 40px -18px rgba(21,23,28,.5);z-index:30}
+@media (max-width:860px){.layout{grid-template-columns:1fr}.side{flex-direction:row;overflow-x:auto}.side a{white-space:nowrap}}
+@media (max-width:560px){.grid2{grid-template-columns:1fr}.search{min-width:0;max-width:none}}
 </style>
 </head>
 <body>
 <header class="top"><div class="in">
-  <a class="brand" href="/"><span class="logo"><img src="/ioya_logo.png" alt="IOYA"></span><small>Admin</small></a>
+  <a class="brand" href="/"><span class="logo"><img src="/ioya_logo.png" alt="IOYA home"></span><small>Admin</small></a>
   <div class="who" id="who"></div>
 </div></header>
 <div class="layout">
   <nav class="side" id="side" aria-label="Tables"></nav>
-  <main id="main"><p class="lede">Loading…</p></main>
+  <main id="main" tabindex="-1"><p class="lede">Loading…</p></main>
 </div>
+<div id="overlay"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
 <script src="/config.js"></script>
@@ -66,42 +144,264 @@ h1{font:800 32px/1.1 var(--f-display);margin:0 0 6px}
 const CFG = window.IOYA_CONFIG || {};
 const sb = window.supabase && CFG.supabaseUrl && CFG.supabaseAnonKey
   ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, window.IOYA_AUTH_OPTIONS || {}) : null;
+const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const TABLES = {users:'Users', contacts:'Contacts', groups:'Groups', splits:'Splits', methods:'Payment Methods'};
-const main = document.getElementById('main');
+const OFFLINE = "Couldn't reach IOYA. Check your internet connection and try again.";
+const ICON = {
+  search:'<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>', plus:'<path d="M12 5v14M5 12h14"/>', x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  alert:'<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/>'
+};
+const I = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
+const need = ({data, error}) => { if (error) throw new Error(error.message); return data; };
+const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
+const fullName = r => [r.first_name, r.last_name].filter(Boolean).join(' ');
+const initials = s => (s || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
+const when = t => t ? new Date(t).toLocaleString('en-US', {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'}) : '—';
+const digits = p => (p.match(/[0-9]/g) || []).length;
+// Same rules and wording as the Profile screen in the app.
+const CHECK = {
+  first: v => !v ? 'First name is required.' : v.length > 50 ? `First name can be at most 50 characters (it has ${v.length}).` : '',
+  last: v => v.length > 50 ? `Last name can be at most 50 characters (it has ${v.length}).` : '',
+  phone: v => !v ? '' : !/^[0-9()+. -]+$/.test(v) ? 'Phone numbers can only use digits, spaces and ( ) + - .'
+    : digits(v) < 7 ? `Phone number is too short: it has ${digits(v)} digit${digits(v) === 1 ? '' : 's'}, and it needs at least 7.`
+    : digits(v) > 15 ? `Phone number is too long: it has ${digits(v)} digits, and it can have at most 15.` : '',
+  email: v => !v ? '' : v.length > 254 ? 'That email is too long.' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? 'Enter a full email address, like name@example.com.' : ''
+};
+
+// ---------- Tables ----------
+const KIND = {admin:'Admin', profile:'Profile', guest:'Guest', none:'No login'};
+const TABLES = {
+  users: {
+    label:'Users', one:'user',
+    lede:'Everyone with an IOYA account: profiles, admins, guests, and users added here.',
+    load: async () => need(await sb.rpc('admin_list_users')),
+    id: r => r.user_id,
+    title: r => fullName(r) || (r.kind === 'guest' ? 'Guest' : 'Unnamed user'),
+    search: r => [r.user_id, fullName(r), r.email, r.phone, KIND[r.kind]].join(' '),
+    filters: [['people', 'People', r => r.kind !== 'guest'], ['profile', 'Profiles', r => r.kind === 'profile'], ['admin', 'Admins', r => r.kind === 'admin'],
+      ['none', 'No login', r => r.kind === 'none'], ['guest', 'Guests', r => r.kind === 'guest'], ['all', 'Everyone', () => true]],
+    sort: {key:'user_id', dir:1},
+    columns: [
+      {key:'user_id', label:'ID', num:true, cell:r => `<span class="mono">${r.user_id}</span>`},
+      {key:'name', label:'Name', value:r => fullName(r).toLowerCase(), cell:r => `<div class="namecell"><span class="ava">${r.avatar_url ? `<img src="${esc(r.avatar_url)}" alt="">` : esc(initials(fullName(r) || '?'))}</span>
+        <span>${fullName(r) ? esc(fullName(r)) : `<span class="muted">${r.kind === 'guest' ? 'Guest (no name)' : 'No name'}</span>`}${r.is_me ? ' <span class="tag">You</span>' : ''}</span></div>`},
+      {key:'email', label:'Email', cls:'wrap', value:r => (r.email || '').toLowerCase(), cell:r => r.email ? esc(r.email).replace('@', '@<wbr>') : '<span class="muted">—</span>'},
+      {key:'phone', label:'Phone', cls:'nowrap', value:r => r.phone || '', cell:r => r.phone ? esc(r.phone) : '<span class="muted">—</span>'},
+      {key:'kind', label:'Type', value:r => KIND[r.kind], cell:r => `<span class="tag ${r.kind}">${KIND[r.kind]}</span>`},
+      {key:'contacts', label:'Contacts', num:true, cell:r => r.contacts},
+      {key:'splits', label:'Splits', num:true, cell:r => r.splits}
+    ],
+    view: r => [['User ID', r.user_id], ['Name', fullName(r) || '—'], ['Email', r.email || '—'], ['Phone', r.phone || '—'],
+      ['Type', KIND[r.kind]], ['Admin', r.is_admin ? 'Yes' : 'No'], ['Contacts', r.contacts], ['Groups', r.groups], ['Splits', r.splits],
+      ['Joined', when(r.joined_at)], ['Last login', r.kind === 'none' ? 'Never (no login yet)' : when(r.last_login_at)]],
+    blank: () => ({first:'', last:'', email:'', phone:'', is_admin:false}),
+    draft: r => ({first:r.first_name || '', last:r.last_name || '', email:r.email || '', phone:r.phone || '', is_admin:!!r.is_admin}),
+    form: (d, r) => {
+      const login = r && r.kind !== 'none', guest = r?.kind === 'guest', self = r?.is_me;
+      return `<div class="grid2">${field('first', 'First name', `<input id="f-first" type="text" data-f="first" maxlength="80" value="${esc(d.first)}" autocomplete="off">`)}
+          ${field('last', 'Last name <small>optional</small>', `<input id="f-last" type="text" data-f="last" maxlength="80" value="${esc(d.last)}" autocomplete="off">`)}</div>
+        ${field('email', 'Email <small>optional</small>', `<input id="f-email" type="email" data-f="email" maxlength="254" value="${esc(d.email)}" autocomplete="off" ${login ? 'disabled' : ''}>`,
+          guest ? 'Guests have no email. They add one when they create a profile.'
+          : login ? 'This is the email they log in with. Only they can change it, from their Profile.'
+          : 'If this person later creates a profile or logs in with this email, they\'ll be linked to this user.')}
+        ${field('phone', 'Phone <small>optional</small>', `<input id="f-phone" type="tel" data-f="phone" value="${esc(d.phone)}" placeholder="(555) 000-0000" autocomplete="off">`)}
+        <label class="check"><input type="checkbox" id="f-is_admin" data-f="is_admin" ${d.is_admin ? 'checked' : ''} ${guest || (self && d.is_admin) ? 'disabled' : ''}>
+          <span><b>Admin</b>${self ? 'You can\'t remove your own admin access.' : guest ? 'Guests can\'t be admins.' : 'Admins see the Maintain buttons and can change all of IOYA\'s data.'}</span></label>
+        ${errLine('is_admin')}`;
+    },
+    check: (d, r) => ({first:CHECK.first(d.first), last:CHECK.last(d.last), phone:CHECK.phone(d.phone), email:r && r.kind !== 'none' ? '' : CHECK.email(d.email)}),
+    save: async (d, r) => need(await sb.rpc('admin_save_user', {p_user_id:r ? r.user_id : null, p_first_name:d.first, p_last_name:d.last,
+      p_email:d.email, p_phone:d.phone, p_is_admin:d.is_admin})),
+    errField: m => /first name|names can be/i.test(m) ? 'first' : /phone/i.test(m) ? 'phone' : /email/i.test(m) ? 'email' : /admin/i.test(m) ? 'is_admin' : null,
+    canDelete: r => r.is_me ? 'You can\'t delete your own account.' : '',
+    deleteText: r => `This permanently deletes ${esc(fullName(r) || 'this user')} and everything they own: ${plural(r.contacts, 'contact')}, ${plural(r.groups, 'group')} and ${plural(r.splits, 'split')}.`
+      + (r.kind === 'none' ? '' : ' Their login stays in Supabase (remove it under Authentication → Users if needed); if they log in again they start with an empty account.'),
+    del: async r => need(await sb.rpc('admin_delete_user', {p_user_id:r.user_id})),
+    prepare: rows => rows.map(r => ({...r, is_me:r.user_id === me.userId,
+      avatar_url:r.avatar_path ? sb.storage.from('avatars').getPublicUrl(r.avatar_path).data.publicUrl : null}))
+  },
+  contacts:{label:'Contacts', soon:true}, groups:{label:'Groups', soon:true}, splits:{label:'Splits', soon:true}, methods:{label:'Payment Methods', soon:true}
+};
+
+// ---------- State ----------
 let me = null;
-
-function page(){
-  const k = TABLES[location.hash.slice(1)] ? location.hash.slice(1) : 'users';
-  document.getElementById('side').innerHTML = Object.entries(TABLES)
-    .map(([key, label]) => `<a href="#${key}" ${key === k ? 'aria-current="page"' : ''}>${label}</a>`).join('');
-  main.innerHTML = `<h1>Maintain ${TABLES[k]}</h1><p class="lede">Add, view, edit and delete ${TABLES[k].toLowerCase()}.</p>
-    <div class="card"><p>This table's page is coming in the next update.</p></div>`;
-  main.querySelector('h1').focus?.();
+const ui = {key:null, rows:[], loading:false, error:'', q:'', filter:null, sort:null, dlg:null, toast:'', toastTimer:0};
+const T = () => TABLES[ui.key];
+function field(k, label, input, hint){
+  const d = ui.dlg, bad = d?.errs?.[k];
+  const tagged = input.replace(/^<input /, `<input aria-describedby="e-${k}${hint ? ` h-${k}` : ''}"${bad ? ' aria-invalid="true"' : ''} `);
+  return `<div class="fwrap"><label class="field${bad ? ' invalid' : ''}" id="w-${k}"><span>${label}</span>${tagged}</label>
+    ${hint ? `<p class="hint" id="h-${k}" style="margin:-8px 0 12px">${hint}</p>` : ''}${errLine(k)}</div>`;
 }
+function errLine(k){ const m = ui.dlg?.errs?.[k]; return `<p class="ferr" id="e-${k}" role="alert" ${m ? '' : 'hidden'} style="margin:-6px 0 12px">${m ? I('alert') + `<span>${esc(m)}</span>` : ''}</p>`; }
+
+function visibleRows(){
+  const t = T(), q = ui.q.trim().toLowerCase(), f = t.filters.find(([k]) => k === ui.filter) || t.filters[0];
+  const col = t.columns.find(c => c.key === ui.sort.key), val = col?.value || (r => r[ui.sort.key]);
+  return ui.rows.filter(f[2]).filter(r => !q || q.split(/\s+/).every(w => t.search(r).toLowerCase().includes(w)))
+    .sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : 0) * ui.sort.dir || (t.id(a) - t.id(b)); });
+}
+
+// ---------- Rendering ----------
+function renderSide(){
+  $('side').innerHTML = Object.entries(TABLES).map(([k, t]) => `<a href="#${k}" ${k === ui.key ? 'aria-current="page"' : ''}>${t.label}</a>`).join('');
+}
+function renderMain(){
+  const t = T();
+  if (t.soon) { $('main').innerHTML = `<h1>Maintain ${t.label}</h1><p class="lede">Add, view, edit and delete ${t.label.toLowerCase()}.</p>
+    <div class="card" style="padding:28px;margin-top:18px"><p style="margin:0">This table's page is coming in the next update.</p></div>`; return; }
+  const head = `<div class="page-h"><div><h1>Maintain ${t.label}</h1><p class="lede">${t.lede}</p></div>
+    <button class="btn accent" data-act="add">${I('plus')}Add ${t.one}</button></div>`;
+  if (ui.loading) { $('main').innerHTML = head + '<div class="card empty" role="status">Loading…</div>'; return; }
+  if (ui.error) { $('main').innerHTML = head + `<div class="alert" role="alert">${esc(ui.error)}</div><button class="btn ghost" data-act="reload">Try again</button>`; return; }
+  const rows = visibleRows(), active = el => document.activeElement === el;
+  const searchHad = active($('q')), pos = searchHad ? $('q').selectionStart : 0;
+  $('main').innerHTML = head + `<div class="card">
+    <div class="tools"><label class="search">${I('search')}<input id="q" type="search" data-in="q" value="${esc(ui.q)}" placeholder="Search ${t.label.toLowerCase()}" aria-label="Search ${t.label.toLowerCase()}"></label>
+      <div class="chips" role="group" aria-label="Show">${t.filters.map(([k, label, fn]) =>
+        `<button class="chip" data-act="filter" data-k="${k}" aria-pressed="${k === ui.filter}">${label}<span class="n">${ui.rows.filter(fn).length}</span></button>`).join('')}</div></div>
+    ${rows.length ? `<div class="table-wrap"><table><thead><tr>${t.columns.map(c => {
+        const on = ui.sort.key === c.key;
+        return `<th class="${c.num ? 'num' : ''}" ${on ? `aria-sort="${ui.sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}><button data-act="sort" data-k="${c.key}">${c.label}<span class="arrow" aria-hidden="true">${on ? (ui.sort.dir > 0 ? '▲' : '▼') : ''}</span></button></th>`; }).join('')}
+        <th><span class="sr" style="position:absolute;left:-9999px">Actions</span></th></tr></thead>
+      <tbody>${rows.map(r => `<tr>${t.columns.map(c => `<td class="${[c.num ? 'num' : '', c.cls || ''].join(' ').trim()}">${c.cell(r)}</td>`).join('')}
+        <td><div class="row-acts">
+          <button class="btn small ghost" data-act="view" data-id="${t.id(r)}" aria-label="View ${esc(t.title(r))}">View</button>
+          <button class="btn small ghost" data-act="edit" data-id="${t.id(r)}" aria-label="Edit ${esc(t.title(r))}">Edit</button>
+          <button class="btn small ghost" data-act="askdelete" data-id="${t.id(r)}" aria-label="Delete ${esc(t.title(r))}" ${t.canDelete(r) ? `disabled title="${esc(t.canDelete(r))}"` : ''}>Delete</button>
+        </div></td></tr>`).join('')}</tbody></table></div>`
+      : `<div class="empty">${ui.rows.length ? `No ${t.label.toLowerCase()} match. Try another search or filter.` : `No ${t.label.toLowerCase()} yet.`}</div>`}
+    <div class="foot" role="status">Showing ${rows.length} of ${plural(ui.rows.length, t.one)}</div></div>`;
+  if (searchHad) { const q = $('q'); q.focus(); q.setSelectionRange(pos, pos); }
+}
+function renderDialog(){
+  const d = ui.dlg, t = T();
+  if (!d) { $('overlay').innerHTML = ''; return; }
+  const r = d.row, busy = d.busy ? 'disabled' : '';
+  let title, sub = '', body, acts;
+  if (d.mode === 'view') {
+    title = t.title(r); sub = `${t.label.replace(/s$/, '')} #${t.id(r)}`;
+    body = `<dl class="kv">${t.view(r).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+    acts = `<button class="btn ghost" data-act="close">Close</button><button class="btn" data-act="edit" data-id="${t.id(r)}">Edit</button>`;
+  } else if (d.mode === 'delete') {
+    title = `Delete ${t.title(r)}?`;
+    body = `${d.alert ? `<div class="alert" role="alert">${esc(d.alert)}</div>` : ''}<p class="danger-box">${t.deleteText(r)} This can't be undone.</p>`;
+    acts = `<button class="btn ghost" data-act="close" ${busy}>Cancel</button><button class="btn danger" data-act="delete" ${busy}>${d.busy ? 'Deleting…' : `Delete ${t.one}`}</button>`;
+  } else {
+    title = r ? `Edit ${t.title(r)}` : `Add ${t.one}`; sub = r ? `${t.label.replace(/s$/, '')} #${t.id(r)}` : '';
+    body = `${d.alert ? `<div class="alert" role="alert">${esc(d.alert)}</div>` : ''}<form id="dlg-form" novalidate>${t.form(d.draft, r)}<button type="submit" hidden></button></form>`;
+    acts = `<button class="btn ghost" data-act="close" ${busy}>Cancel</button><button class="btn accent" data-act="save" ${busy}>${d.busy ? 'Saving…' : r ? 'Save changes' : `Add ${t.one}`}</button>`;
+  }
+  $('overlay').innerHTML = `<div class="dlg-bg" data-act="bg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+    <header><div><h2 id="dlg-t">${esc(title)}</h2>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}</div><button class="x" data-act="close" aria-label="Close" ${busy}>${I('x')}</button></header>
+    <div class="body">${body}</div><div class="acts">${acts}</div></div></div>`;
+}
+function renderToast(){
+  const old = document.querySelector('.toast'); if (old) old.remove();
+  if (ui.toast) document.body.insertAdjacentHTML('beforeend', `<div class="toast" role="status">${esc(ui.toast)}</div>`);
+}
+function render(){ renderSide(); renderMain(); renderDialog(); renderToast(); }
+function toast(m){ ui.toast = m; renderToast(); clearTimeout(ui.toastTimer); ui.toastTimer = setTimeout(() => { ui.toast = ''; renderToast(); }, 3500); }
+
+// ---------- Actions ----------
+async function load(){
+  const t = T(); if (t.soon) return render();
+  ui.loading = true; ui.error = ''; render();
+  try { const rows = await t.load(); ui.rows = t.prepare ? t.prepare(rows || []) : rows || []; }
+  catch (e) { ui.error = /failed to fetch|network|load failed/i.test(e.message) ? OFFLINE
+    : /admin_list_\w+|schema cache/i.test(e.message) ? `The database needs an update: run supabase/admin-${ui.key}.sql in the Supabase SQL Editor.` : e.message; }
+  ui.loading = false; render();
+}
+function openTable(){
+  const key = TABLES[location.hash.slice(1)] ? location.hash.slice(1) : 'users';
+  if (key === ui.key) return;
+  const t = TABLES[key];
+  Object.assign(ui, {key, rows:[], q:'', filter:t.filters?.[0][0] || null, sort:t.sort ? {...t.sort} : null, dlg:null});
+  load(); $('main').focus({preventScroll:true});
+}
+const rowById = id => ui.rows.find(r => String(T().id(r)) === String(id));
+const focusFirst = () => setTimeout(() => document.querySelector('.dlg input:not([disabled]), .dlg [data-act="delete"], .dlg [data-act="edit"]')?.focus(), 0);
+let returnFocus = null;
+function openDialog(d){ returnFocus = document.activeElement; ui.dlg = d; renderDialog(); focusFirst(); }
+function closeDialog(){ if (ui.dlg?.busy) return; ui.dlg = null; renderDialog(); returnFocus?.isConnected && returnFocus.focus(); }
+function readForm(){
+  const d = ui.dlg.draft;
+  document.querySelectorAll('#dlg-form [data-f]').forEach(el => { d[el.dataset.f] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
+  if (typeof d.email === 'string') d.email = d.email.toLowerCase();
+  return d;
+}
+async function save(){
+  const t = T(), d = ui.dlg; if (!d || d.busy) return;
+  const draft = readForm(), errs = t.check(draft, d.row);
+  d.errs = Object.fromEntries(Object.entries(errs).filter(([, m]) => m)); d.alert = '';
+  if (Object.keys(d.errs).length) { renderDialog(); $('f-' + Object.keys(d.errs)[0])?.focus(); return; }
+  d.busy = true; renderDialog();
+  try {
+    await t.save(draft, d.row);
+    const name = [draft.first, draft.last].filter(Boolean).join(' ') || t.title(d.row || {});
+    ui.dlg = null; renderDialog(); toast(d.row ? `Saved ${name}.` : `Added ${name}.`); await load();
+  } catch (e) {
+    d.busy = false;
+    const m = /failed to fetch|network|load failed/i.test(e.message) ? OFFLINE : e.message, k = t.errField(m);
+    if (k) d.errs = {[k]:m}; else d.alert = m;
+    renderDialog(); if (k) $('f-' + k)?.focus();
+  }
+}
+async function remove(){
+  const t = T(), d = ui.dlg; if (!d || d.busy) return;
+  d.busy = true; d.alert = ''; renderDialog();
+  try { await t.del(d.row); ui.dlg = null; renderDialog(); toast(`Deleted ${t.title(d.row)}.`); await load(); }
+  catch (e) { d.busy = false; d.alert = /failed to fetch|network|load failed/i.test(e.message) ? OFFLINE : e.message; renderDialog(); }
+}
+const ACTIONS = {
+  add: () => openDialog({mode:'form', row:null, draft:T().blank(), errs:{}}),
+  edit: el => { const r = rowById(el.dataset.id); if (r) openDialog({mode:'form', row:r, draft:T().draft(r), errs:{}}); },
+  view: el => { const r = rowById(el.dataset.id); if (r) openDialog({mode:'view', row:r}); },
+  askdelete: el => { const r = rowById(el.dataset.id); if (r && !T().canDelete(r)) openDialog({mode:'delete', row:r}); },
+  save, delete:remove, close:closeDialog,
+  bg: (el, e) => { if (e.target === el) closeDialog(); },
+  filter: el => { ui.filter = el.dataset.k; renderMain(); document.querySelector(`[data-act="filter"][data-k="${el.dataset.k}"]`)?.focus(); },
+  sort: el => { const k = el.dataset.k; ui.sort = ui.sort.key === k ? {key:k, dir:-ui.sort.dir} : {key:k, dir:1}; renderMain(); document.querySelector(`[data-act="sort"][data-k="${k}"]`)?.focus(); },
+  reload: load
+};
+document.addEventListener('click', e => { const el = e.target.closest?.('[data-act]'); if (el && ACTIONS[el.dataset.act] && !el.disabled) ACTIONS[el.dataset.act](el, e); });
+document.addEventListener('submit', e => { if (e.target.id === 'dlg-form') { e.preventDefault(); save(); } });
+document.addEventListener('input', e => {
+  if (e.target.dataset?.in === 'q') { ui.q = e.target.value; renderMain(); return; }
+  // Clear a field's red message as soon as it's fixed.
+  const k = e.target.dataset?.f, d = ui.dlg;
+  if (!k || !d?.errs?.[k] || !CHECK[k]) return;
+  const v = e.target.value.trim(); if (CHECK[k](k === 'email' ? v.toLowerCase() : v)) return;
+  delete d.errs[k]; e.target.removeAttribute('aria-invalid'); $('w-' + k)?.classList.remove('invalid');
+  const box = $('e-' + k); if (box) { box.hidden = true; box.innerHTML = ''; }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.dlg) closeDialog(); });
+
+// ---------- Start: admins only ----------
 function stop(msg){
-  document.getElementById('side').innerHTML = '';
-  main.innerHTML = `<h1>Admins only</h1><div class="alert" role="alert">${esc(msg)}</div><p><a class="btn" href="/#account">Go to the log-in page</a></p>`;
+  $('side').innerHTML = '';
+  $('main').innerHTML = `<h1>Admins only</h1><div class="alert" role="alert">${esc(msg)}</div><p><a class="btn" href="/#account">Go to the log-in page</a></p>`;
 }
-
 async function start(){
   if (!sb) return stop('Supabase settings are missing, so the admin pages are unavailable.');
-  const {data:{session}} = await sb.auth.getSession();
-  if (!session || session.user.is_anonymous) return stop('Log in with an admin account to maintain IOYA\'s tables.');
-  const ok = await sb.rpc('is_admin');
-  if (ok.error) return stop(/is_admin/.test(ok.error.message) ? 'The database needs an update: run supabase/admin-login.sql in the Supabase SQL Editor.' : ok.error.message);
-  if (ok.data !== true) return stop(`${session.user.email} is not an admin account.`);
-  me = session.user;
-  document.getElementById('who').innerHTML = `<span>${esc(me.email)}</span><button class="btn ghost" type="button" id="logout">Log out</button>`;
-  document.getElementById('logout').addEventListener('click', async () => {
+  try {
+    const {data:{session}} = await sb.auth.getSession();
+    if (!session || session.user.is_anonymous) return stop('Log in with an admin account to maintain IOYA\'s tables.');
+    const ok = await sb.rpc('is_admin');
+    if (ok.error) return stop(/is_admin/.test(ok.error.message) ? 'The database needs an update: run supabase/admin-login.sql in the Supabase SQL Editor.' : ok.error.message);
+    if (ok.data !== true) return stop(`${session.user.email} is not an admin account.`);
+    me = {email:session.user.email, userId:need(await sb.rpc('ensure_my_user'))};
+  } catch (e) { return stop(/failed to fetch|network|load failed/i.test(e.message) ? OFFLINE : e.message); }
+  $('who').innerHTML = `<span>${esc(me.email)}</span><button class="btn ghost" type="button" data-act="logout">Log out</button>`;
+  ACTIONS.logout = async () => {
     await sb.auth.signOut({scope:'local'}).catch(() => {});
     window.IOYA_CLEAR_LOGIN_COOKIES?.();
     location.href = '/#account';
-  });
-  window.addEventListener('hashchange', page);
-  page();
+  };
+  window.addEventListener('hashchange', openTable);
+  openTable();
 }
-start();
+window.IOYA_ADMIN = {ui, TABLES, ACTIONS, visibleRows, render, ready:start()};
 })();
 </script>
 </body>
