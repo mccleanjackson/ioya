@@ -60,14 +60,16 @@ Level 1 data flow diagrams showing how data moves between the user, IOYA's main 
 | Layer | What we used | Why |
 |---|---|---|
 | Database + backend | [Supabase](https://supabase.com) (hosted PostgreSQL with an automatic REST API) | Most of our group already knows Supabase, the free tier covers this project, and the Table Editor lets everyone see the data without installing a database. |
-| Frontend | Plain HTML, CSS and JavaScript in [`public/index.html`](public/index.html), using the [`supabase-js`](https://supabase.com/docs/reference/javascript) library | Our screens started as one clickable HTML prototype, so we kept it and connected it to Supabase. There is no build step. |
+| Frontend | Plain HTML, CSS and JavaScript: the landing page [`public/index.html`](public/index.html) (`/`), the app [`public/app.html`](public/app.html) (`/app`) and the admin pages [`public/admin.html`](public/admin.html) (`/admin`), using the [`supabase-js`](https://supabase.com/docs/reference/javascript) library | Our screens started as one clickable HTML prototype, so we kept it and connected it to Supabase. There is no build step. |
 | Web server | Node.js 18+ with Express, in [`server.js`](server.js) | Serves the page and passes it the Supabase URL and key from `.env`, so they are never committed to GitHub. |
 | Receipt reader | [Tesseract.js 7.0.0](https://github.com/naptha/tesseract.js), loaded on the first scan | Reads photos in a browser worker without an OCR API key or uploading the photo to a recognition service. Its script, engine and English language data download from public CDNs. |
 | Secrets | A git-ignored `.env` file | [`.env.example`](.env.example) shows the format. |
 
-**Accounts.** There is no login screen. The first time a browser opens IOYA, it signs in to Supabase anonymously, which creates a guest account, and the database function `ensure_my_user` creates that person's `users` row and their own "You" contact. The browser keeps the session, so the same person gets the same account on later visits. Clearing the browser's data or using a private window starts a new, empty account. A new account doesn't see the sample data in `seed.sql`, which belongs to the sample user, Demo Payer.
+**Landing page and login.** The site opens on a landing page (`/`) with an image of the app, a short "How it works", and a **Log in** box (email and password). **Try IOYA** opens the app at `/app` without an account. When an **admin** logs in, the landing page shows **Maintain Users**, **Maintain Contacts**, **Maintain Groups**, **Maintain Splits** and **Maintain Payment Methods**, which open the admin pages at `/admin`; a regular user gets **Open IOYA** instead. **Log out** ends the login, deletes the login cookies and hides the buttons. The login is kept in **cookies** ([`public/session.js`](public/session.js)), shared by every page. Passwords are stored hashed by Supabase Auth, never in our tables. Admins are users with `users.is_admin = true` ([`supabase/admin-login.sql`](supabase/admin-login.sql)); the database checks this (`is_admin()`), so hiding the buttons is not the only protection.
 
-**Profile and saved accounts.** The **Profile** tab shows your profile card. Press the pencil to set your name, phone and **profile picture**; the database function `save_my_profile` (in [`supabase/profile.sql`](supabase/profile.sql)) updates your `users` row and your "You" contact together, so the app keeps recognizing which contact is you. A guest can **save their account** with an email: Supabase emails a 6-digit code, and once it's entered the same account (same data) becomes permanent. On another device or browser, **Already saved? Sign in** asks for the email and a new code, then loads that account. A guest's data is not merged into a saved account. Saved accounts can **sign out**, which gives that browser a fresh guest account. Email addresses are kept by Supabase Auth, not in our tables.
+**Accounts.** Guests don't need to log in. The first time a browser opens the app, it signs in to Supabase anonymously, which creates a guest account, and the database function `ensure_my_user` creates that person's `users` row and their own "You" contact. The browser keeps the session, so the same person gets the same account on later visits. Clearing the browser's data or using a private window starts a new, empty account. A new account doesn't see the sample data in `seed.sql`, which belongs to the sample user, Demo Payer.
+
+**Profile and saved accounts.** The **Profile** tab shows your profile card. Press the pencil to set your name, phone and **profile picture**; the database function `save_my_profile` (in [`supabase/profile.sql`](supabase/profile.sql)) updates your `users` row and your "You" contact together, so the app keeps recognizing which contact is you. A guest can **create a profile**: name, then email, then a 6-digit code that Supabase emails to confirm it, then a password. The same account (same data) becomes permanent. On another device or browser, **Log in** takes the email and password. **Forgot password?** emails a 6-digit code, then lets you choose a new password. Logged-in profiles can **Change password** and **Log out** (which deletes the login cookies and gives that browser a fresh guest account). A guest's data is not merged into a profile they log in to. Email addresses are kept by Supabase Auth, not in our tables.
 
 **Profile pictures.** Only saved profiles can have a photo; guests see "Create a profile to add a profile picture." In edit mode, **Add photo** opens the phone's photo picker (or camera), then **Adjust your photo**: drag to move it, and zoom with the slider, a pinch on a phone, or the mouse wheel (keyboard: arrow keys and + / -). The part inside the circle is saved as a 400×400 JPEG (about 50 KB), made in the browser. It shows as a preview (with **Adjust** to reframe it) and uploads only when you press **Save**; **Cancel** throws it away. The photo then shows on the profile card and as the Profile tab's icon, with your initials as the fallback. Photos are stored in a public Supabase Storage bucket called `avatars`, one folder per account, set up by [`supabase/avatars.sql`](supabase/avatars.sql). Anyone with a photo's exact link can view it (the planned profile QR page needs that), but file names are random, so links can't be guessed and no one can list other people's photos. Each account can upload, replace and delete only its own files. Changing or removing a photo deletes the old file.
 
@@ -142,12 +144,12 @@ npm install
 7. For saving accounts with email (see "Set up account emails" below): check that **Authentication → Sign In / Providers → Email** is on, put the 6-digit code in the email templates, and, so anyone can receive the emails, set up your own email sender.
 8. Find your **Project URL** and **anon public key** under **Project Settings → API** (or the **Connect** button).
 
-#### Set up account emails (6-digit codes)
+#### Set up account emails (6-digit codes) and passwords
 
-The Profile screen emails a 6-digit code when someone saves their account or signs in. Do this once per Supabase project (our team's project is already set up).
+The app emails a 6-digit code to confirm a new profile's email and to reset a forgotten password; everyday logins use the password. Do this once per Supabase project (our team's project is already set up).
 
 1. **Authentication → Sign In / Providers → Email**: make sure it is **enabled**, leave **Confirm email** on, and set **Email OTP Length** to `6` (the app says "6-digit code"; some projects default to 8).
-2. **Authentication → Emails → Templates**: in each of **Magic Link**, **Change Email Address** and **Confirm signup**, replace the message body with the following and click **Save**:
+2. **Authentication → Emails → Templates**: in each of **Magic Link**, **Change Email Address**, **Confirm signup** and **Reset Password**, replace the message body with the following and click **Save**:
 
    ```html
    <h2>Your IOYA code</h2>
@@ -156,9 +158,10 @@ The Profile screen emails a 6-digit code when someone saves their account or sig
    <p>It expires in 1 hour. If you didn't ask for it, you can ignore this email.</p>
    ```
 
-   A subject like `Your IOYA code` works for all three. The app has no link-based sign-in, so the templates don't need a link.
+   A subject like `Your IOYA code` works for all four. The app has no link-based sign-in, so the templates don't need a link.
 3. **Your own email sender (needed for anyone outside the Supabase team).** Supabase's built-in sender only delivers to members of the Supabase project and only a few emails per hour. So that a TA or anyone else can save an account, open **Authentication → Emails → SMTP Settings**, turn on **Enable custom SMTP**, and fill in a real email account's SMTP details. With a Gmail account made for the project (recommended over a personal one): host `smtp.gmail.com`, port `465`, username = the full Gmail address, password = a Gmail **app password** (Google Account → Security → 2-Step Verification must be on, then **App passwords**), sender email = that Gmail address, sender name `IOYA`. Never commit the app password or put it in `.env`.
-4. **Authentication → Rate Limits**: after custom SMTP is on, check **Rate limit for sending emails** (for example 30 per hour) is enough for testing.
+4. **Passwords:** in **Authentication → Sign In / Providers → Email**, set **Minimum password length** to `8` (the app asks for at least 8) and click **Save**.
+5. **Authentication → Rate Limits**: after custom SMTP is on, check **Rate limit for sending emails** (for example 30 per hour) is enough for testing.
 
 ### 3. Create your `.env` file
 
@@ -181,7 +184,17 @@ SUPABASE_ANON_KEY=your-anon-public-key
 npm start
 ```
 
-Open **http://localhost:3001**. On a laptop the app appears in a phone frame, with a list of screens on the left.
+Open **http://localhost:3001** for the landing page, or **http://localhost:3001/app** for the app. On a laptop the app appears in a phone frame, with a list of screens on the left.
+
+#### Make an admin account
+
+Admins see the **Maintain** buttons. To make one: create a profile (or, for a TA, add the user in **Authentication → Users → Add user → Create new user** with an email and password and **Auto Confirm User** checked), **log in with it once** on the landing page, then run this in the SQL Editor with that email:
+
+```sql
+UPDATE users SET is_admin = true WHERE lower(user_email) = lower('their@email.com');
+```
+
+Log out and back in to see the buttons. To remove admin access, run the same line with `false`.
 
 ### 5. Optional protected HTTPS phone preview
 
@@ -208,7 +221,10 @@ The HTTPS address is a new browser origin: its local draft and camera permission
 - "the preferred app needs a database update": run [`supabase/payment-preference.sql`](supabase/payment-preference.sql) once in the SQL Editor (your accounts were already saved).
 - "This browser couldn't open that photo": some desktop browsers can't read iPhone HEIC photos. Choose a JPG or PNG, or add the photo from the phone (iPhones convert it automatically).
 - The code email never arrives: check spam, then **Authentication → Emails → SMTP Settings** (without your own sender, only Supabase project members get emails) and Supabase's **Logs → Auth** for the error. "The email could not be sent" in the app means the SMTP details are wrong.
-- "That email already has a saved IOYA account": use **Already saved? Sign in** instead of **Save your account**.
+- "This email already has an IOYA profile": use **Log in** instead of **Create profile**.
+- "That email and password don't match": check both, or use **Forgot password?**. Profiles created before passwords existed have no password yet; **Forgot password?** sets one.
+- No **Maintain** buttons after logging in: the account isn't an admin yet (see "Make an admin account"), or `supabase/admin-login.sql` hasn't been run.
+- The password-reset email has a link instead of a code: add `{{ .Token }}` to the **Reset Password** template (setup step 2 above).
 - The email has an 8-digit code but the app asks for 6: set **Email OTP Length** to `6` (setup step 1 under "Set up account emails").
 - The code is rejected: codes expire after an hour and each new code replaces the last one, so use the newest email.
 
@@ -270,13 +286,18 @@ Run `npm test` for deterministic receipt-parser checks. These are software check
 
 ```
 server.js              Serves public/ and /config.js (Supabase URL + anon key from .env)
-public/index.html      The whole frontend: screens, styles, and Supabase calls
+public/index.html      The landing page (/): hero image, How it works, Log in, admin Maintain buttons, Log out
+public/app.html        The app (/app): screens, styles, and Supabase calls
+public/admin.html      Admin Maintain pages (/admin), admins only
+public/session.js      Keeps the Supabase login in cookies (shared by all three pages)
+public/images/         Screenshots of the app used on the landing page
 supabase/schema.sql    Creates the 11 tables, security rules and contact/group functions (drops existing tables first)
 supabase/contacts-sync.sql  Adds just the contact functions to a project set up before they existed (older version)
 supabase/anonymous-accounts.sql  Guest accounts: links users to Supabase Auth and updates the contact functions
 supabase/private-data.sql  Makes each account's data private, gives groups an owner, adds save_group/delete_group
 supabase/profile.sql   Adds save_my_profile (name and phone for the Profile screen)
 supabase/avatars.sql   Profile pictures: the avatars storage bucket and its rules, users.avatar_path, set_my_avatar
+supabase/admin-login.sql  users.user_email, users.is_admin, is_admin(); ensure_my_user() keeps user_email current
 supabase/payment-preference.sql  Preferred payment app: profile_payment_accounts.preferred, get/set_my_payment_preference
 supabase/seed.sql      Sample rows for every table
 docs/ioya-erd.pdf      Our ERD (docs/ioya-erd.png is the same diagram for this README)

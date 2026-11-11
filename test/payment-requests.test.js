@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
-const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
+const html=fs.readFileSync(path.join(__dirname,'../public/app.html'),'utf8');
 const script=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][0][1];
 function app({clipboardError=false,userAgent='Android',preview=false,production=false,fetch}={}){
   const copied=[], timers=[], fallback={closest:()=>fallback,setAttribute(){},focus(){this.focused=true;},select(){this.selected=true;}};

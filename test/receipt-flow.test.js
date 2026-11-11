@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '../public/app.html'), 'utf8');
 const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][0][1];
 const fixtureText = 'MAPLE CAFE\nLatte 4.50\nBagel 3.25\nTax 0.62\nTOTAL 8.37';
 const photo = {type:'image/png', size:1000};

@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 // Exercise the production parser without needing Supabase, a DOM or OCR downloads.
-const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '../public/app.html'), 'utf8');
 const source = html.slice(html.indexOf('function parseReceiptText('), html.indexOf('/* ---------- end receipt text parser'));
 const parse = vm.runInNewContext(`(${source})`);
 const read = text => JSON.parse(JSON.stringify(parse(text)));

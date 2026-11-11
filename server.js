@@ -53,6 +53,10 @@ app.get(['/pay', '/pay.html'], (req, res) => {
   });
   res.sendFile(path.join(publicDir, 'pay.html'));
 });
+// The landing page is public/index.html (served at /). The app itself is at /app, and the
+// admin "Maintain" pages are at /admin.
+app.get(['/app', '/app/'], (req, res) => res.sendFile(path.join(publicDir, 'app.html')));
+app.get(['/admin', '/admin/'], (req, res) => res.sendFile(path.join(publicDir, 'admin.html')));
 app.use(express.static(publicDir));
 
 const port = Number(process.env.PORT) || 3001;

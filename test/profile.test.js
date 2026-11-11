@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '../public/app.html'), 'utf8');
 const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][0][1];
 
 // A fake Supabase with a guest session that can be saved with an email, switched or signed out.
@@ -36,11 +36,18 @@ function fakeSupabase({fail = {}, saved = false, avatar = null} = {}){
       signOut: async opts => { calls.push(['signOut', opts]); state.session = null; return err('signOut') || {error:null}; },
       updateUser: async attrs => { calls.push(['updateUser', attrs]); return err('updateUser') || {data:{}, error:null}; },
       signInWithOtp: async args => { calls.push(['signInWithOtp', args]); return err('signInWithOtp') || {data:{}, error:null}; },
+      resetPasswordForEmail: async email => { calls.push(['resetPasswordForEmail', email]); return err('resetPasswordForEmail') || {data:{}, error:null}; },
+      signInWithPassword: async args => {
+        calls.push(['signInWithPassword', args]);
+        if (fail.signInWithPassword) return {data:{}, error:{message:fail.signInWithPassword}};
+        state.session = {user:{id:'saved', is_anonymous:false, email:args.email}}; state.userId = 3; state.me = {user_first_name:'Saved', user_last_name:'Me', phone:null};
+        return {data:{}, error:null};
+      },
       verifyOtp: async args => {
         calls.push(['verifyOtp', args]);
         if (fail.verifyOtp) return {data:{}, error:{message:fail.verifyOtp}};
         if (args.type === 'email_change') state.session = {user:{...state.session.user, is_anonymous:false, email:args.email}};
-        else { state.session = {user:{id:'saved', is_anonymous:false, email:args.email}}; state.userId = 3; state.me = {user_first_name:'Saved', user_last_name:'Me', phone:null}; }
+        else { state.session = {user:{id:'saved', is_anonymous:false, email:args.email}}; state.userId = 3; state.me = {user_first_name:'Saved', user_last_name:'Me', phone:null}; }  // 'recovery' logs in
         return {data:{}, error:null};
       }
     },
@@ -86,8 +93,9 @@ function fakeSupabase({fail = {}, saved = false, avatar = null} = {}){
 async function load(fake){
   const fields = {};
   const context = {
-    window:{supabase:{createClient:() => fake.client}, IOYA_CONFIG:{supabaseUrl:'https://example.test', supabaseAnonKey:'test'}},
+    window:{supabase:{createClient:() => fake.client}, IOYA_CONFIG:{supabaseUrl:'https://example.test', supabaseAnonKey:'test'}, IOYA_CLEAR_LOGIN_COOKIES:() => context.clearedCookies++},
     document:{getElementById:id => fields[id] || null, addEventListener:() => {}, querySelector:() => null},
+    clearedCookies:0,
     localStorage:{getItem:() => null, setItem(){}},
     setTimeout:() => 0, clearTimeout:() => {}, console,
     // Just enough of the browser's image tools for the photo picker.
@@ -130,24 +138,25 @@ test('the profile opens in view mode with a pencil, not as a form', async () => 
   assert.match(api.sheetHTML(), /Edit profile[\s\S]*id="f-first"/);
 });
 
-test('a guest sees "Create profile" and a small "Sign in" link; no "Sign out"', async () => {
+test('a guest sees "Create profile" and a small "Log in" link; no "Log out"', async () => {
   const api = await load(fakeSupabase());
   open(api);
   const out = api.sheetHTML();
   assert.match(out, />Create profile</);
-  assert.match(out, /Already have a profile\?.*>Sign in</s);
+  assert.match(out, /Already have a profile\?.*>Log in</s);
   assert.match(out, /badge guest/);
-  assert.doesNotMatch(out, /Sign out/);
+  assert.doesNotMatch(out, /Log out|Change password/);
 });
 
-test('a signed-in user sees their email and "Sign out", and no create or sign-in buttons', async () => {
+test('a logged-in user sees their email, "Change password" and "Log out", and no create or log-in buttons', async () => {
   const api = await load(fakeSupabase({saved:true}));
   open(api);
   const out = api.sheetHTML();
   assert.match(out, /Signed in as<\/span><b>me@example.com/);
   assert.match(out, /Verified/);
-  assert.match(out, /Sign out/);
-  assert.doesNotMatch(out, /Create profile|Already have a profile|>Sign in</);
+  assert.match(out, />Change password</);
+  assert.match(out, />Log out</);
+  assert.doesNotMatch(out, /Create profile|Already have a profile|>Log in</);
 });
 
 test('saving the profile sends trimmed values, reloads "You", and returns to view mode', async () => {
@@ -223,23 +232,32 @@ test('an unrelated database error shows as a red box at the top', async () => {
   assert.match(api.sheetHTML(), /<div class="alert bad" role="alert">One of your contacts/);
 });
 
-test('Create profile: name, then email, then the 6-digit code; same account and data', async () => {
+test('Create profile: name, email, 6-digit code, then a password; same account and data', async () => {
   const fake = fakeSupabase();
   const api = await load(fake);
   open(api); api.A.pstep({step:'edit', mode:'create'});
-  assert.match(api.sheetHTML(), /Create your profile[\s\S]*Step 1 of 3/);
+  assert.match(api.sheetHTML(), /Create your profile[\s\S]*Step 1 of 4/);
   api.type({'f-first':'Jackson', 'f-last':'McClean', 'f-phone':''});
   await api.A.saveprofile();
   assert.equal(api.ui.sheet.step, 'email');
-  assert.match(api.sheetHTML(), /Add your email[\s\S]*Step 2 of 3/);
+  assert.match(api.sheetHTML(), /Add your email[\s\S]*Step 2 of 4/);
   api.type({'f-email':' Me@Example.com '});
   await api.A.sendcode({});
   assert.deepEqual(plain(calls(fake, 'updateUser')[0][1]), {email:'me@example.com'});
-  assert.match(api.sheetHTML(), /Check your email[\s\S]*Step 3 of 3[\s\S]*>Create profile</);
+  assert.match(api.sheetHTML(), /Check your email[\s\S]*Step 3 of 4[\s\S]*>Continue</);
   api.type({'f-code':'123 456'});
   await api.A.verifycode();
   assert.deepEqual(plain(calls(fake, 'verifyOtp')[0][1]), {email:'me@example.com', token:'123456', type:'email_change'});
   assert.deepEqual(plain(api.S.account), {email:'me@example.com', guest:false, since:'2026-11-02T10:00:00Z'});
+  assert.equal(api.ui.sheet.step, 'password');
+  assert.match(api.sheetHTML(), /Choose a password[\s\S]*Step 4 of 4[\s\S]*>Create profile</);
+  api.type({'f-password':'short', 'f-password2':'short'}); await api.A.savepassword({});
+  assert.equal(errs(api).password, 'Passwords need at least 8 characters. This one has 5.');
+  api.type({'f-password':'correct horse', 'f-password2':'correct hors'}); await api.A.savepassword({});
+  assert.equal(errs(api).password2, "The two passwords don't match.");
+  assert.equal(calls(fake, 'updateUser').length, 1, 'nothing sent while the passwords are wrong');
+  api.type({'f-password':' correct horse ', 'f-password2':' correct horse '}); await api.A.savepassword({});
+  assert.deepEqual(plain(calls(fake, 'updateUser')[1][1]), {password:' correct horse '}, 'passwords are not trimmed');
   assert.equal(api.S.userId, 7, 'same account');
   assert.equal(api.S.contacts.length, 1, 'contacts kept');
   assert.equal(api.ui.sheet.step, undefined, 'back to the profile view');
@@ -247,24 +265,25 @@ test('Create profile: name, then email, then the 6-digit code; same account and 
   assert.doesNotMatch(api.sheetHTML(), /Create profile/);
 });
 
-test('an email already used by a profile shows under the email field and points to Sign in', async () => {
+test('an email already used by a profile shows under the email field and points to Log in', async () => {
   const fake = fakeSupabase({fail:{updateUser:'A user with this email address has already been registered'}});
   const api = await load(fake);
   await toCode(api, 'taken@example.com');
-  assert.match(errs(api).email, /already has an IOYA profile.*Sign in/);
+  assert.match(errs(api).email, /already has an IOYA profile.*Log in/);
   assert.equal(api.ui.sheet.step, 'email');
   assert.match(api.sheetHTML(), /value="taken@example.com"/);
 });
 
-test('email and code mistakes get exact messages', async () => {
+test('email, password and code mistakes get exact messages', async () => {
   const fake = fakeSupabase();
   const api = await load(fake);
   open(api); api.A.pstep({step:'email', mode:'signin'});
-  api.type({'f-email':''}); await api.A.sendcode({});
-  assert.equal(errs(api).email, 'Email is required.');
-  api.type({'f-email':'not-an-email'}); await api.A.sendcode({});
+  api.type({'f-email':'', 'f-pw':''}); await api.A.login({});
+  assert.deepEqual(errs(api), {email:'Email is required.', pw:'Enter your password.'});
+  api.type({'f-email':'not-an-email', 'f-pw':'x'}); await api.A.login({});
   assert.equal(errs(api).email, 'Enter a full email address, like you@example.com.');
-  assert.equal(calls(fake, 'signInWithOtp').length, 0);
+  assert.equal(calls(fake, 'signInWithPassword').length, 0);
+  api.A.pstep({step:'email', mode:'reset'});
   api.type({'f-email':'me@example.com'}); await api.A.sendcode({});
   api.type({'f-code':'12'}); await api.A.verifycode();
   assert.equal(errs(api).code, 'The code is 6 digits. You entered 2.');
@@ -293,23 +312,57 @@ test('"Send a new code" resends to the same email', async () => {
   assert.match(api.ui.toast, /Sent a new code/);
 });
 
-test('signing in switches this browser to the profile, without creating an account', async () => {
+test('logging in with a password switches this browser to the profile, without creating an account', async () => {
   const fake = fakeSupabase();
   const api = await load(fake);
   open(api); api.A.pstep({step:'email', mode:'signin'});
-  assert.match(api.sheetHTML(), /Your guest data stays behind[\s\S]*1 contact on this guest account/);
-  api.type({'f-email':'saved@example.com'});
-  await api.A.sendcode({});
-  assert.deepEqual(plain(calls(fake, 'signInWithOtp')[0][1]), {email:'saved@example.com', options:{shouldCreateUser:false}});
-  assert.match(api.sheetHTML(), />Sign in</);
-  assert.doesNotMatch(api.sheetHTML(), /Step \d of 3/);
-  api.type({'f-code':'654321'});
-  await api.A.verifycode();
-  assert.equal(calls(fake, 'verifyOtp')[0][1].type, 'email');
+  const out = api.sheetHTML();
+  assert.match(out, /Log in[\s\S]*Your guest data stays behind[\s\S]*1 contact on this guest account/);
+  assert.match(out, /id="f-pw" type="password"[^>]*autocomplete="current-password"/);
+  assert.match(out, />Forgot password\?</);
+  api.type({'f-email':' Saved@Example.com ', 'f-pw':'my secret pw'});
+  await api.A.login({});
+  assert.deepEqual(plain(calls(fake, 'signInWithPassword')[0][1]), {email:'saved@example.com', password:'my secret pw'});
+  assert.equal(calls(fake, 'signInAnonymously').length, 0);
   assert.equal(api.S.userId, 3, 'now the saved profile');
   assert.equal(api.S.me.first, 'Saved');
   assert.equal(api.S.contacts.length, 0, "the guest's contacts are gone from the screen");
-  assert.match(api.ui.toast, /Signed in as saved@example.com/);
+  assert.match(api.ui.toast, /Logged in as saved@example.com/);
+});
+
+test('a wrong password says so under the password field', async () => {
+  const fake = fakeSupabase({fail:{signInWithPassword:'Invalid login credentials'}});
+  const api = await load(fake);
+  open(api); api.A.pstep({step:'email', mode:'signin'});
+  api.type({'f-email':'me@example.com', 'f-pw':'nope'}); await api.A.login({});
+  assert.match(errs(api).pw, /don't match an IOYA profile.*Forgot password/);
+  assert.equal(api.S.userId, 7, 'still the guest');
+});
+
+test('Forgot password: email, code, then a new password, and you are logged in', async () => {
+  const fake = fakeSupabase();
+  const api = await load(fake);
+  open(api); api.A.pstep({step:'email', mode:'reset'});
+  assert.match(api.sheetHTML(), /Reset your password/);
+  api.type({'f-email':'saved@example.com'}); await api.A.sendcode({});
+  assert.deepEqual(plain(calls(fake, 'resetPasswordForEmail')[0]), ['resetPasswordForEmail', 'saved@example.com']);
+  api.type({'f-code':'654321'}); await api.A.verifycode();
+  assert.equal(calls(fake, 'verifyOtp')[0][1].type, 'recovery');
+  assert.equal(api.S.userId, 3, 'the code logged in to the profile');
+  assert.equal(api.ui.sheet.step, 'password');
+  assert.match(api.sheetHTML(), /Choose a new password[\s\S]*>Save password</);
+  api.type({'f-password':'new password 1', 'f-password2':'new password 1'}); await api.A.savepassword({});
+  assert.deepEqual(plain(calls(fake, 'updateUser')[0][1]), {password:'new password 1'});
+  assert.match(api.ui.toast, /Password changed\. You're logged in as saved@example.com/);
+});
+
+test('a logged-in profile can change its password', async () => {
+  const fake = fakeSupabase({saved:true, fail:{updateUser:'New password should be different from the old password.'}});
+  const api = await load(fake);
+  open(api); api.A.pstep({step:'password', mode:'change'});
+  assert.match(api.sheetHTML(), /Change your password[\s\S]*>Cancel<[\s\S]*>Save password</);
+  api.type({'f-password':'same old pw', 'f-password2':'same old pw'}); await api.A.savepassword({});
+  assert.equal(errs(api).password, "That's already your password. Choose a different one.");
 });
 
 test('a dropped connection shows a plain message, not a technical one', async () => {
@@ -319,25 +372,27 @@ test('a dropped connection shows a plain message, not a technical one', async ()
   assert.match(api.sheetHTML(), /<div class="alert bad" role="alert">Couldn&#39;t reach IOYA|<div class="alert bad" role="alert">Couldn't reach IOYA/);
 });
 
-test('signing in with an unknown email says so under the email field', async () => {
-  const fake = fakeSupabase({fail:{signInWithOtp:'Signups not allowed for otp'}});
+test('logging in with an unconfirmed email says so under the email field', async () => {
+  const fake = fakeSupabase({fail:{signInWithPassword:'Email not confirmed'}});
   const api = await load(fake);
   open(api); api.A.pstep({step:'email', mode:'signin'});
-  api.type({'f-email':'nobody@example.com'}); await api.A.sendcode({});
-  assert.match(errs(api).email, /No saved profile uses this email/);
+  api.type({'f-email':'new@example.com', 'f-pw':'whatever1'}); await api.A.login({});
+  assert.match(errs(api).email, /hasn't been confirmed yet/);
 });
 
-test('signing out starts a fresh guest account', async () => {
+test('logging out removes the login cookies and starts a fresh guest account', async () => {
   const fake = fakeSupabase({saved:true});
   const api = await load(fake);
   open(api); api.A.pstep({step:'signout'});
-  assert.match(api.sheetHTML(), /sign back in with me@example.com/);
+  assert.match(api.sheetHTML(), /Log out\?[\s\S]*log back in with me@example.com[\s\S]*removes the login cookies/);
   await api.A.signout();
   assert.deepEqual(plain(calls(fake, 'signOut')[0][1]), {scope:'local'});
+  assert.equal(api.context.clearedCookies, 1, 'login cookies removed');
   assert.equal(calls(fake, 'signInAnonymously').length, 1);
   assert.equal(api.S.account.guest, true);
   assert.notEqual(api.S.userId, 7);
   assert.equal(api.ui.sheet, null);
+  assert.match(api.ui.toast, /Logged out/);
 });
 
 test('the profile page shows initials once there is a name', async () => {
