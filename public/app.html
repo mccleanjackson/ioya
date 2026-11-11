@@ -20,6 +20,10 @@
   --palette-turquoise:#3DF5D5; --palette-turquoise-soft:#C1FBF1;
   --palette-pink:#C73A81; --palette-pink-soft:#F1C4D8;
   --palette-orange:#F09C34; --palette-orange-soft:#FBE1C2;
+  --palette-cashapp:#00C244; --palette-cashapp-soft:#D9F5E2;
+  --palette-applecash:#141414; --palette-applecash-soft:#E2E2E2;
+  --palette-cash:#88c6a3; --palette-cash-soft:#E6F2EB;
+  --palette-brown:#8B5E3C; --palette-brown-soft:#F0E2D6;
   --method-venmo:#008CFF; --method-venmo-soft:#D6EDFF;
   --method-paypal:#003087; --method-paypal-soft:#D6E1F2;
   --method-zelle:#6534D1; --method-zelle-soft:#E6DDF8;
@@ -37,6 +41,10 @@
   --history-paid:#5258E5; --history-paid-soft:#292B5F;
   --history-part:#FEEB00; --history-part-soft:#3F3914;
   --history-unpaid:#FE4B6B; --history-unpaid-soft:#4B202B;
+  --method-venmo-soft:#12395A; --method-paypal-soft:#263B66; --method-zelle-soft:#342354;
+  --palette-cashapp-soft:#164527; --palette-applecash-soft:#303030; --palette-brown-soft:#493426;
+  --palette-applecash:#FEFEFE; --palette-applecash-soft:#E2E2E2;
+  --palette-cash-soft:#2B4035; --palette-lime-soft:#3B4C24;
   --hi:#FFD60A; --hi-soft:#3A3208; --on-hi:#15171C;
   --good:#3DCB7E; --good-soft:#123020; --bad:#FF6E5C; --bad-soft:#3B1612;
   --pen:#8EA3F6; --bezel:#2B313D; --finder:#07080B; --shadow:0 30px 60px -30px rgba(0,0,0,.8);
@@ -48,6 +56,10 @@
   --history-paid:#5258E5; --history-paid-soft:#292B5F;
   --history-part:#FEEB00; --history-part-soft:#3F3914;
   --history-unpaid:#FE4B6B; --history-unpaid-soft:#4B202B;
+  --method-venmo-soft:#12395A; --method-paypal-soft:#263B66; --method-zelle-soft:#342354;
+  --palette-cashapp-soft:#164527; --palette-applecash-soft:#303030; --palette-brown-soft:#493426;
+  --palette-applecash:#FEFEFE; --palette-applecash-soft:#E2E2E2;
+  --palette-cash-soft:#2B4035; --palette-lime-soft:#3B4C24;
   --hi:#FFD60A; --hi-soft:#3A3208; --on-hi:#15171C;
   --good:#3DCB7E; --good-soft:#123020; --bad:#FF6E5C; --bad-soft:#3B1612;
   --pen:#8EA3F6; --bezel:#2B313D; --finder:#07080B; --shadow:0 30px 60px -30px rgba(0,0,0,.8);
@@ -336,11 +348,38 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-filter-glider.squash{animation:history-filter-squash .4s cubic-bezier(.2,.8,.2,1)}
 @keyframes history-filter-squash{0%,100%{transform:scaleX(1)}34%{transform:scaleX(1.1)}66%{transform:scaleX(.96)}}
 .contact-fchips{position:relative}
-.contact-filter-glider{position:absolute;z-index:0;top:2px;bottom:2px;left:0;width:0;border-radius:999px;background:var(--ink);pointer-events:none}
-.contact-filter-glider.ready{transition:left .4s cubic-bezier(.2,1.12,.3,1),width .3s cubic-bezier(.2,.8,.2,1)}
+.contact-filter-glider{position:absolute;z-index:0;top:2px;bottom:2px;left:0;width:0;border-radius:999px;background:var(--ink);pointer-events:none;transition:background-color .18s ease}
+.contact-filter-glider[data-f="all"],.contact-filter-glider[data-f="none"]{background:var(--ink)}
+.contact-filter-glider[data-f="1"]{background:var(--method-venmo)}
+.contact-filter-glider[data-f="2"]{background:var(--method-paypal)}
+.contact-filter-glider[data-f="3"]{background:var(--method-zelle)}
+.contact-filter-glider[data-f="4"]{background:var(--palette-cash)}
+.contact-filter-glider[data-f="5"]{background:var(--palette-cashapp)}
+.contact-filter-glider[data-f="6"]{background:var(--palette-applecash)}
+.contact-filter-glider[data-f="none"]{background:var(--palette-brown)}
+.contact-filter-glider.ready{transition:left .4s cubic-bezier(.2,1.12,.3,1),width .3s cubic-bezier(.2,.8,.2,1),background-color .18s ease}
 .contact-filter-glider.squash{animation:history-filter-squash .4s cubic-bezier(.2,.8,.2,1)}
 .contact-fchips .fchip{position:relative;z-index:1;transition:color .18s ease,background-color .18s ease,box-shadow .18s ease}
 .contact-fchips .fchip.on{background:transparent!important;color:var(--paper);box-shadow:none!important}
+.contact-fchips .fchip[data-f="1"]{background:var(--method-venmo-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--method-venmo)}
+.contact-fchips .fchip[data-f="2"]{background:var(--method-paypal-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--method-paypal)}
+.contact-fchips .fchip[data-f="3"]{background:var(--method-zelle-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--method-zelle)}
+.contact-fchips .fchip[data-f="4"]{background:var(--palette-cash-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--palette-cash)}
+.contact-fchips .fchip[data-f="5"]{background:var(--palette-cashapp-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--palette-cashapp)}
+.contact-fchips .fchip[data-f="6"]{background:var(--palette-applecash-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--palette-applecash)}
+.contact-fchips .fchip[data-f="none"]{background:var(--palette-brown-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--palette-brown)}
+.contact-fchips .fchip[data-f="1"].on,.contact-fchips .fchip[data-f="3"].on{color:#FFFFFF}
+.contact-fchips .fchip[data-f="2"].on{color:#009CDE}
+.contact-fchips .fchip[data-f="4"].on{color:#525B54}
+.contact-fchips .fchip[data-f="5"].on{color:#FFFFFF}
+.contact-fchips .fchip[data-f="6"].on{color:#FEFEFE}
+.contact-fchips .fchip[data-f="none"].on{color:#FFFFFF}
+.contact-fchips .fchip .ic{width:14px;height:14px;flex:none}
+.contact-fchips .fchip[data-f="4"] .ic{color:var(--palette-cash)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .contact-fchips .fchip[data-f="6"].on{box-shadow:inset 0 0 0 1.5px #FEFEFE!important}}
+:root[data-theme="dark"] .contact-fchips .fchip[data-f="6"].on{box-shadow:inset 0 0 0 1.5px #FEFEFE!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .contact-fchips .fchip[data-f="6"]{color:#141414}}
+:root[data-theme="dark"] .contact-fchips .fchip[data-f="6"]{color:#141414}
 .fchip{flex:none;padding:7px 14px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--muted);background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line)}
 .fchip:hover{color:var(--ink)}
 .fchip.on{background:var(--ink);color:var(--paper);box-shadow:none}
@@ -356,6 +395,13 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-fchips .fchip.on{background:transparent!important;color:var(--ink);box-shadow:none!important}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .history-fchips .fchip.on{color:#15171C!important}}
 :root[data-theme="dark"] .history-fchips .fchip.on{color:#15171C!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .contact-fchips .fchip[data-f="1"],:root:not([data-theme="light"]) .contact-fchips .fchip[data-f="2"],:root:not([data-theme="light"]) .contact-fchips .fchip[data-f="3"]{color:#FFFFFF}}
+:root[data-theme="dark"] .contact-fchips .fchip[data-f="1"],:root[data-theme="dark"] .contact-fchips .fchip[data-f="2"],:root[data-theme="dark"] .contact-fchips .fchip[data-f="3"]{color:#FFFFFF}
+:root[data-theme="dark"] .contact-fchips .fchip[data-f="2"].on{color:#009CDE}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .contact-fchips .fchip[data-f="2"].on{color:#009CDE}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .contact-fchips .fchip[data-f="1"].on,:root:not([data-theme="light"]) .contact-fchips .fchip[data-f="3"].on{color:#FFFFFF}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .meth.venmo,:root:not([data-theme="light"]) .meth.paypal,:root:not([data-theme="light"]) .meth.zelle{color:#FFFFFF}}
+:root[data-theme="dark"] .meth.venmo,:root[data-theme="dark"] .meth.paypal,:root[data-theme="dark"] .meth.zelle{color:#FFFFFF}
 .hlist{display:flex;flex-direction:column;gap:14px}
 .fcount{margin:-4px 0 -6px 2px}
 .clist{display:flex;flex-direction:column;gap:14px}
@@ -433,8 +479,10 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .meth.venmo{color:var(--ink);background:var(--method-venmo-soft);box-shadow:inset 0 0 0 1.5px var(--method-venmo)}
 .meth.paypal{color:var(--ink);background:var(--method-paypal-soft);box-shadow:inset 0 0 0 1.5px var(--method-paypal)}
 .meth.zelle{color:var(--ink);background:var(--method-zelle-soft);box-shadow:inset 0 0 0 1.5px var(--method-zelle)}
-.meth.cashapp{color:var(--ink);background:color-mix(in srgb,#00D632 18%,var(--card));box-shadow:inset 0 0 0 1.5px #00B82B}
-.meth.applecash{color:var(--ink);background:color-mix(in srgb,var(--ink) 10%,var(--card));box-shadow:inset 0 0 0 1.5px var(--ink)}
+.meth.cashapp{color:var(--ink);background:var(--palette-cashapp-soft);box-shadow:inset 0 0 0 1.5px var(--palette-cashapp)}
+.meth.cash{color:var(--ink);background:var(--palette-cash-soft);box-shadow:inset 0 0 0 1.5px var(--palette-cash)}
+.meth.applecash{color:var(--palette-applecash);background:var(--palette-applecash-soft);box-shadow:inset 0 0 0 1.5px var(--palette-applecash)}
+.meth.none{color:var(--ink);background:var(--palette-brown-soft);box-shadow:inset 0 0 0 1.5px var(--palette-brown)}
 .paylist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .paylist li{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
 .paylist li:first-child{border-top:0}
@@ -445,8 +493,12 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .pay-empty{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
 .payfield{display:flex;flex-direction:column;gap:6px}
 .payfield .checkrow{align-self:flex-start;font-size:13px}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .meth.venmo,:root:not([data-theme="light"]) .meth.paypal,:root:not([data-theme="light"]) .meth.zelle{color:#15171C}}
-:root[data-theme="dark"] .meth.venmo,:root[data-theme="dark"] .meth.paypal,:root[data-theme="dark"] .meth.zelle{color:#15171C}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .meth.venmo,:root:not([data-theme="light"]) .meth.paypal,:root:not([data-theme="light"]) .meth.zelle{color:#FFFFFF}}
+:root[data-theme="dark"] .meth.venmo,:root[data-theme="dark"] .meth.paypal,:root[data-theme="dark"] .meth.zelle{color:#FFFFFF}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .meth.cashapp,:root:not([data-theme="light"]) .meth.cash{color:#FFFFFF}}
+:root[data-theme="dark"] .meth.cashapp,:root[data-theme="dark"] .meth.cash{color:#FFFFFF}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .meth.applecash{color:#141414;box-shadow:inset 0 0 0 1.5px #FEFEFE}}
+:root[data-theme="dark"] .meth.applecash{color:#141414;box-shadow:inset 0 0 0 1.5px #FEFEFE}
 
 /* sheets */
 .sheet-bg{position:absolute;inset:0;background:rgba(10,12,16,.45);z-index:5;animation:fade .2s}
@@ -625,6 +677,10 @@ const ICONS = {
   search:'<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
   alert:'<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/>',
   bell:'<path d="M6 16v-5a6 6 0 1112 0v5l2 2H4z"/><path d="M10 21h4"/>',
+  cashapp:'<path d="M15.7 7.5c-.8-.7-2-1.1-3.7-1.1-2.1 0-3.4.9-3.4 2.4 0 3.5 7 1.2 7 5.1 0 1.7-1.5 2.8-3.8 2.8-1.6 0-3.1-.5-4.2-1.5M12 4.5v15"/>',
+  applecash:'<path d="M12.2 8.1c.5-1.6 1.9-2.7 3.5-2.9M12 8.2c-1.1-1.4-3.1-1.5-4.3-.4-2.6 2.2-.4 9.7 2.1 10.8 1 .5 1.5-.5 2.3-.5s1.3 1 2.3.5c1.3-.6 2.3-3 2.6-4.4-2.6-.8-2.6-4.6 0-5.3-1.2-1.8-3.7-2-5-.7z"/>',
+  cash:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9h.01M18 15h.01"/>',
+  none:'<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
   star:'<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/>'
 };
 const I = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
@@ -1172,8 +1228,8 @@ function findBar(k, placeholder, label, filters, filterLabel){
   return `<div class="find">
     <div class="search">${I('search')}<input id="${k}q" data-in="${k}q" value="${esc(ui[k + 'q'])}" placeholder="${placeholder}" aria-label="${label}" autocomplete="off" enterkeyhint="search">
       <button class="sclear" data-act="fclear" data-k="${k}" data-keep="filter" aria-label="Clear search">${I('x')}</button></div>
-    <div class="fchips${k === 'h' ? ' history-fchips' : k === 'c' ? ' contact-fchips' : ''}" role="group" aria-label="${filterLabel}">${k === 'h' ? '<span class="history-filter-glider" aria-hidden="true"></span>' : k === 'c' ? '<span class="contact-filter-glider" aria-hidden="true"></span>' : ''}${filters.map(([f, name]) =>
-      `<button class="fchip${ui[k + 'f'] === f ? ' on' : ''}" data-act="filter" data-k="${k}" data-f="${f}" aria-pressed="${ui[k + 'f'] === f}">${esc(name)}</button>`).join('')}</div>
+    <div class="fchips${k === 'h' ? ' history-fchips' : k === 'c' ? ' contact-fchips' : ''}" role="group" aria-label="${filterLabel}">${k === 'h' ? '<span class="history-filter-glider" aria-hidden="true"></span>' : k === 'c' ? '<span class="contact-filter-glider" aria-hidden="true"></span>' : ''}${filters.map(([f, name, icon]) =>
+      `<button class="fchip${ui[k + 'f'] === f ? ' on' : ''}" data-act="filter" data-k="${k}" data-f="${f}" aria-pressed="${ui[k + 'f'] === f}">${icon ? I(icon) : ''}${esc(name)}</button>`).join('')}</div>
   </div>`;
 }
 const HFILTERS = [['all','All'],['unpaid','Unpaid'],['part','Partly paid'],['paid','Paid']];
@@ -1241,7 +1297,7 @@ function contactMatch(c, q){
   fields.filter(f => f.kind && f.text !== shown && terms.some(w => hit(f, w))).forEach(f => hits.has(f.text) || hits.set(f.text, `${f.kind}: ${f.text}`));
   return [...hits.values()];
 }
-const contactFilters = () => [['all','All'], ...S.payMethods.map(m => [String(m.id), m.name]), ['none','No payment method']];
+const contactFilters = () => [['all','All'], ...[['Venmo'],['PayPal'],['Zelle'],['Cash App'],['Apple Cash'],['Cash']].flatMap(([name,icon]) => S.payMethods.filter(m => m.name === name).map(m => [String(m.id), m.name, icon])), ['none','No payment method']];
 function contactList(){
   const q = ui.cq.trim(), f = ui.cf;
   const shown = S.contacts.map(c => ({c, hits:q ? contactMatch(c, q) : []}))
@@ -1255,7 +1311,7 @@ function contactList(){
   return (q || f !== 'all' ? `<p class="fcount fine" role="status">Showing ${shown.length} of ${S.contacts.length} contact${S.contacts.length === 1 ? '' : 's'}</p>` : '')
     + `<div class="ctable">
     <div class="chead"><span>Name</span><span>Preferred payment</span></div>
-    ${shown.map(({c, hits}) => { const method = c.pref ? c.pref.name.toLowerCase() : ''; return `<button class="crow" data-act="sheet" data-s="contact" data-id="${c.id}"><span><b>${esc(c.name)}</b><small>${esc(c.pref ? c.pref.username : 'No payment method saved')}</small>${hits.length ? `<small class="cmatch">${I('search')}${esc(hits.join(' · '))}</small>` : ''}</span><span class="meth${['venmo','paypal','zelle'].includes(method) ? ` ${method}` : ''}">${esc(c.pref ? c.pref.name : 'None')}</span></button>`; }).join('')}
+    ${shown.map(({c, hits}) => { const method = c.pref ? c.pref.name.toLowerCase().replace(/\s+/g, '') : 'none'; const detail = c.pref?.name === 'Cash' ? 'No account details needed' : c.pref?.username || 'No payment method saved'; return `<button class="crow" data-act="sheet" data-s="contact" data-id="${c.id}"><span><b>${esc(c.name)}</b><small>${esc(detail)}</small>${hits.length ? `<small class="cmatch">${I('search')}${esc(hits.join(' · '))}</small>` : ''}</span><span class="meth${['venmo','paypal','zelle','cashapp','applecash','cash','none'].includes(method) ? ` ${method}` : ''}">${esc(c.pref ? c.pref.name : 'None')}</span></button>`; }).join('')}
   </div>`;
 }
 V.contacts = () => `
@@ -2100,7 +2156,8 @@ function sheetHTML(){
   if (s.type === 'profile') body = profileSheet(s);
   if (s.type === 'contact'){
     const c = S.contacts.find(x => x.id === s.id) || {first:'', last:'', phone:'', methods:[]};
-    const methods = S.payMethods.filter(m => m.name !== 'Cash');  // cash has no username to save
+    const methods = S.payMethods.filter(m => m.name !== 'Cash');
+    const cashMethod = S.payMethods.find(m => m.name === 'Cash');
     const has = id => c.methods.find(x => x.id === id);
     const prefId = (c.methods.find(x => x.preferred) || {}).id;
     body = `<h2 id="sh-t">${s.id ? 'Edit ' + esc(c.name) : 'New contact'}</h2>
@@ -2113,6 +2170,7 @@ function sheetHTML(){
       ${methods.map(m => `<div class="frow" style="gap:10px">
         <label class="field" style="flex:1"><span>${esc(m.name)}</span><input id="f-m-${m.id}" value="${esc(has(m.id)?.username || '')}" placeholder="${esc(PROFILE_HINTS[METHOD_KEY[m.name]] || 'Account details')}" autocomplete="off"></label>
         <label class="checkrow" style="padding-top:18px"><input type="radio" name="f-pref" id="f-pref-${m.id}" value="${m.id}" ${prefId === m.id ? 'checked' : ''}> Preferred</label></div>`).join('')}
+      ${cashMethod ? `<div class="frow" style="gap:10px"><div class="field" style="flex:1"><span>Cash</span></div><label class="checkrow" style="padding-top:18px"><input type="checkbox" id="f-cash-enabled" data-cash-available ${has(cashMethod.id) ? 'checked' : ''}> Available</label><label class="checkrow" style="padding-top:18px"><input type="radio" name="f-pref" id="f-pref-${cashMethod.id}" data-cash-preferred value="${cashMethod.id}" ${prefId === cashMethod.id ? 'checked' : ''}> Preferred</label></div>` : ''}
       <p class="fine" id="f-err" role="alert" hidden></p>
       <div class="next two">${s.id ? `<button class="btn ghost" data-act="delcontact" data-id="${s.id}" ${ui.saving ? 'disabled' : ''}>Delete</button>` : `<button class="btn ghost" data-act="close">Cancel</button>`}
         <button class="btn" data-act="savecontact" data-id="${s.id || ''}" ${ui.saving ? 'disabled' : ''}>${ui.saving ? 'Saving…' : 'Save'}</button></div>`;
@@ -2225,6 +2283,7 @@ function syncContactsFilterGlider(animate=false){
   if (!wrap || !glider || !selected) return;
   const canSlide = animate && glider.classList.contains('ready');
   if (!canSlide) glider.classList.remove('ready','squash');
+  glider.dataset.f = selected.dataset.f;
   glider.style.left = `${selected.offsetLeft}px`;
   glider.style.width = `${selected.offsetWidth}px`;
   if (!canSlide){ void glider.offsetWidth; glider.classList.add('ready'); }
@@ -3196,12 +3255,19 @@ async function saveContact(id){
   const val = k => (document.getElementById(k)?.value || '').trim();
   const err = document.getElementById('f-err');
   const fail = m => { err.hidden = false; err.textContent = m; };
-  const first = val('f-first'), pref = Number(document.querySelector('input[name="f-pref"]:checked')?.value) || null;
-  const methods = S.payMethods.filter(m => m.name !== 'Cash').map(m => ({pay_method_id:m.id, username:val('f-m-' + m.id), preferred:m.id === pref}))
+  const first = val('f-first'), prefChoice = document.querySelector('input[name="f-pref"]:checked')?.value || '';
+  const pref = Number(prefChoice) || null;
+  const cashMethod = S.payMethods.find(m => m.name === 'Cash');
+  const cashEnabled = !!document.getElementById('f-cash-enabled')?.checked || pref === cashMethod?.id;
+  // save_contact stores only nonblank methods; "Cash" is the marker for Cash's no-account method.
+  const methods = S.payMethods.map(m => ({pay_method_id:m.id, username:m.name === 'Cash' ? (cashEnabled ? 'Cash' : '') : val('f-m-' + m.id), preferred:m.id === pref}))
     .filter(m => m.username);
   if (!first) return fail('Add a first name.');
   if (pref && !methods.some(m => m.pay_method_id === pref)) return fail(`Add a ${payMethodName(pref)} username, or pick a different preferred method.`);
-  if (methods.length && !pref) methods[0].preferred = true;  // first filled-in method becomes preferred
+  if (!pref) {
+    const firstAccountMethod = methods.find(m => m.pay_method_id !== cashMethod?.id);
+    if (firstAccountMethod) firstAccountMethod.preferred = true;  // first electronic account becomes preferred
+  }
   const draft = {first, last:val('f-last'), phone:val('f-phone')};
   ui.saving = true; render();
   try {
@@ -3216,6 +3282,8 @@ async function saveContact(id){
     // keep what was typed after the re-render
     Object.entries({'f-first':draft.first, 'f-last':draft.last, 'f-phone':draft.phone}).forEach(([k, v]) => { const el = document.getElementById(k); if (el) el.value = v; });
     methods.forEach(m => { const el = document.getElementById('f-m-' + m.pay_method_id); if (el) el.value = m.username; });
+    const cashAvailable = document.getElementById('f-cash-enabled'); if (cashAvailable) cashAvailable.checked = cashEnabled;
+    const preferred = prefChoice ? document.getElementById('f-pref-' + prefChoice) : null; if (preferred) preferred.checked = true;
     const e2 = document.getElementById('f-err'); e2.hidden = false; e2.textContent = `Couldn't save: ${e.message}`;
   }
 }
@@ -3318,6 +3386,14 @@ document.addEventListener('input', e => {
   refresh(); save();
 });
 document.addEventListener('change', e => {
+  if (e.target.matches('[data-cash-available]') && !e.target.checked) {
+    const cashPreferred = document.querySelector('[data-cash-preferred]');
+    if (cashPreferred) cashPreferred.checked = false;
+  }
+  if (e.target.matches('[data-cash-preferred]') && e.target.checked) {
+    const cashAvailable = document.querySelector('[data-cash-available]');
+    if (cashAvailable) cashAvailable.checked = true;
+  }
   if (e.target.id === 'photo-in'){ const file = e.target.files[0]; e.target.value = ''; if (file) choosePhoto(file); return; }
   if (!['file-in', 'camera-in'].includes(e.target.id)) return;
   const file = e.target.files[0]; e.target.value = '';
