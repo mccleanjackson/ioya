@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1960" height="1560" viewBox="0 0 1960 1560" font-family="Inter, Helvetica Neue, Helvetica, Arial, sans-serif">
+<rect width="1960" height="1560" fill="#FFFFFF"/>
+<text x="60" y="46" font-size="26" font-weight="700" fill="#2B2F36">IOYA entity relationship diagram</text>
+<text x="60" y="74" font-size="15" fill="#59616E">Matches supabase/schema.sql (Nov 2026). PK primary key · FK foreign key · UQ unique · money in whole cents</text>
+<g stroke="#6B7280" stroke-width="1.6" fill="none"><polyline points="360,448 400,448 400,682 560,682" fill="none"/><path d="M374 440v16"/><path d="M380 440v16"/><path d="M560 673L544 682L560 691"/><path d="M540 674v16"/><polyline points="360,448 420,448 420,250 560,250" fill="none"/><path d="M374 440v16"/><path d="M380 440v16"/><path d="M560 241L544 250L560 259"/><path d="M540 242v16"/><polyline points="360,448 440,448 440,1210 560,1210" fill="none"/><path d="M374 440v16"/><path d="M380 440v16"/><path d="M560 1201L544 1210L560 1219"/><path d="M540 1202v16"/><polyline points="360,448 460,448 460,854 560,854" fill="none"/><path d="M374 440v16"/><path d="M380 440v16"/><path d="M560 845L544 854L560 863"/><path d="M540 846v16"/><polyline points="60,448 22,448 22,218 60,218" fill="none"/><path d="M46 440v16"/><path d="M40 440v16"/><path d="M46 210v16"/><circle cx="34" cy="218" r="5" fill="#fff"/><polyline points="60,448 34,448 34,914 60,914" fill="none"/><path d="M46 440v16"/><path d="M40 440v16"/><path d="M60 905L44 914L60 923"/><path d="M40 906v16"/><polyline points="860,178 890,178 890,368 860,368" fill="none"/><path d="M874 170v16"/><path d="M880 170v16"/><path d="M860 359L876 368L860 377"/><path d="M880 360v16"/><polyline points="860,538 905,538 905,404 860,404" fill="none"/><path d="M874 530v16"/><path d="M880 530v16"/><path d="M860 395L876 404L860 413"/><path d="M880 396v16"/><polyline points="860,538 890,538 890,890 860,890" fill="none"/><path d="M874 530v16"/><path d="M880 530v16"/><path d="M860 881L876 890L860 899"/><path d="M880 882v16"/><polyline points="860,538 920,538 920,368 1060,368" fill="none"/><path d="M874 530v16"/><path d="M880 530v16"/><path d="M1060 359L1044 368L1060 377"/><path d="M1040 360v16"/><polyline points="860,538 940,538 940,638 1060,638" fill="none"/><path d="M874 530v16"/><path d="M880 530v16"/><path d="M1060 629L1044 638L1060 647"/><path d="M1040 630v16"/><polyline points="860,538 960,538 960,782 1500,782 1500,878 1600,878" fill="none"/><path d="M874 530v16"/><path d="M880 530v16"/><path d="M1600 869L1584 878L1600 887"/><path d="M1580 870v16"/><polyline points="1600,538 1440,538 1440,404 1400,404" fill="none"/><path d="M1586 530v16"/><path d="M1580 530v16"/><path d="M1400 395L1416 404L1400 413"/><path d="M1420 396v16"/><polyline points="1600,538 1460,538 1460,710 1400,710" fill="none"/><path d="M1586 530v16"/><path d="M1580 530v16"/><path d="M1400 701L1416 710L1400 719"/><circle cx="1426" cy="710" r="5" fill="#fff"/><polyline points="1060,878 1000,878 1000,1174 860,1174" fill="none"/><path d="M1046 870v16"/><path d="M1040 870v16"/><path d="M860 1165L876 1174L860 1183"/><path d="M880 1166v16"/><polyline points="1060,878 1020,878 1020,674 1060,674" fill="none"/><path d="M1046 870v16"/><path d="M1040 870v16"/><path d="M1060 665L1044 674L1060 683"/><path d="M1040 666v16"/><polyline points="860,1138 980,1138 980,1214 1060,1214" fill="none"/><path d="M874 1130v16"/><path d="M880 1130v16"/><path d="M1060 1205L1044 1214L1060 1223"/><path d="M1040 1206v16"/><polyline points="1400,1178 1520,1178 1520,914 1600,914" fill="none"/><path d="M1414 1170v16"/><path d="M1420 1170v16"/><path d="M1600 905L1584 914L1600 923"/><path d="M1580 906v16"/></g>
+<g><rect x="60" y="160" width="330" height="148" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M60 200h330M122 200v108" stroke="#2B2F36" stroke-width="1.6"/><text x="225.0" y="187" text-anchor="middle" font-size="19" fill="#2B2F36">Profile_Payment_Accounts</text>
+<text x="91.0" y="225" text-anchor="middle" font-size="17" fill="#2B2F36">PK/FK</text>
+<text x="130" y="225" font-size="18" fill="#2B2F36">UserID</text>
+<text x="130" y="261" font-size="18" fill="#2B2F36">Accounts</text>
+<text x="130" y="297" font-size="18" fill="#2B2F36">Preferred</text>
+</g>
+<g><rect x="60" y="390" width="300" height="328" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M60 430h300M122 430v288" stroke="#2B2F36" stroke-width="1.6"/><text x="210.0" y="417" text-anchor="middle" font-size="19" fill="#2B2F36">Users</text>
+<text x="91.0" y="455" text-anchor="middle" font-size="17" fill="#2B2F36">PK</text>
+<text x="130" y="455" font-size="18" fill="#2B2F36">UserID</text>
+<text x="130" y="491" font-size="18" fill="#2B2F36">UserFirstName</text>
+<text x="130" y="527" font-size="18" fill="#2B2F36">UserLastName</text>
+<text x="130" y="563" font-size="18" fill="#2B2F36">Phone</text>
+<text x="130" y="599" font-size="18" fill="#2B2F36">UserEmail</text>
+<text x="130" y="635" font-size="18" fill="#2B2F36">IsAdmin</text>
+<text x="130" y="671" font-size="18" fill="#2B2F36">AvatarPath</text>
+<text x="91.0" y="707" text-anchor="middle" font-size="17" fill="#2B2F36">UQ</text>
+<text x="130" y="707" font-size="18" fill="#2B2F36">AuthUserID</text>
+</g>
+<g><rect x="60" y="820" width="310" height="184" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M60 860h310M122 860v144" stroke="#2B2F36" stroke-width="1.6"/><text x="215.0" y="847" text-anchor="middle" font-size="19" fill="#2B2F36">Manual_Payment_Groups</text>
+<text x="91.0" y="885" text-anchor="middle" font-size="17" fill="#2B2F36">PK</text>
+<text x="130" y="885" font-size="18" fill="#2B2F36">ID</text>
+<text x="91.0" y="921" text-anchor="middle" font-size="17" fill="#2B2F36">FK</text>
+<text x="130" y="921" font-size="18" fill="#2B2F36">UserID</text>
+<text x="130" y="957" font-size="18" fill="#2B2F36">Recipients</text>
+<text x="130" y="993" font-size="18" fill="#2B2F36">ExpiresAt</text>
+</g>
+<g><rect x="560" y="120" width="300" height="148" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M560 160h300M622 160v108" stroke="#2B2F36" stroke-width="1.6"/><text x="710.0" y="147" text-anchor="middle" font-size="19" fill="#2B2F36">Friend_Groups</text>
+<text x="591.0" y="185" text-anchor="middle" font-size="17" fill="#2B2F36">PK</text>
+<text x="630" y="185" font-size="18" fill="#2B2F36">GroupID</text>
+<text x="630" y="221" font-size="18" fill="#2B2F36">GroupName</text>
+<text x="591.0" y="257" text-anchor="middle" font-size="17" fill="#2B2F36">FK</text>
+<text x="630" y="257" font-size="18" fill="#2B2F36">UserID</text>
+</g>
+<g><rect x="560" y="310" width="300" height="112" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M560 350h300M622 350v72" stroke="#2B2F36" stroke-width="1.6"/><text x="710.0" y="337" text-anchor="middle" font-size="19" fill="#2B2F36">Group_Members</text>
+<text x="591.0" y="375" text-anchor="middle" font-size="17" fill="#2B2F36">PK/FK</text>
+<text x="630" y="375" font-size="18" fill="#2B2F36">GroupID</text>
+<text x="591.0" y="411" text-anchor="middle" font-size="17" fill="#2B2F36">PK/FK</text>
+<text x="630" y="411" font-size="18" fill="#2B2F36">ContactID</text>
+</g>
+<g><rect x="560" y="480" width="300" height="220" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M560 520h300M622 520v180" stroke="#2B2F36" stroke-width="1.6"/><text x="710.0" y="507" text-anchor="middle" font-size="19" fill="#2B2F36">Contacts</text>
+<text x="591.0" y="545" text-anchor="middle" font-size="17" fill="#2B2F36">PK</text>
+<text x="630" y="545" font-size="18" fill="#2B2F36">ContactID</text>
+<text x="630" y="581" font-size="18" fill="#2B2F36">ContFirstName</text>
+<text x="630" y="617" font-size="18" fill="#2B2F36">ContLastName</text>
+<text x="630" y="653" font-size="18" fill="#2B2F36">Phone</text>
+<text x="591.0" y="689" text-anchor="middle" font-size="17" fill="#2B2F36">FK</text>
+<text x="630" y="689" font-size="18" fill="#2B2F36">UserID</text>
+</g>
+<g><rect x="560" y="760" width="300" height="256" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M560 800h300M622 800v216" stroke="#2B2F36" stroke-width="1.6"/><text x="710.0" y="787" text-anchor="middle" font-size="19" fill="#2B2F36">Manual_Payment_Requests</text>
+<text x="591.0" y="825" text-anchor="middle" font-size="17" fill="#2B2F36">PK</text>
+<text x="630" y="825" font-size="18" fill="#2B2F36">ID</text>
+<text x="591.0" y="861" text-anchor="middle" font-size="17" fill="#2B2F36">FK</text>
+<text x="630" y="861" font-size="18" fill="#2B2F36">UserID</text>
+<text x="591.0" y="897" text-anchor="middle" font-size="17" fill="#2B2F36">FK</text>
+<text x="630" y="897" font-size="18" fill="#2B2F36">ContactID</text>
+<text x="630" y="933" font-size="18" fill="#2B2F36">Data</text>
+<text x="630" y="969" font-size="18" fill="#2B2F36">Consent</text>
+<text x="630" y="1005" font-size="18" fill="#2B2F36">ExpiresAt</text>
+</g>
+<g><rect x="560" y="1080" width="300" height="400" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M560 1120h300M622 1120v360" stroke="#2B2F36" stroke-width="1.6"/><text x="710.0" y="1107" text-anchor="middle" font-size="19" fill="#2B2F36">Receipts</text>
+<text x="591.0" y="1145" text-anchor="middle" font-size="17" fill="#2B2F36">PK</text>
+<text x="630" y="1145" font-size="18" fill="#2B2F36">ReceiptID</text>
+<text x="591.0" y="1181" text-anchor="middle" font-size="17" fill="#2B2F36">FK</text>
+<text x="630" y="1181" font-size="18" fill="#2B2F36">EventID</text>
+<text x="591.0" y="1217" text-anchor="middle" font-size="17" fill="#2B2F36">FK</text>
+<text x="630" y="1217" font-size="18" fill="#2B2F36">PayerUserID</text>
+<text x="630" y="1253" font-size="18" fill="#2B2F36">MerchantName</text>
+<text x="630" y="1289" font-size="18" fill="#2B2F36">ReceiptDate</text>
+<text x="630" y="1325" font-size="18" fill="#2B2F36">TaxCents</text>
+<text x="630" y="1361" font-size="18" fill="#2B2F36">FeesCents</text>
+<text x="630" y="1397" font-size="18" fill="#2B2F36">TipPercent</text>
+<text x="630" y="1433" font-size="18" fill="#2B2F36">TipCents</text>
+<text x="630" y="1469" font-size="18" fill="#2B2F36">TotalCents</text>
+</g>
+<g><rect x="1060" y="310" width="340" height="184" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M1060 350h340M1122 350v144" stroke="#2B2F36" stroke-width="1.6"/><text x="1230.0" y="337" text-anchor="middle" font-size="19" fill="#2B2F36">Contacts_Payment_Method</text>
+<text x="1091.0" y="375" text-anchor="middle" font-size="17" fill="#2B2F36">PK/FK</text>
+<text x="1130" y="375" font-size="18" fill="#2B2F36">ContactID</text>
+<text x="1091.0" y="411" text-anchor="middle" font-size="17" fill="#2B2F36">PK/FK</text>
+<text x="1130" y="411" font-size="18" fill="#2B2F36">PayMethodID</text>
+<text x="1130" y="447" font-size="18" fill="#2B2F36">PayMethodUsername</text>
+<text x="1130" y="483" font-size="18" fill="#2B2F36">IsPreferred</text>
+</g>
+<g><rect x="1060" y="580" width="340" height="148" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M1060 620h340M1122 620v108" stroke="#2B2F36" stroke-width="1.6"/><text x="1230.0" y="607" text-anchor="middle" font-size="19" fill="#2B2F36">Participants</text>
+<text x="1091.0" y="645" text-anchor="middle" font-size="17" fill="#2B2F36">PK/FK</text>
+<text x="1130" y="645" font-size="18" fill="#2B2F36">ContactID</text>
+<text x="1091.0" y="681" text-anchor="middle" font-size="17" fill="#2B2F36">PK/FK</text>
+<text x="1130" y="681" font-size="18" fill="#2B2F36">EventID</text>
+<text x="1091.0" y="717" text-anchor="middle" font-size="17" fill="#2B2F36">FK</text>
+<text x="1130" y="717" font-size="18" fill="#2B2F36">PaidMethodID</text>
+</g>
+<g><rect x="1060" y="820" width="340" height="148" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M1060 860h340M1122 860v108" stroke="#2B2F36" stroke-width="1.6"/><text x="1230.0" y="847" text-anchor="middle" font-size="19" fill="#2B2F36">Events</text>
+<text x="1091.0" y="885" text-anchor="middle" font-size="17" fill="#2B2F36">PK</text>
+<text x="1130" y="885" font-size="18" fill="#2B2F36">EventID</text>
+<text x="1130" y="921" font-size="18" fill="#2B2F36">EventName</text>
+<text x="1130" y="957" font-size="18" fill="#2B2F36">ClientKey</text>
+</g>
+<g><rect x="1060" y="1120" width="340" height="220" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M1060 1160h340M1122 1160v180" stroke="#2B2F36" stroke-width="1.6"/><text x="1230.0" y="1147" text-anchor="middle" font-size="19" fill="#2B2F36">Line_Items</text>
+<text x="1091.0" y="1185" text-anchor="middle" font-size="17" fill="#2B2F36">PK</text>
+<text x="1130" y="1185" font-size="18" fill="#2B2F36">ItemID</text>
+<text x="1091.0" y="1221" text-anchor="middle" font-size="17" fill="#2B2F36">FK</text>
+<text x="1130" y="1221" font-size="18" fill="#2B2F36">ReceiptID</text>
+<text x="1130" y="1257" font-size="18" fill="#2B2F36">Description</text>
+<text x="1130" y="1293" font-size="18" fill="#2B2F36">PriceCents</text>
+<text x="1130" y="1329" font-size="18" fill="#2B2F36">Position</text>
+</g>
+<g><rect x="1600" y="480" width="300" height="112" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M1600 520h300M1662 520v72" stroke="#2B2F36" stroke-width="1.6"/><text x="1750.0" y="507" text-anchor="middle" font-size="19" fill="#2B2F36">Payment_Methods</text>
+<text x="1631.0" y="545" text-anchor="middle" font-size="17" fill="#2B2F36">PK</text>
+<text x="1670" y="545" font-size="18" fill="#2B2F36">PayMethodID</text>
+<text x="1670" y="581" font-size="18" fill="#2B2F36">PayMethodName</text>
+</g>
+<g><rect x="1600" y="820" width="300" height="148" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M1600 860h300M1662 860v108" stroke="#2B2F36" stroke-width="1.6"/><text x="1750.0" y="847" text-anchor="middle" font-size="19" fill="#2B2F36">Item_Assignments</text>
+<text x="1631.0" y="885" text-anchor="middle" font-size="17" fill="#2B2F36">PK/FK</text>
+<text x="1670" y="885" font-size="18" fill="#2B2F36">ContactID</text>
+<text x="1631.0" y="921" text-anchor="middle" font-size="17" fill="#2B2F36">PK/FK</text>
+<text x="1670" y="921" font-size="18" fill="#2B2F36">ItemID</text>
+<text x="1670" y="957" font-size="18" fill="#2B2F36">ShareCents</text>
+</g>
+</svg>

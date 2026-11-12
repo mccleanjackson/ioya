@@ -125,23 +125,24 @@ supabase/save-splits.sql    Save to History: events.client_key (unique) + save_m
 supabase/admin-login.sql    users.user_email + users.is_admin, is_admin(), and the current ensure_my_user() (keeps user_email in sync)
 supabase/payment-preference.sql  Preferred payment app: profile_payment_accounts.preferred + get_/set_my_payment_preference()
 supabase/avatars.sql        Profile pictures: public "avatars" Storage bucket + per-folder policies, users.avatar_path, set_my_avatar()
-docs/ioya-erd.pdf / .png    The team's ERD (the source of truth for the data model)
+docs/ioya-erd.svg (.png, .pdf)  The ERD (source of truth for the data model). ioya-erd-original.* is the team's October diagram
+docs/ioya-architecture.svg (.png)  System architecture diagram
 README.md                   Human setup guide + course deliverable (graded; keep its 5 sections)
 .env.example                Template for .env
 ```
 
 ## Data model
 
-The schema follows the team's ERD (`docs/ioya-erd.pdf`). ERD names are PascalCase; the database uses snake_case (`Users.UserFirstName` → `users.user_first_name`). Money is **always integer cents** (`1959` = $19.59).
+The schema follows the ERD (`docs/ioya-erd.png`). ERD names are PascalCase; the database uses snake_case (`Users.UserFirstName` → `users.user_first_name`). Money is **always integer cents** (`1959` = $19.59).
 
 | Table | Key | Notes |
 |---|---|---|
-| `users` | `user_id` | `auth_user_id` (uuid, unique) links a row to its Supabase Auth user; it is NULL for the seed users. `avatar_path` (text, not in the ERD yet) is the profile picture's path in the `avatars` Storage bucket, NULL = no photo; change it only with `set_my_avatar()`. The app acts as the signed-in user (`S.userId`). Seed user 1 ("Demo Payer") owns the sample data, and no account signs in as it. New users start with blank names. |
+| `users` | `user_id` | `auth_user_id` (uuid, unique) links a row to its Supabase Auth user; it is NULL for the seed users. `avatar_path` (text) is the profile picture's path in the `avatars` Storage bucket, NULL = no photo; change it only with `set_my_avatar()`. The app acts as the signed-in user (`S.userId`). Seed user 1 ("Demo Payer") owns the sample data, and no account signs in as it. New users start with blank names. |
 | `contacts` | `contact_id` | `user_id` FK. The payer also has a contact row with the **same first name, last name and phone** as their `users` row; the app finds it by that match and shows it as "You". Don't break that match. |
-| `friend_groups` / `group_members` | `group_id` / (`group_id`, `contact_id`) | Groups ↔ contacts, many-to-many. `friend_groups.user_id` (not in the ERD yet) is the owner. |
+| `friend_groups` / `group_members` | `group_id` / (`group_id`, `contact_id`) | Groups ↔ contacts, many-to-many. `friend_groups.user_id` is the owner. |
 | `payment_methods` | `pay_method_id` | Lookup: 1 Venmo, 2 PayPal, 3 Zelle, 4 Cash |
 | `contacts_payment_method` | (`contact_id`, `pay_method_id`) | Username per method; `is_preferred` (at most one per contact, enforced by a partial unique index) |
-| `events` | `event_id` | One outing; can hold several receipts. `client_key` (text, unique, not in the ERD) is the app's save key for Save to History; NULL for older or admin-added splits |
+| `events` | `event_id` | One outing; can hold several receipts. `client_key` (text, unique) is the app's save key for Save to History; NULL for older or admin-added splits |
 | `receipts` | `receipt_id` | `event_id`, `payer_user_id`; `tax_cents`, `fees_cents`, `tip_percent`, `tip_cents`, `total_cents` (printed total = items + tax + fees, before tip) |
 | `line_items` | `item_id` | `receipt_id`, `description`, `price_cents`, `position` |
 | `participants` | (`contact_id`, `event_id`) | `paid_method_id` is **NULL while unpaid**; set = paid, and records how |
@@ -242,16 +243,7 @@ Contacts now supports creating, editing and deleting groups. **The existing data
 4. The user's own "You" contact is not in `S.contacts`, so it can't be picked as a member. Keep it that way unless the team decides otherwise.
 5. Keep the README and in-app feature descriptions consistent with the editor; group changes are saved through the existing RPCs, not directly to tables.
 
-**Update the ERD (required; the README's ERD section is graded)**
-
-The database now has a column the team's ERD doesn't show yet. Your human (not the AI) updates the diagram, because the team owns it:
-
-1. In the ERD tool the team used, add **`UserID` (FK → `Users.UserID`) to `Friend_Groups`**, with a **one-to-many** line from Users to Friend_Groups (one user owns many groups; each group has exactly one owner, required).
-2. Export it again over **`docs/ioya-erd.pdf`** and **`docs/ioya-erd.png`** (the README shows the PNG).
-3. In `README.md` → ERD:
-   - add the row `| Users → Friend_Groups | one-to-many | \`Friend_Groups.UserID\` |` to the "Relationships and cardinality" table;
-   - in the **Accounts** paragraph, remove `friend_groups.user_id` from the list of columns that are "not in the ERD yet" (`users.auth_user_id` stays there unless the team adds it too).
-4. In this file's Data model table, remove "(not in the ERD yet)" from the `friend_groups` row.
+**The ERD** (`docs/ioya-erd.svg`, exported to `.png` and `.pdf`) shows `Friend_Groups.UserID` and every other current column. See "Keeping the diagrams current" below.
 
 **Testing the group editor**
 
@@ -318,6 +310,7 @@ The team works on **short-lived branches, one per task**, and merges into `main`
 - Never commit `.env`, keys, or `node_modules` (all in `.gitignore`). Before committing, check that `git diff --cached` contains no Supabase URL or key.
 - **Ask your human before every `git push`**, before opening or merging a pull request, and before anything else that leaves their computer. Never force-push (`git push --force`) or rewrite history on `main`.
 - **Do not add AI co-author or "Generated with" lines** to commits or PRs unless your human explicitly asks; the team wants work attributed to the teammate only.
+- **Keeping the diagrams current:** if you add or change a table or column, update `docs/ioya-erd.svg` (boxes are plain SVG: a rect per table, one text row per column; lines are polylines with crow's-foot marks), re-export the PNG and PDF, and update the README's "Relationships and cardinality" table. Ask your human first: the ERD is graded. If you add a page, service or connection, update `docs/ioya-architecture.svg` and its PNG the same way.
 - If you change setup steps, the data model, or how the vertical slice works, update `README.md` too (it is graded and must keep these sections: App Summary, ERD, Tech Stack, How to Get It Running, Verifying the Vertical Slice).
 
 ## Course rules (important)
