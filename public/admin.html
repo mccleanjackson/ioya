@@ -102,10 +102,11 @@ tbody tr:last-child td{border-bottom:0}
 .field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
 .field>span{font-weight:600;font-size:14px}
 .field small{color:var(--muted);font-weight:500}
-.field input[type=text],.field input[type=email],.field input[type=tel]{height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--paper);padding:0 12px;font-size:15px}
-.field input:focus{outline:none;border-color:var(--pen);box-shadow:0 0 0 3px rgba(54,84,209,.15)}
-.field input[disabled]{background:var(--soft);color:var(--muted)}
-.field.invalid input{border-color:var(--bad);background:#FFF8F7}
+.field input[type=text],.field input[type=email],.field input[type=tel],.field select{height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--paper);padding:0 12px;font-size:15px}
+.field select{padding:0 8px}
+.field input:focus,.field select:focus{outline:none;border-color:var(--pen);box-shadow:0 0 0 3px rgba(54,84,209,.15)}
+.field input[disabled],.field select[disabled]{background:var(--soft);color:var(--muted)}
+.field.invalid input,.field.invalid select,.picks.invalid{border-color:var(--bad);background:#FFF8F7}
 .hint{font-size:13px;color:var(--muted);margin:0}
 .ferr{display:flex;gap:6px;align-items:flex-start;color:var(--bad);font-size:13.5px;font-weight:600;margin:-2px 0 0}
 .ferr svg{width:16px;height:16px;flex:none;margin-top:2px}
@@ -118,10 +119,20 @@ main:focus{outline:none}
 dl.kv{display:grid;grid-template-columns:max-content 1fr;gap:8px 18px;margin:0}
 dl.kv dt{color:var(--muted)}
 dl.kv dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.sub-h{font:700 13px/1.2 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:6px 0 10px}
+.picks{max-height:220px;overflow:auto;border:1.5px solid var(--line);border-radius:10px;padding:4px 12px;margin-bottom:12px;background:var(--paper)}
+.picks:focus-within{border-color:var(--pen)}
+.pick{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.pick:last-child{border-bottom:0}
+.pick input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+.pick small{color:var(--muted);margin-left:auto}
+.picks-note{padding:10px 0;color:var(--muted);font-size:14px;margin:0}
+.tag.builtin{background:var(--soft);color:var(--muted)}
+.tag.added{background:var(--good-soft);color:var(--good)}
 .danger-box{background:var(--bad-soft);color:#7E1F12;border-radius:12px;padding:12px 14px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;box-shadow:0 18px 40px -18px rgba(21,23,28,.5);z-index:30}
-@media (max-width:860px){.layout{grid-template-columns:1fr}.side{flex-direction:row;overflow-x:auto}.side a{white-space:nowrap}}
-@media (max-width:560px){.grid2{grid-template-columns:1fr}.search{min-width:0;max-width:none}}
+@media (max-width:860px){.layout{grid-template-columns:minmax(0,1fr)}.side{flex-direction:row;overflow-x:auto}.side a{white-space:nowrap}}
+@media (max-width:560px){.grid2{grid-template-columns:1fr}.who span{display:none}.search{min-width:0;max-width:none}}
 </style>
 </head>
 <body>
@@ -165,12 +176,28 @@ const CHECK = {
   phone: v => !v ? '' : !/^[0-9()+. -]+$/.test(v) ? 'Phone numbers can only use digits, spaces and ( ) + - .'
     : digits(v) < 7 ? `Phone number is too short: it has ${digits(v)} digit${digits(v) === 1 ? '' : 's'}, and it needs at least 7.`
     : digits(v) > 15 ? `Phone number is too long: it has ${digits(v)} digits, and it can have at most 15.` : '',
-  email: v => !v ? '' : v.length > 254 ? 'That email is too long.' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? 'Enter a full email address, like name@example.com.' : ''
+  email: v => !v ? '' : v.length > 254 ? 'That email is too long.' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? 'Enter a full email address, like name@example.com.' : '',
+  owner: v => !v ? 'Pick which user this belongs to.' : '',
+  gname: v => !v ? 'Group name is required.' : v.length > 50 ? `Group names can be at most 50 characters (it has ${v.length}).` : '',
+  mname: v => !v ? 'Name is required.' : v.length > 30 ? `Payment method names can be at most 30 characters (it has ${v.length}).` : ''
 };
+const METHOD_HINT = {Venmo:'@username', PayPal:'Email or @username', Zelle:'Email or phone', 'Cash App':'$cashtag', 'Apple Cash':'Phone or email'};
 
 // ---------- Tables ----------
 const KIND = {admin:'Admin', profile:'Profile', guest:'Guest', none:'No login'};
-const TABLES = {
+// Lists the Contacts and Groups forms pick from (owners, payment methods, the owner's contacts).
+const REF = {users:[], methods:[], contacts:[]};
+const ownerName = r => fullName({first_name:r.owner_first, last_name:r.owner_last}) || (r.owner_kind === 'guest' ? 'Guest' : 'No name');
+// The owner dropdown on Add; on Edit it is shown but can't be changed.
+function ownerField(d, r, what){
+  const label = u => `${fullName(u) || (u.kind === 'guest' ? 'Guest' : 'No name')} · #${u.user_id}${u.kind === 'guest' ? '' : ` · ${KIND[u.kind]}`}`;
+  const byName = (a, b) => (fullName(a) || '~').localeCompare(fullName(b) || '~') || a.user_id - b.user_id;
+  const opt = u => `<option value="${u.user_id}" ${String(u.user_id) === d.owner ? 'selected' : ''}>${esc(label(u))}</option>`;
+  const people = REF.users.filter(u => u.kind !== 'guest').sort(byName), guests = REF.users.filter(u => u.kind === 'guest').sort(byName);
+  return field('owner', 'Belongs to', `<select id="f-owner" data-f="owner" ${r ? 'disabled' : ''}><option value="">Pick a user…</option>
+    <optgroup label="People">${people.map(opt).join('')}</optgroup>${guests.length ? `<optgroup label="Guests">${guests.map(opt).join('')}</optgroup>` : ''}</select>`,
+    r ? `A ${what}'s owner can't be changed.` : `The user whose ${what}s this is added to.`);
+}const TABLES = {
   users: {
     label:'Users', one:'user',
     lede:'Everyone with an IOYA account: profiles, admins, guests, and users added here.',
@@ -217,10 +244,159 @@ const TABLES = {
     deleteText: r => `This permanently deletes ${esc(fullName(r) || 'this user')} and everything they own: ${plural(r.contacts, 'contact')}, ${plural(r.groups, 'group')} and ${plural(r.splits, 'split')}.`
       + (r.kind === 'none' ? '' : ' Their login stays in Supabase (remove it under Authentication → Users if needed); if they log in again they start with an empty account.'),
     del: async r => need(await sb.rpc('admin_delete_user', {p_user_id:r.user_id})),
+
     prepare: rows => rows.map(r => ({...r, is_me:r.user_id === me.userId,
       avatar_url:r.avatar_path ? sb.storage.from('avatars').getPublicUrl(r.avatar_path).data.publicUrl : null}))
   },
-  contacts:{label:'Contacts', soon:true}, groups:{label:'Groups', soon:true}, splits:{label:'Splits', soon:true}, methods:{label:'Payment Methods', soon:true}
+  contacts: {
+    label:'Contacts', one:'contact', sql:'admin-records',
+    lede:'Every user\'s contacts, with their payment usernames. Each user\'s own "You" contact is changed in Maintain Users.',
+    load: async () => {
+      const [rows, users, methods] = await Promise.all([sb.rpc('admin_list_contacts'), sb.rpc('admin_list_users'), sb.rpc('admin_list_payment_methods')].map(p => p.then(need)));
+      REF.users = users || []; REF.methods = methods || [];
+      return rows;
+    },
+    id: r => r.contact_id,
+    title: r => fullName(r) || 'Unnamed contact',
+    name: d => [d.first, d.last].filter(Boolean).join(' '),
+    search: r => [r.contact_id, fullName(r), r.owner_name, r.phone, ...r.methods.map(m => `${m.name} ${m.username}`)].join(' '),
+    filters: [['contacts', 'Contacts', r => !r.is_self], ['self', '"You" contacts', r => r.is_self], ['pay', 'With a payment app', r => r.methods.length > 0],
+      ['nopay', 'No payment app', r => !r.methods.length], ['split', 'On a split', r => r.splits > 0], ['all', 'Everything', () => true]],
+    sort: {key:'contact_id', dir:1},
+    columns: [
+      {key:'contact_id', label:'ID', num:true, cell:r => `<span class="mono">${r.contact_id}</span>`},
+      {key:'name', label:'Name', value:r => fullName(r).toLowerCase(), cell:r => `${fullName(r) ? esc(fullName(r)) : '<span class="muted">No name</span>'}${r.is_self ? ' <span class="tag">You</span>' : ''}`},
+      {key:'owner', label:'Owner', value:r => r.owner_name.toLowerCase(), cell:r => `${esc(r.owner_name)} <span class="muted mono">#${r.user_id}</span>`},
+      {key:'phone', label:'Phone', cls:'nowrap', value:r => r.phone || '', cell:r => r.phone ? esc(r.phone) : '<span class="muted">—</span>'},
+      {key:'methods', label:'Payment apps', cls:'wrap', value:r => r.methods.length, cell:r => r.methods.length
+        ? r.methods.map(m => esc(m.name) + (m.preferred ? ' <span title="Preferred" aria-label="(preferred)">★</span>' : '')).join(', ') : '<span class="muted">—</span>'},
+      {key:'groups', label:'Groups', num:true, cell:r => r.groups},
+      {key:'splits', label:'Splits', num:true, cell:r => r.splits}
+    ],
+    view: r => [['Contact ID', r.contact_id], ['Name', fullName(r) || '—'], ['Owner', `${r.owner_name} (user #${r.user_id})`], ['Phone', r.phone || '—'],
+      ...(r.methods.length ? r.methods.map(m => [m.name, (m.name === 'Cash' ? 'Pays with cash' : m.username) + (m.preferred ? ' (preferred)' : '')]) : [['Payment apps', 'None']]),
+      ['Groups', r.groups], ['Splits', r.splits], ...(r.is_self ? [['Note', `This is ${r.owner_name}'s own "You" contact. Change it in Maintain Users.`]] : [])],
+    blank: () => ({owner:'', first:'', last:'', phone:'', pref:''}),
+    draft: r => Object.assign({owner:String(r.user_id), first:r.first_name || '', last:r.last_name || '', phone:r.phone || '',
+      pref:String(r.methods.find(m => m.preferred)?.id || '')}, Object.fromEntries(r.methods.map(m => ['m-' + m.id, m.name === 'Cash' ? true : m.username]))),
+    form: (d, r) => {
+      const methods = REF.methods;
+      return `${ownerField(d, r, 'contact')}
+        <div class="grid2">${field('first', 'First name', `<input id="f-first" type="text" data-f="first" maxlength="80" value="${esc(d.first)}" autocomplete="off">`)}
+          ${field('last', 'Last name <small>optional</small>', `<input id="f-last" type="text" data-f="last" maxlength="80" value="${esc(d.last)}" autocomplete="off">`)}</div>
+        ${field('phone', 'Phone <small>optional</small>', `<input id="f-phone" type="tel" data-f="phone" value="${esc(d.phone)}" placeholder="(555) 000-0000" autocomplete="off">`)}
+        <p class="sub-h">Payment apps</p>
+        <div class="grid2">${methods.filter(m => m.pay_method_name !== 'Cash').map(m => field('m-' + m.pay_method_id, `${esc(m.pay_method_name)} <small>optional</small>`,
+          `<input id="f-m-${m.pay_method_id}" type="text" data-f="m-${m.pay_method_id}" maxlength="120" value="${esc(d['m-' + m.pay_method_id] || '')}" placeholder="${esc(METHOD_HINT[m.pay_method_name] || 'Username or account')}" autocomplete="off">`)).join('')}</div>
+        ${methods.filter(m => m.pay_method_name === 'Cash').map(m => `<label class="check"><input type="checkbox" id="f-m-${m.pay_method_id}" data-f="m-${m.pay_method_id}" ${d['m-' + m.pay_method_id] ? 'checked' : ''}>
+          <span><b>Pays with cash</b>Cash has no username; this marks that they can pay in cash.</span></label>`).join('')}
+        ${field('pref', 'Preferred payment app', `<select id="f-pref" data-f="pref"><option value="">None</option>${methods.map(m =>
+          `<option value="${m.pay_method_id}" ${String(m.pay_method_id) === d.pref ? 'selected' : ''}>${esc(m.pay_method_name)}</option>`).join('')}</select>`,
+          'The app tries this one first when requesting money from them.')}`;
+    },
+    check: (d, r) => {
+      const e = {owner:r ? '' : CHECK.owner(d.owner), first:CHECK.first(d.first), last:CHECK.last(d.last), phone:CHECK.phone(d.phone)};
+      REF.methods.forEach(m => { const v = d['m-' + m.pay_method_id]; if (typeof v === 'string' && v.length > 100) e['m-' + m.pay_method_id] = `${m.pay_method_name} usernames can be at most 100 characters (this has ${v.length}).`; });
+      const p = REF.methods.find(m => String(m.pay_method_id) === d.pref);
+      if (p && !d['m-' + p.pay_method_id]) e.pref = p.pay_method_name === 'Cash' ? 'Check "Pays with cash", or pick a different preferred app.' : `Add a ${p.pay_method_name} username, or pick a different preferred app.`;
+      return e;
+    },
+    save: async (d, r) => need(await sb.rpc('admin_save_contact', {p_contact_id:r ? r.contact_id : null, p_user_id:Number(d.owner) || null,
+      p_first_name:d.first, p_last_name:d.last, p_phone:d.phone,
+      p_methods:REF.methods.map(m => ({pay_method_id:m.pay_method_id, preferred:String(m.pay_method_id) === d.pref,
+        username:m.pay_method_name === 'Cash' ? (d['m-' + m.pay_method_id] ? 'Cash' : '') : d['m-' + m.pay_method_id] || ''})).filter(m => m.username)})),
+    errField: m => /first name|names can be|same name/i.test(m) ? 'first' : /belongs to|owner/i.test(m) ? 'owner' : /phone/i.test(m) ? 'phone' : /preferred/i.test(m) ? 'pref' : null,
+    canEdit: r => r.is_self ? 'This is their own "You" contact. Change it in Maintain Users.' : '',
+    canDelete: r => r.is_self ? 'This is their own "You" contact. It goes when the user is deleted.' : r.splits ? 'This contact is on a past split, so they can\'t be deleted.' : '',
+    deleteText: r => `This permanently deletes ${esc(fullName(r) || 'this contact')} from ${esc(r.owner_name)}'s contacts`
+      + `${r.methods.length ? `, with their ${plural(r.methods.length, 'payment app')}` : ''}${r.groups ? `, and removes them from ${plural(r.groups, 'group')}` : ''}.`,
+    del: async r => need(await sb.rpc('admin_delete_contact', {p_contact_id:r.contact_id})),
+    prepare: rows => rows.map(r => ({...r, methods:r.methods || [], owner_name:ownerName(r)}))
+  },
+  groups: {
+    label:'Groups', one:'group', sql:'admin-records',
+    lede:'Every user\'s groups of contacts. Deleting a group keeps its contacts.',
+    load: async () => {
+      const [rows, users, contacts] = await Promise.all([sb.rpc('admin_list_groups'), sb.rpc('admin_list_users'), sb.rpc('admin_list_contacts')].map(p => p.then(need)));
+      REF.users = users || []; REF.contacts = contacts || [];
+      return rows;
+    },
+    id: r => r.group_id,
+    title: r => r.group_name || 'Unnamed group',
+    name: d => d.name,
+    search: r => [r.group_id, r.group_name, r.owner_name, ...r.members.map(fullName)].join(' '),
+    filters: [['all', 'All', () => true], ['empty', 'No members', r => !r.members.length]],
+    sort: {key:'group_id', dir:1},
+    columns: [
+      {key:'group_id', label:'ID', num:true, cell:r => `<span class="mono">${r.group_id}</span>`},
+      {key:'name', label:'Name', value:r => r.group_name.toLowerCase(), cell:r => esc(r.group_name)},
+      {key:'owner', label:'Owner', value:r => r.owner_name.toLowerCase(), cell:r => `${esc(r.owner_name)} <span class="muted mono">#${r.user_id}</span>`},
+      {key:'count', label:'Members', num:true, value:r => r.members.length, cell:r => r.members.length},
+      {key:'members', label:'Who', cls:'wrap', value:r => r.members.map(fullName).join(', ').toLowerCase(), cell:r => r.members.length
+        ? esc(r.members.slice(0, 4).map(m => fullName(m) || 'No name').join(', ')) + (r.members.length > 4 ? ` <span class="muted">+${r.members.length - 4} more</span>` : '') : '<span class="muted">—</span>'}
+    ],
+    view: r => [['Group ID', r.group_id], ['Name', r.group_name], ['Owner', `${r.owner_name} (user #${r.user_id})`],
+      ['Members', r.members.length ? r.members.map(m => fullName(m) || 'No name').join(', ') : 'None']],
+    blank: () => ({owner:'', name:'', members:[]}),
+    draft: r => ({owner:String(r.user_id), name:r.group_name, members:r.members.map(m => String(m.contact_id))}),
+    form: (d, r) => {
+      const owned = REF.contacts.filter(c => String(c.user_id) === d.owner && (!c.is_self || d.members.includes(String(c.contact_id))))
+        .sort((a, b) => fullName(a).localeCompare(fullName(b)) || a.contact_id - b.contact_id);
+      const bad = ui.dlg?.errs?.members;
+      return `${ownerField(d, r, 'group')}
+        ${field('name', 'Group name', `<input id="f-name" type="text" data-f="name" maxlength="80" value="${esc(d.name)}" autocomplete="off">`)}
+        <p class="sub-h" id="l-members">Members <span style="text-transform:none;letter-spacing:0;font-family:var(--f-body);font-weight:500">(${plural(d.members.length, 'contact')} picked)</span></p>
+        <div class="picks${bad ? ' invalid' : ''}" id="f-members" tabindex="-1" role="group" aria-labelledby="l-members" aria-describedby="e-members">${!d.owner
+          ? '<p class="picks-note">Pick an owner first; members come from their contacts.</p>'
+          : owned.length ? owned.map(c => `<label class="pick"><input type="checkbox" data-list="members" value="${c.contact_id}" ${d.members.includes(String(c.contact_id)) ? 'checked' : ''}>
+              <span>${esc(fullName(c) || 'No name')}${c.is_self ? ' <span class="tag">You</span>' : ''}</span><small class="mono">#${c.contact_id}</small></label>`).join('')
+          : '<p class="picks-note">This user has no contacts yet. Add some in Maintain Contacts.</p>'}</div>${errLine('members')}`;
+    },
+    check: (d, r) => ({owner:r ? '' : CHECK.owner(d.owner), name:CHECK.gname(d.name)}),
+    save: async (d, r) => need(await sb.rpc('admin_save_group', {p_group_id:r ? r.group_id : null, p_user_id:Number(d.owner) || null,
+      p_name:d.name, p_contact_ids:d.members.map(Number)})),
+    errField: m => /belongs to|owner can/i.test(m) ? 'owner' : /group name/i.test(m) ? 'name' : /members|contacts/i.test(m) ? 'members' : null,
+    canDelete: () => '',
+    deleteText: r => `This deletes the group ${esc(r.group_name)} (${plural(r.members.length, 'member')}) from ${esc(r.owner_name)}'s account. The contacts themselves are kept, and past splits don't change.`,
+    del: async r => need(await sb.rpc('admin_delete_group', {p_group_id:r.group_id})),
+    prepare: rows => rows.map(r => ({...r, members:r.members || [], owner_name:ownerName(r)})),
+    // A new group's members come from the chosen owner's contacts, so start over when the owner changes.
+    live: {owner: d => { d.members = []; }}
+  },
+  splits:{label:'Splits', soon:true},
+  methods: {
+    label:'Payment Methods', one:'payment method', sql:'admin-records',
+    lede:'The payment apps contacts can have and payments can be marked with. The six built-in ones are fixed; you can add others.',
+    load: async () => need(await sb.rpc('admin_list_payment_methods')),
+    id: r => r.pay_method_id,
+    title: r => r.pay_method_name,
+    name: d => d.name,
+    search: r => [r.pay_method_id, r.pay_method_name, r.built_in ? 'built in' : 'added'].join(' '),
+    filters: [['all', 'All', () => true], ['builtin', 'Built in', r => r.built_in], ['added', 'Added', r => !r.built_in]],
+    sort: {key:'pay_method_id', dir:1},
+    columns: [
+      {key:'pay_method_id', label:'ID', num:true, cell:r => `<span class="mono">${r.pay_method_id}</span>`},
+      {key:'name', label:'Name', value:r => r.pay_method_name.toLowerCase(), cell:r => esc(r.pay_method_name)},
+      {key:'built_in', label:'Type', value:r => r.built_in ? 0 : 1, cell:r => r.built_in ? '<span class="tag builtin">Built in</span>' : '<span class="tag added">Added</span>'},
+      {key:'contacts', label:'Contacts using it', num:true, cell:r => r.contacts},
+      {key:'payments', label:'Payments marked', num:true, cell:r => r.payments}
+    ],
+    view: r => [['Method ID', r.pay_method_id], ['Name', r.pay_method_name], ['Type', r.built_in ? 'Built into IOYA (can\'t be renamed or deleted)' : 'Added by an admin'],
+      ['Contacts using it', r.contacts], ['Payments marked with it', r.payments]],
+    blank: () => ({name:''}),
+    draft: r => ({name:r.pay_method_name}),
+    form: d => field('name', 'Name', `<input id="f-name" type="text" data-f="name" maxlength="40" value="${esc(d.name)}" placeholder="Google Pay" autocomplete="off">`,
+      'Contacts can then have a username for it, and payments can be marked as paid with it. The app shows it as a plain text field.'),
+    check: d => ({name:CHECK.mname(d.name)}),
+    save: async (d, r) => need(await sb.rpc('admin_save_payment_method', {p_pay_method_id:r ? r.pay_method_id : null, p_name:d.name})),
+    errField: m => /name|named|renamed/i.test(m) ? 'name' : null,
+    canEdit: r => r.built_in ? `${r.pay_method_name} is built into IOYA, so it can't be renamed.` : '',
+    canDelete: r => r.built_in ? `${r.pay_method_name} is built into IOYA, so it can't be deleted.`
+      : r.contacts ? `${plural(r.contacts, 'contact')} still ${r.contacts === 1 ? 'has' : 'have'} a ${r.pay_method_name} username. Remove it from them first.`
+      : r.payments ? `It was used to mark ${plural(r.payments, 'payment')} as paid, so it can't be deleted.` : '',
+    deleteText: r => `This permanently deletes the payment method ${esc(r.pay_method_name)}. No contacts or payments use it.`,
+    del: async r => need(await sb.rpc('admin_delete_payment_method', {p_pay_method_id:r.pay_method_id}))
+  }
 };
 
 // ---------- State ----------
@@ -229,7 +405,7 @@ const ui = {key:null, rows:[], loading:false, error:'', q:'', filter:null, sort:
 const T = () => TABLES[ui.key];
 function field(k, label, input, hint){
   const d = ui.dlg, bad = d?.errs?.[k];
-  const tagged = input.replace(/^<input /, `<input aria-describedby="e-${k}${hint ? ` h-${k}` : ''}"${bad ? ' aria-invalid="true"' : ''} `);
+  const tagged = input.replace(/^<(input|select) /, (m, tag) => `<${tag} aria-describedby="e-${k}${hint ? ` h-${k}` : ''}"${bad ? ' aria-invalid="true"' : ''} `);
   return `<div class="fwrap"><label class="field${bad ? ' invalid' : ''}" id="w-${k}"><span>${label}</span>${tagged}</label>
     ${hint ? `<p class="hint" id="h-${k}" style="margin:-8px 0 12px">${hint}</p>` : ''}${errLine(k)}</div>`;
 }
@@ -267,7 +443,7 @@ function renderMain(){
       <tbody>${rows.map(r => `<tr>${t.columns.map(c => `<td class="${[c.num ? 'num' : '', c.cls || ''].join(' ').trim()}">${c.cell(r)}</td>`).join('')}
         <td><div class="row-acts">
           <button class="btn small ghost" data-act="view" data-id="${t.id(r)}" aria-label="View ${esc(t.title(r))}">View</button>
-          <button class="btn small ghost" data-act="edit" data-id="${t.id(r)}" aria-label="Edit ${esc(t.title(r))}">Edit</button>
+          <button class="btn small ghost" data-act="edit" data-id="${t.id(r)}" aria-label="Edit ${esc(t.title(r))}" ${t.canEdit?.(r) ? `disabled title="${esc(t.canEdit(r))}"` : ''}>Edit</button>
           <button class="btn small ghost" data-act="askdelete" data-id="${t.id(r)}" aria-label="Delete ${esc(t.title(r))}" ${t.canDelete(r) ? `disabled title="${esc(t.canDelete(r))}"` : ''}>Delete</button>
         </div></td></tr>`).join('')}</tbody></table></div>`
       : `<div class="empty">${ui.rows.length ? `No ${t.label.toLowerCase()} match. Try another search or filter.` : `No ${t.label.toLowerCase()} yet.`}</div>`}
@@ -281,8 +457,9 @@ function renderDialog(){
   let title, sub = '', body, acts;
   if (d.mode === 'view') {
     title = t.title(r); sub = `${t.label.replace(/s$/, '')} #${t.id(r)}`;
-    body = `<dl class="kv">${t.view(r).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
-    acts = `<button class="btn ghost" data-act="close">Close</button><button class="btn" data-act="edit" data-id="${t.id(r)}">Edit</button>`;
+    const locked = t.canEdit?.(r) || '';
+    body = `<dl class="kv">${t.view(r).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>${locked ? `<p class="hint" style="margin-top:14px">${esc(locked)}</p>` : ''}`;
+    acts = `<button class="btn ghost" data-act="close">Close</button>${locked ? '' : `<button class="btn" data-act="edit" data-id="${t.id(r)}">Edit</button>`}`;
   } else if (d.mode === 'delete') {
     title = `Delete ${t.title(r)}?`;
     body = `${d.alert ? `<div class="alert" role="alert">${esc(d.alert)}</div>` : ''}<p class="danger-box">${t.deleteText(r)} This can't be undone.</p>`;
@@ -309,7 +486,7 @@ async function load(){
   ui.loading = true; ui.error = ''; render();
   try { const rows = await t.load(); ui.rows = t.prepare ? t.prepare(rows || []) : rows || []; }
   catch (e) { ui.error = /failed to fetch|network|load failed/i.test(e.message) ? OFFLINE
-    : /admin_list_\w+|schema cache/i.test(e.message) ? `The database needs an update: run supabase/admin-${ui.key}.sql in the Supabase SQL Editor.` : e.message; }
+    : /admin_list_\w+|schema cache/i.test(e.message) ? `The database needs an update: run supabase/${t.sql || 'admin-' + ui.key}.sql in the Supabase SQL Editor.` : e.message; }
   ui.loading = false; render();
 }
 function openTable(){
@@ -320,13 +497,17 @@ function openTable(){
   load(); $('main').focus({preventScroll:true});
 }
 const rowById = id => ui.rows.find(r => String(T().id(r)) === String(id));
-const focusFirst = () => setTimeout(() => document.querySelector('.dlg input:not([disabled]), .dlg [data-act="delete"], .dlg [data-act="edit"]')?.focus(), 0);
+const focusFirst = () => setTimeout(() => document.querySelector('.dlg input:not([disabled]), .dlg select:not([disabled]), .dlg [data-act="delete"], .dlg [data-act="edit"]')?.focus(), 0);
 let returnFocus = null;
 function openDialog(d){ returnFocus = document.activeElement; ui.dlg = d; renderDialog(); focusFirst(); }
 function closeDialog(){ if (ui.dlg?.busy) return; ui.dlg = null; renderDialog(); returnFocus?.isConnected && returnFocus.focus(); }
 function readForm(){
   const d = ui.dlg.draft;
-  document.querySelectorAll('#dlg-form [data-f]').forEach(el => { d[el.dataset.f] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
+  document.querySelectorAll('#dlg-form [data-f]').forEach(el => { if (!el.disabled) d[el.dataset.f] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
+  // Checkbox lists (a group's members): the checked values.
+  const lists = {};
+  document.querySelectorAll('#dlg-form [data-list]').forEach(el => { (lists[el.dataset.list] ||= []); if (el.checked) lists[el.dataset.list].push(el.value); });
+  Object.assign(d, lists);
   if (typeof d.email === 'string') d.email = d.email.toLowerCase();
   return d;
 }
@@ -338,7 +519,7 @@ async function save(){
   d.busy = true; renderDialog();
   try {
     await t.save(draft, d.row);
-    const name = [draft.first, draft.last].filter(Boolean).join(' ') || t.title(d.row || {});
+    const name = (t.name ? t.name(draft) : [draft.first, draft.last].filter(Boolean).join(' ')) || t.title(d.row || {});
     ui.dlg = null; renderDialog(); toast(d.row ? `Saved ${name}.` : `Added ${name}.`); await load();
   } catch (e) {
     d.busy = false;
@@ -355,7 +536,7 @@ async function remove(){
 }
 const ACTIONS = {
   add: () => openDialog({mode:'form', row:null, draft:T().blank(), errs:{}}),
-  edit: el => { const r = rowById(el.dataset.id); if (r) openDialog({mode:'form', row:r, draft:T().draft(r), errs:{}}); },
+  edit: el => { const r = rowById(el.dataset.id); if (r && !T().canEdit?.(r)) openDialog({mode:'form', row:r, draft:T().draft(r), errs:{}}); },
   view: el => { const r = rowById(el.dataset.id); if (r) openDialog({mode:'view', row:r}); },
   askdelete: el => { const r = rowById(el.dataset.id); if (r && !T().canDelete(r)) openDialog({mode:'delete', row:r}); },
   save, delete:remove, close:closeDialog,
@@ -368,8 +549,17 @@ document.addEventListener('click', e => { const el = e.target.closest?.('[data-a
 document.addEventListener('submit', e => { if (e.target.id === 'dlg-form') { e.preventDefault(); save(); } });
 document.addEventListener('input', e => {
   if (e.target.dataset?.in === 'q') { ui.q = e.target.value; renderMain(); return; }
-  // Clear a field's red message as soon as it's fixed.
   const k = e.target.dataset?.f, d = ui.dlg;
+  // Fields that change the rest of the form (a group's owner decides which contacts can be members).
+  if (k && d && T().live?.[k]) {
+    readForm(); T().live[k](d.draft); if (d.errs) delete d.errs[k];
+    renderDialog(); $('f-' + k)?.focus(); return;
+  }
+  // Group members: keep the "n contacts picked" count current.
+  if (e.target.dataset?.list && d) {
+    readForm(); const c = $('l-members')?.querySelector('span'); if (c) c.textContent = `(${plural(d.draft.members.length, 'contact')} picked)`; return;
+  }
+  // Clear a field's red message as soon as it's fixed.
   if (!k || !d?.errs?.[k] || !CHECK[k]) return;
   const v = e.target.value.trim(); if (CHECK[k](k === 'email' ? v.toLowerCase() : v)) return;
   delete d.errs[k]; e.target.removeAttribute('aria-invalid'); $('w-' + k)?.classList.remove('invalid');
