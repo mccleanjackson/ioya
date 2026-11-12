@@ -95,14 +95,14 @@ function profilePage() {
   const el = id => els[id] ||= {id, hidden: false, textContent: '', children: [], className: '', append(...c) { this.children.push(...c); },
     setAttribute(k, v) { this[k] = v; }, focus() {}, select() {}};
   const document = {title: '', getElementById: el, createElement: tag => ({...el('x'), tag, children: []})};
-  const context = {document, location: {pathname: '/u/k7m2qx9fpa'}, navigator: {}, fetch: () => new Promise(() => {}), console};
+  const context = {document, URLSearchParams, location: {pathname: '/u/k7m2qx9fpa'}, navigator: {}, fetch: () => new Promise(() => {}), console};
   vm.runInNewContext(script + ';globalThis.api={appInfo,show};', context);
   return {...context.api, els, document};
 }
 
 test('the public page opens payment apps or copies the account, and ignores anything odd', () => {
   const {appInfo} = profilePage();
-  assert.equal(appInfo('venmo', 'bea-lee').href, 'https://venmo.com/u/bea-lee');
+  assert.equal(appInfo('venmo', 'bea-lee').href, 'https://venmo.com/?txn=pay&recipients=bea-lee');
   assert.equal(appInfo('paypal', 'BeaLee').href, 'https://www.paypal.me/BeaLee');
   assert.equal(appInfo('paypal', 'bea@example.com').copy, 'bea@example.com');
   assert.equal(appInfo('cashapp', '$BeaLee').href, 'https://cash.app/%24BeaLee');
@@ -124,7 +124,7 @@ test('the public page lists the preferred app first and shows names as text', ()
   assert.equal(rows.length, 2);
   assert.match(rows[0].className, /preferred/);
   assert.equal(rows[0].children[1].children[0].textContent, 'Zelle');
-  assert.equal(rows[1].children[2].href, 'https://venmo.com/u/bea-lee');
+  assert.equal(rows[1].children[2].href, 'https://venmo.com/?txn=pay&recipients=bea-lee');
   assert.equal(els.profile.hidden, false);
 
   const empty = profilePage();

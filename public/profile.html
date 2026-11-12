@@ -88,7 +88,8 @@ const showPhone = v => `(${v.slice(2, 5)}) ${v.slice(5, 8)}-${v.slice(8)}`;
 function appInfo(id, value){
   if (typeof value !== 'string' || !value) return null;
   if (id === 'venmo' && /^[A-Za-z0-9_-]{5,30}$/.test(value))
-    return {account:'@' + value, href:'https://venmo.com/u/' + encodeURIComponent(value), label:'Open Venmo'};
+    // Same link format as the /pay page: venmo.com/u/<name> pages are blocked (403) for most visitors.
+    return {account:'@' + value, href:'https://venmo.com/?' + new URLSearchParams({txn:'pay', recipients:value}), label:'Open Venmo'};
   if (id === 'paypal' && /^[A-Za-z0-9]{1,20}$/.test(value))
     return {account:'paypal.me/' + value, href:'https://www.paypal.me/' + encodeURIComponent(value), label:'Open PayPal'};
   if (id === 'paypal' && isEmail(value)) return {account:value, copy:value};
