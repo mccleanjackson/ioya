@@ -2,6 +2,62 @@
 
 This file is for AI assistants (Claude Code, Copilot, Cursor, Codex, etc.) helping a member of the IOYA team. Read it fully before making changes. The human-facing setup guide is [README.md](README.md); this file adds the context an assistant needs to work safely.
 
+## Start here (read this first)
+
+### Which file to edit
+
+The site is three separate pages. Edit the one that matches the change; most work is in the app.
+
+| What you're changing | File | Open it at |
+|---|---|---|
+| **The app**: Home, History, Split Bill, Contacts, Profile, the app's colors, fonts and wording | **`public/app.html`** | http://localhost:3001/app |
+| The landing page: headline, "How it works", the Log in box, the admin Maintain buttons | `public/index.html` | http://localhost:3001 |
+| The admin Maintain pages (Users, Contacts, Groups, Splits, Payment Methods) | `public/admin.html` | http://localhost:3001/admin |
+| The login cookies shared by all three pages | `public/session.js` | |
+| Routes (which file each address serves) | `server.js` | |
+
+Before November 10, 2026 the app was `public/index.html`. **If your branch is older than that and changes the app in `public/index.html`, stop and tell your human:** that file is now the landing page, so the change must move to `public/app.html` (Jackson can help).
+
+### Every new task, in this order
+
+Run these in a terminal **inside the project folder** (the one with `package.json`; in VS Code use File → Open Folder, then Terminal → New Terminal). `git status` should print `On branch …`; if it says "not a git repository", you're in the wrong folder.
+
+```bash
+git switch main
+git pull
+npm install
+git switch -c short-task-name
+```
+
+`npm install` picks up packages teammates added (for example `qrcode`). Then `npm start` and open http://localhost:3001/app. After pulling or switching branches, **stop the server (Ctrl+C) and run `npm start` again**: Node keeps running the old `server.js` until it restarts.
+
+Merged branches are deleted from GitHub automatically, so start each task from a fresh `main` instead of reusing an old branch.
+
+### Accounts you'll see
+
+- Opening `/app` gives every browser a **guest** account automatically; no login needed to test the app.
+- **Log in** (email + password) is on the landing page `/`. **Admins** (`users.is_admin`) see the Maintain buttons **on the landing page**, and an "Admin tools" button on the app's Profile tab. They are not in the app's tab bar.
+- Only Jackson makes accounts admins (an SQL line in Supabase). Don't try to make an account an admin from code.
+
+### Common problems and fixes
+
+| What you see | Why | Fix |
+|---|---|---|
+| `npm error enoent Could not read package.json` | The terminal is one folder too high | `cd` into the project folder (the one with `package.json`), then retry |
+| `Cannot GET /app` | The server was started before `/app` existed | Ctrl+C, then `npm start` again |
+| `EADDRINUSE` / address already in use | `npm start` is already running in another terminal | Use that one, or stop it with Ctrl+C there |
+| `cannot switch branch while merging` | A merge was started and not finished | `git merge --abort` (not `--quit`, which leaves conflict markers in files), then `git switch main` |
+| `your local changes would be overwritten` | Uncommitted edits | Commit them on your branch first, or ask your human; never discard them silently |
+| A merge conflict in `public/index.html` | Your branch edits the old app file | See "Which file to edit": move the change to `public/app.html` |
+| "Couldn't load your data" mentioning a column or function that doesn't exist | A Supabase SQL file hasn't been run | Tell your human which file the message names; Jackson runs SQL on the shared project |
+| No Maintain buttons after logging in | Looking in `/app`, or the account isn't an admin | Check the landing page `/`; ask Jackson about admin access |
+
+### Rules that bite
+
+- **Database changes:** don't write new SQL, tables, policies or grants without asking Jackson first. The team shares one Supabase project and Jackson runs every SQL file. If a feature seems to need a database change, stop and ask.
+- **Fonts:** `--f-mono` in `public/app.html` must stay a **monospace** font (currently IBM Plex Mono). It's used for money amounts so digits line up in columns; a regular font makes totals look uneven. Change `--f-body` or `--f-display` for the look of text instead.
+- Ask before every `git push` or PR, never commit `.env` or keys, and add no AI co-author lines (details in "Git workflow").
+
 ## What IOYA is
 
 IOYA is a bill-splitting web app built by a four-person student team (Jackson, Tye, Nick, Tanner) for BYU IS 401. The payer scans a receipt, assigns line items to friends (shared items split evenly), tax/tip/fees are split in proportion to what each person ordered, and the app tracks who has paid back. It is a class project with real grading constraints (see "Course rules" below).
@@ -37,7 +93,7 @@ Hosting: the live app is at https://ioya.onrender.com, on Render's free tier. Re
 
    **You do not have these values and must not invent them.** Ask your human for them; a teammate shares them privately. Never ask for, store or use the `service_role` key or the database password. They are not needed.
 
-4. Start the server, then open http://localhost:3001:
+4. Start the server, then open http://localhost:3001/app for the app (http://localhost:3001 is the landing page):
 
    ```bash
    npm start
@@ -204,10 +260,10 @@ The database now has a column the team's ERD doesn't show yet. Your human (not t
 
 ## Testing your change
 
-`npm test` runs receipt parser and scan-lifecycle checks with isolated data; it does not replace browser/real-phone checks. Before handing work back:
+`npm test` runs the automated tests (receipt parsing, the split flow, payment requests, profile and login, the landing page, the admin pages and the login cookies) against fake data; it never touches Supabase, and it does not replace browser/real-phone checks. All tests must pass before a PR. Before handing work back:
 
 1. Check the script parses (or just load the page and check the browser console for errors).
-2. Run `npm start`, open http://localhost:3001 (landing page) and http://localhost:3001/app, and click through what you changed **and** Home → History → Contacts → one split flow.
+2. Run `npm start`, open http://localhost:3001/app, and click through what you changed **and** Home → History → Contacts → one split flow. If you touched the landing page or admin pages, also check http://localhost:3001 (log in and out) and http://localhost:3001/admin.
 3. For data changes: do it, **refresh the page**, confirm it persisted, and check the row in Supabase's Table Editor. Undo test data afterwards (for example, delete the test contact, or "Mark as unpaid").
 4. Check both a phone width (Chrome DevTools device toolbar) and a laptop width.
 
