@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Profile · IOYA</title>
+  <!-- The page a friend sees after scanning someone's profile QR code (/u/<code>). Served by profile-share.js. -->
+  <style>
+    :root{
+      --desk:#E8EBF0;--paper:#FAFBFC;--card:#FFF;--ink:#15171C;--muted:#5C6371;
+      --line:#D9DEE6;--accent:#CC6FCC;--accent-soft:#F6E5F6;--focus:#3654D1;
+      --good:#167F46;--bad:#A32718;
+      color-scheme:light;
+    }
+    @media(prefers-color-scheme:dark){:root{
+      --desk:#0A0C10;--paper:#12151C;--card:#1A1E27;--ink:#ECEEF2;--muted:#A7AEBC;
+      --line:#363D4B;--accent:#FF7A2E;--accent-soft:#3B2112;--focus:#9EAEFF;
+      --good:#63D99A;--bad:#FF8B7B;
+      color-scheme:dark;
+    }}
+    *{box-sizing:border-box}
+    [hidden]{display:none!important}
+    body{margin:0;background:var(--desk);color:var(--ink);font:15px/1.45 system-ui,sans-serif}
+    main{max-width:500px;margin:36px auto;padding:22px;background:var(--paper);border:1px solid var(--line);border-radius:24px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    .brand{font-family:"Arial Black",system-ui,sans-serif;font-size:27px;font-weight:950;letter-spacing:-.04em;color:inherit;text-decoration:none}
+    .tag,.kicker{color:var(--muted);font:650 11px/1.4 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.08em}
+    h1,h2,p{margin:0}
+    .who{background:var(--accent-soft);border-radius:17px;padding:24px 20px;display:grid;justify-items:center;gap:10px;text-align:center}
+    .face{position:relative;width:96px;height:96px;border-radius:50%;background:var(--card);display:grid;place-items:center;overflow:hidden;
+      font-size:34px;font-weight:850;box-shadow:0 0 0 3px var(--card)}
+    .face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    h1{font-size:24px;line-height:1.2;letter-spacing:-.02em;overflow-wrap:anywhere}
+    h2{font-size:17px;line-height:1.25}
+    .stack{display:grid;gap:12px;margin-top:18px}
+    .apps{display:grid;gap:10px;list-style:none;margin:0;padding:0}
+    .app{display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:12px;min-height:62px;padding:10px 14px;border:1px solid var(--line);border-radius:11px;background:var(--card)}
+    .app.preferred{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+    .mark{display:grid;place-items:center;height:34px;border-radius:8px;background:var(--accent-soft);font-weight:850;font-size:14px;line-height:1}
+    .app b{display:block}
+    .app .account{display:block;color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+    .pill{display:inline-block;margin-inline-start:6px;padding:1px 7px;border-radius:99px;background:var(--accent-soft);font:650 11px/1.6 system-ui,sans-serif;vertical-align:1px}
+    .button{font:inherit;font-weight:650;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:11px;color:var(--ink);background:var(--card);text-decoration:none;white-space:nowrap}
+    .button:hover{border-color:var(--accent)}
+    :focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+    .fine{font-size:13px;color:var(--muted)}
+    .error{color:var(--bad)}
+    input{width:100%;min-height:44px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;color:var(--ink);background:var(--paper)}
+    label.fallback{display:grid;gap:5px}
+    footer{border-top:1px solid var(--line);margin-top:20px;padding-top:12px}
+    @media(max-width:540px){main{margin:0;min-height:100dvh;border:0;border-radius:0;padding:22px 16px}}
+  </style>
+</head>
+<body>
+<main>
+  <header><a class="brand" href="/">IOYA</a><span class="tag">Profile</span></header>
+  <p id="status" role="status">Loading profile…</p>
+  <div id="profile" hidden>
+    <section class="who" aria-labelledby="name">
+      <div class="face" aria-hidden="true"><span id="initials"></span><img id="photo" alt="" hidden></div>
+      <h1 id="name" tabindex="-1"></h1>
+      <p class="kicker">On IOYA</p>
+    </section>
+    <section class="stack" aria-labelledby="pay-title">
+      <h2 id="pay-title">Ways to pay <span id="first"></span></h2>
+      <ul class="apps" id="apps"></ul>
+      <p id="none" class="fine" hidden></p>
+      <p class="fine" id="copy-status" role="status" hidden></p>
+      <label class="fallback fine" id="copy-fallback" hidden>Copy this account
+        <input readonly id="copy-value">
+      </label>
+    </section>
+    <footer class="fine">Check the name and account in your payment app before you send money.</footer>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const code = location.pathname.split('/')[2] || '';
+const marks = {venmo:'V', paypal:'PP', zelle:'Z', cashapp:'$', applecash:'Cash'};
+const names = {venmo:'Venmo', paypal:'PayPal', zelle:'Zelle', cashapp:'Cash App', applecash:'Apple Cash'};
+const isPhone = v => /^\+1[2-9][0-9]{9}$/.test(v);
+const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const showPhone = v => `(${v.slice(2, 5)}) ${v.slice(5, 8)}-${v.slice(8)}`;
+
+// One row per payment app: what to show, and either a link that opens the app or the account to copy.
+function appInfo(id, value){
+  if (typeof value !== 'string' || !value) return null;
+  if (id === 'venmo' && /^[A-Za-z0-9_-]{5,30}$/.test(value))
+    // Same link format as the /pay page: venmo.com/u/<name> pages are blocked (403) for most visitors.
+    return {account:'@' + value, href:'https://venmo.com/?' + new URLSearchParams({txn:'pay', recipients:value}), label:'Open Venmo'};
+  if (id === 'paypal' && /^[A-Za-z0-9]{1,20}$/.test(value))
+    return {account:'paypal.me/' + value, href:'https://www.paypal.me/' + encodeURIComponent(value), label:'Open PayPal'};
+  if (id === 'paypal' && isEmail(value)) return {account:value, copy:value};
+  if (id === 'cashapp' && /^\$(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{1,20}$/.test(value))
+    return {account:value, href:'https://cash.app/' + encodeURIComponent(value), label:'Open Cash App'};
+  if ((id === 'cashapp' || id === 'zelle') && isEmail(value)) return {account:value, copy:value};
+  if (['cashapp', 'zelle', 'applecash'].includes(id) && isPhone(value)) return {account:showPhone(value), copy:value};
+  return null;
+}
+
+async function copy(value, label){
+  $('copy-fallback').hidden = true;
+  try {
+    await navigator.clipboard.writeText(value);
+    $('copy-status').textContent = label + ' account copied.';
+    $('copy-status').hidden = false;
+  } catch {
+    $('copy-status').hidden = true;
+    $('copy-value').value = value;
+    $('copy-fallback').hidden = false;
+    $('copy-value').focus();
+    $('copy-value').select();
+  }
+}
+
+function show(p){
+  const full = [p.first, p.last].filter(Boolean).join(' ') || 'IOYA user';
+  document.title = full + ' · IOYA';
+  $('name').textContent = full;
+  $('first').textContent = p.first || 'them';
+  $('initials').textContent = ((p.first || '?').charAt(0) + (p.last || '').charAt(0)).toUpperCase();
+  if (p.avatarUrl){
+    const img = $('photo');
+    img.onload = () => { img.hidden = false; };
+    img.onerror = () => { img.hidden = true; };
+    img.src = p.avatarUrl;
+  }
+  const order = Object.keys(names).sort((a, b) => (b === p.preferred) - (a === p.preferred));
+  for (const id of order){
+    const info = appInfo(id, p.accounts[id]);
+    if (!info) continue;
+    const li = document.createElement('li');
+    li.className = 'app' + (id === p.preferred ? ' preferred' : '');
+    const mark = document.createElement('span');
+    mark.className = 'mark'; mark.setAttribute('aria-hidden', 'true'); mark.textContent = marks[id];
+    const text = document.createElement('span');
+    const title = document.createElement('b'); title.textContent = names[id];
+    if (id === p.preferred){
+      const pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = 'Preferred'; title.append(pill);
+    }
+    const account = document.createElement('span'); account.className = 'account'; account.textContent = info.account;
+    text.append(title, account);
+    let action;
+    if (info.href){
+      action = document.createElement('a');
+      action.href = info.href; action.target = '_blank'; action.rel = 'noopener noreferrer';
+      action.textContent = info.label;
+    } else {
+      action = document.createElement('button');
+      action.type = 'button'; action.textContent = 'Copy';
+      action.setAttribute('aria-label', 'Copy ' + names[id] + ' account');
+      action.onclick = () => copy(info.copy, names[id]);
+    }
+    action.className = 'button';
+    li.append(mark, text, action);
+    $('apps').append(li);
+  }
+  if (!$('apps').children.length){
+    $('none').textContent = (p.first || 'This person') + ' hasn’t added any payment apps yet.';
+    $('none').hidden = false;
+  }
+  $('status').hidden = true;
+  $('profile').hidden = false;
+}
+
+async function load(){
+  try {
+    const response = await fetch('/api/u/' + encodeURIComponent(code), {cache:'no-store'});
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || 'This profile couldn’t be loaded. Try again later.');
+    show(body);
+  } catch (e) {
+    $('status').textContent = e instanceof TypeError ? 'This profile couldn’t be loaded. Check your connection and try again.' : e.message;
+    $('status').className = 'error';
+    $('status').setAttribute('role', 'alert');
+  }
+}
+load();
+</script>
+</body>
+</html>

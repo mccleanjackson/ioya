@@ -9,7 +9,7 @@
 <text x="130" y="261" font-size="18" fill="#2B2F36">Accounts</text>
 <text x="130" y="297" font-size="18" fill="#2B2F36">Preferred</text>
 </g>
-<g><rect x="60" y="390" width="300" height="328" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M60 430h300M122 430v288" stroke="#2B2F36" stroke-width="1.6"/><text x="210.0" y="417" text-anchor="middle" font-size="19" fill="#2B2F36">Users</text>
+<g><rect x="60" y="390" width="300" height="364" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M60 430h300M122 430v324" stroke="#2B2F36" stroke-width="1.6"/><text x="210.0" y="417" text-anchor="middle" font-size="19" fill="#2B2F36">Users</text>
 <text x="91.0" y="455" text-anchor="middle" font-size="17" fill="#2B2F36">PK</text>
 <text x="130" y="455" font-size="18" fill="#2B2F36">UserID</text>
 <text x="130" y="491" font-size="18" fill="#2B2F36">UserFirstName</text>
@@ -20,6 +20,8 @@
 <text x="130" y="671" font-size="18" fill="#2B2F36">AvatarPath</text>
 <text x="91.0" y="707" text-anchor="middle" font-size="17" fill="#2B2F36">UQ</text>
 <text x="130" y="707" font-size="18" fill="#2B2F36">AuthUserID</text>
+<text x="91.0" y="743" text-anchor="middle" font-size="17" fill="#2B2F36">UQ</text>
+<text x="130" y="743" font-size="18" fill="#2B2F36">ProfileCode</text>
 </g>
 <g><rect x="60" y="820" width="310" height="184" rx="10" fill="#FFFFFF" stroke="#2B2F36" stroke-width="2"/><path d="M60 860h310M122 860v144" stroke="#2B2F36" stroke-width="1.6"/><text x="215.0" y="847" text-anchor="middle" font-size="19" fill="#2B2F36">Manual_Payment_Groups</text>
 <text x="91.0" y="885" text-anchor="middle" font-size="17" fill="#2B2F36">PK</text>
