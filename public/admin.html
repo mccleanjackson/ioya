@@ -102,7 +102,7 @@ tbody tr:last-child td{border-bottom:0}
 .field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
 .field>span{font-weight:600;font-size:14px}
 .field small{color:var(--muted);font-weight:500}
-.field input[type=text],.field input[type=email],.field input[type=tel],.field select{height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--paper);padding:0 12px;font-size:15px}
+.field input[type=text],.field input[type=email],.field input[type=tel],.field input[type=date],.field select{height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--paper);padding:0 12px;font-size:15px}
 .field select{padding:0 8px}
 .field input:focus,.field select:focus{outline:none;border-color:var(--pen);box-shadow:0 0 0 3px rgba(54,84,209,.15)}
 .field input[disabled],.field select[disabled]{background:var(--soft);color:var(--muted)}
@@ -127,12 +127,35 @@ dl.kv dd{margin:0;font-weight:600;overflow-wrap:anywhere}
 .pick input{width:18px;height:18px;accent-color:var(--accent);flex:none}
 .pick small{color:var(--muted);margin-left:auto}
 .picks-note{padding:10px 0;color:var(--muted);font-size:14px;margin:0}
+.dlg.wide{width:min(780px,100%)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 14px}
+.item{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:var(--paper)}
+.item-top{display:flex;gap:8px;align-items:center}
+.item-n{color:var(--muted);width:20px;text-align:right;flex:none}
+.item-top input{height:40px;border-radius:9px;border:1.5px solid var(--line);background:var(--card);padding:0 10px;font-size:15px;min-width:0;flex:1}
+.item-top input.price{flex:0 0 110px;text-align:right;font-family:var(--f-mono)}
+.item-top input:focus{outline:none;border-color:var(--pen);box-shadow:0 0 0 3px rgba(54,84,209,.15)}
+.item-top input[aria-invalid="true"]{border-color:var(--bad)}
+.item .x[disabled]{opacity:.3;cursor:not-allowed}
+.ppl{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0 28px}
+.ppl label{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;border-radius:999px;background:var(--soft);font-size:13px;font-weight:600;cursor:pointer}
+.ppl input{width:16px;height:16px;accent-color:var(--accent);margin:0}
+.ppl .muted{font-size:13px}
+.item .ferr{margin:8px 0 0 28px!important}
+.sums{background:var(--soft);border-radius:12px;padding:12px 14px;margin:10px 0 14px;font-size:14px}
+.sums .line{display:flex;justify-content:space-between;gap:10px}
+.sums .line b{font-family:var(--f-mono);font-weight:600}
+.sums .tot{border-top:1px solid var(--line);margin-top:6px;padding-top:6px;font-weight:700}
+.sums .note{color:#7A5300;margin:8px 0 0}
+.who-owes{display:grid;grid-template-columns:1fr auto minmax(150px,200px);gap:8px 12px;align-items:center;margin-bottom:12px}
+.who-owes .amt{font-family:var(--f-mono);text-align:right}
+.who-owes select{height:38px;border-radius:9px;border:1.5px solid var(--line);background:var(--paper);padding:0 8px}
 .tag.builtin{background:var(--soft);color:var(--muted)}
 .tag.added{background:var(--good-soft);color:var(--good)}
 .danger-box{background:var(--bad-soft);color:#7E1F12;border-radius:12px;padding:12px 14px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;box-shadow:0 18px 40px -18px rgba(21,23,28,.5);z-index:30}
 @media (max-width:860px){.layout{grid-template-columns:minmax(0,1fr)}.side{flex-direction:row;overflow-x:auto}.side a{white-space:nowrap}}
-@media (max-width:560px){.grid2{grid-template-columns:1fr}.who span{display:none}.search{min-width:0;max-width:none}}
+@media (max-width:560px){.grid2,.grid3{grid-template-columns:1fr}.who-owes{grid-template-columns:1fr auto}.who-owes select{grid-column:1/-1}.item-top input.price{flex-basis:84px}.ppl{margin-left:0}.who span{display:none}.search{min-width:0;max-width:none}}
 </style>
 </head>
 <body>
@@ -179,8 +202,21 @@ const CHECK = {
   email: v => !v ? '' : v.length > 254 ? 'That email is too long.' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? 'Enter a full email address, like name@example.com.' : '',
   owner: v => !v ? 'Pick which user this belongs to.' : '',
   gname: v => !v ? 'Group name is required.' : v.length > 50 ? `Group names can be at most 50 characters (it has ${v.length}).` : '',
+  sname: v => !v ? 'Split name is required.' : v.length > 80 ? `Split names can be at most 80 characters (it has ${v.length}).` : '',
+  merchant: v => !v ? 'Merchant is required.' : v.length > 80 ? `Merchant names can be at most 80 characters (it has ${v.length}).` : '',
+  date: v => !v ? 'Receipt date is required.' : !/^\d{4}-\d{2}-\d{2}$/.test(v) || Number.isNaN(Date.parse(v)) ? 'Enter a real date.' : '',
+  tax: v => moneyProblem('Tax', v), fees: v => moneyProblem('Fees', v), tip: v => moneyProblem('Tip', v), total: v => moneyProblem('Printed total', v),
   mname: v => !v ? 'Name is required.' : v.length > 30 ? `Payment method names can be at most 30 characters (it has ${v.length}).` : ''
 };
+// Money: the database stores whole cents; the forms use dollars.
+const cents = s => { const t = String(s ?? '').replace(/[$,\s]/g, ''); return !t ? null : /^\d+(\.\d{0,2})?$/.test(t) ? Math.round(parseFloat(t) * 100) : NaN; };
+const dollars = c => (c / 100).toFixed(2);
+const money = c => (c < 0 ? '-$' : '$') + (Math.abs(c) / 100).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+function moneyProblem(label, v){
+  const c = cents(v);
+  return c === null || c === 0 ? '' : Number.isNaN(c) ? `${label}: enter dollars and cents, like 12.50.` : c > 10000000 ? `${label} can be at most $100,000.` : '';
+}
+const day = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
 const METHOD_HINT = {Venmo:'@username', PayPal:'Email or @username', Zelle:'Email or phone', 'Cash App':'$cashtag', 'Apple Cash':'Phone or email'};
 
 // ---------- Tables ----------
@@ -189,14 +225,58 @@ const KIND = {admin:'Admin', profile:'Profile', guest:'Guest', none:'No login'};
 const REF = {users:[], methods:[], contacts:[]};
 const ownerName = r => fullName({first_name:r.owner_first, last_name:r.owner_last}) || (r.owner_kind === 'guest' ? 'Guest' : 'No name');
 // The owner dropdown on Add; on Edit it is shown but can't be changed.
-function ownerField(d, r, what){
+function ownerField(d, r, what, title = 'Belongs to', hint){
   const label = u => `${fullName(u) || (u.kind === 'guest' ? 'Guest' : 'No name')} · #${u.user_id}${u.kind === 'guest' ? '' : ` · ${KIND[u.kind]}`}`;
   const byName = (a, b) => (fullName(a) || '~').localeCompare(fullName(b) || '~') || a.user_id - b.user_id;
   const opt = u => `<option value="${u.user_id}" ${String(u.user_id) === d.owner ? 'selected' : ''}>${esc(label(u))}</option>`;
   const people = REF.users.filter(u => u.kind !== 'guest').sort(byName), guests = REF.users.filter(u => u.kind === 'guest').sort(byName);
-  return field('owner', 'Belongs to', `<select id="f-owner" data-f="owner" ${r ? 'disabled' : ''}><option value="">Pick a user…</option>
+  return field('owner', title, `<select id="f-owner" data-f="owner" ${r ? 'disabled' : ''}><option value="">Pick a user…</option>
     <optgroup label="People">${people.map(opt).join('')}</optgroup>${guests.length ? `<optgroup label="Guests">${guests.map(opt).join('')}</optgroup>` : ''}</select>`,
-    r ? `A ${what}'s owner can't be changed.` : `The user whose ${what}s this is added to.`);
+    hint || (r ? `A ${what}'s owner can't be changed.` : `The user whose ${what}s this is added to.`));
+}
+const methodName = id => REF.methods.find(m => m.pay_method_id === Number(id))?.pay_method_name || 'Unknown';
+// The payer's contacts for a split, their own "You" contact first.
+const payerContacts = owner => REF.contacts.filter(c => String(c.user_id) === String(owner))
+  .sort((a, b) => (b.is_self - a.is_self) || fullName(a).localeCompare(fullName(b)) || a.contact_id - b.contact_id);
+// A shared item is split evenly; leftover cents go to the first people (same as admin_save_split).
+const evenShares = (price, ids) => ids.map((id, k) => ({contact_id:Number(id), share_cents:Math.floor(price / ids.length) + (k < price % ids.length ? 1 : 0)}));
+// What each person owes for one receipt: their items plus a share of tax, fees and tip in proportion
+// to their items, rounded so it adds up to the cent. The same rule as owedByContact() in the app.
+function owedFor(rc){
+  const pre = {};
+  rc.items.forEach(it => it.shares.forEach(s => pre[s.contact_id] = (pre[s.contact_id] || 0) + s.share_cents));
+  const ids = Object.keys(pre), assigned = ids.reduce((t, id) => t + pre[id], 0), extra = rc.tax_cents + rc.fees_cents + rc.tip_cents, out = {};
+  if (!assigned) return out;
+  const raw = ids.map(id => ({id, v:extra * pre[id] / assigned}));
+  raw.forEach(x => out[x.id] = pre[x.id] + Math.floor(x.v));
+  let left = extra - raw.reduce((t, x) => t + Math.floor(x.v), 0);
+  raw.sort((a, b) => (b.v - Math.floor(b.v)) - (a.v - Math.floor(a.v)));
+  for (let i = 0; left > 0; i = (i + 1) % raw.length, left--) out[raw[i].id]++;
+  return out;
+}
+function itemProblem(it, i){
+  const n = `Item ${i + 1}: `, c = cents(it.price);
+  return !it.desc ? n + 'add a description.' : it.desc.length > 100 ? n + 'descriptions can be at most 100 characters.'
+    : c === null ? n + 'add a price.' : Number.isNaN(c) ? n + 'enter the price in dollars and cents, like 12.50.' : c > 10000000 ? n + 'prices can be at most $100,000.'
+    : !it.people.length ? n + 'pick who shares it.' : '';
+}
+// The totals and the "who owes what / paid" list under the items. Redrawn as prices are typed.
+function splitLive(d){
+  const amt = v => { const c = cents(v); return Number.isFinite(c) ? c : 0; };
+  const items = d.items.map(it => ({price_cents:amt(it.price), shares:it.people.length ? evenShares(amt(it.price), it.people) : []}));
+  const sub = items.reduce((t, i) => t + i.price_cents, 0), tax = amt(d.tax), fees = amt(d.fees), tip = amt(d.tip);
+  const typed = cents(d.total), printed = Number.isFinite(typed) && typed !== null ? typed : sub + tax + fees;
+  const owed = owedFor({items, tax_cents:tax, fees_cents:fees, tip_cents:tip});
+  const onSplit = new Set(d.items.flatMap(it => it.people)), people = payerContacts(d.owner).filter(c => onSplit.has(String(c.contact_id)));
+  const line = (k, v, cls = '') => `<div class="line ${cls}"><span>${k}</span><b>${money(v)}</b></div>`;
+  return `<div class="sums">${line('Items', sub)}${line('Tax', tax)}${line('Fees', fees)}${line('Printed total (before tip)', printed)}${line('Tip', tip)}${line('Total paid', printed + tip, 'tot')}
+      ${Number.isFinite(typed) && typed !== null && typed !== sub + tax + fees ? `<p class="note">The printed total is ${money(typed)}, but items + tax + fees add up to ${money(sub + tax + fees)}. Check the receipt.</p>` : ''}</div>
+    <p class="sub-h">People and payments</p>
+    ${people.length ? `<div class="who-owes">${people.map(c => `<span>${esc(c.is_self ? `You (${fullName(c) || 'payer'})` : fullName(c) || 'No name')}</span>
+        <span class="amt">${money(owed[c.contact_id] || 0)}</span>
+        ${c.is_self ? '<span class="muted" style="font-size:13px">Paid the bill</span>' : `<select id="f-paid-${c.contact_id}" data-paid="${c.contact_id}" aria-label="Has ${esc(fullName(c) || 'this person')} paid?">
+          <option value="">Not paid yet</option>${REF.methods.map(m => `<option value="${m.pay_method_id}" ${String(m.pay_method_id) === String(d.paid[c.contact_id] || '') ? 'selected' : ''}>Paid with ${esc(m.pay_method_name)}</option>`).join('')}</select>`}`).join('')}</div>`
+      : '<p class="hint" style="margin-bottom:12px">Tick who shares each item, and they\'ll show up here with what they owe.</p>'}`;
 }const TABLES = {
   users: {
     label:'Users', one:'user',
@@ -363,7 +443,127 @@ function ownerField(d, r, what){
     // A new group's members come from the chosen owner's contacts, so start over when the owner changes.
     live: {owner: d => { d.members = []; }}
   },
-  splits:{label:'Splits', soon:true},
+  splits: {
+    label:'Splits', one:'split', sql:'admin-splits', wide:true,
+    lede:'Every split: the receipt, its items, who shares each one, and who has paid back. Amounts owed use the same math as the app.',
+    load: async () => {
+      const [rows, users, contacts, methods] = await Promise.all([sb.rpc('admin_list_splits'), sb.rpc('admin_list_users'), sb.rpc('admin_list_contacts'),
+        sb.rpc('admin_list_payment_methods')].map(p => p.then(need)));
+      REF.users = users || []; REF.contacts = contacts || []; REF.methods = methods || [];
+      return rows;
+    },
+    id: r => r.event_id,
+    title: r => r.event_name || 'Unnamed split',
+    name: d => d.sname,
+    search: r => [r.event_id, r.event_name, r.owner_name, r.merchant, r.date, ...r.people.map(fullName)].join(' '),
+    filters: [['all', 'All', () => true], ['waiting', 'Waiting on payment', r => r.others.some(p => !p.paid_method_id)],
+      ['paid', 'Fully paid', r => r.others.length > 0 && r.others.every(p => p.paid_method_id)]],
+    sort: {key:'event_id', dir:1},
+    columns: [
+      {key:'event_id', label:'ID', num:true, cell:r => `<span class="mono">${r.event_id}</span>`},
+      {key:'name', label:'Name', value:r => r.event_name.toLowerCase(), cell:r => esc(r.event_name)},
+      {key:'owner', label:'Paid by', value:r => r.owner_name.toLowerCase(), cell:r => r.user_id ? `${esc(r.owner_name)} <span class="muted mono">#${r.user_id}</span>` : '<span class="muted">—</span>'},
+      {key:'merchant', label:'Merchant', cls:'wrap', value:r => r.merchant.toLowerCase(), cell:r => r.merchant ? esc(r.merchant) : '<span class="muted">—</span>'},
+      {key:'date', label:'Date', cls:'nowrap', value:r => r.date || '', cell:r => r.date ? esc(day(r.date)) : '<span class="muted">—</span>'},
+      {key:'total', label:'Total', num:true, value:r => r.total, cell:r => `<span class="mono">${money(r.total)}</span>`},
+      {key:'people', label:'People', num:true, value:r => r.others.length, cell:r => r.others.length},
+      {key:'paid', label:'Paid back', value:r => r.others.length ? r.paidCount / r.others.length : -1, cell:r => !r.others.length ? '<span class="muted">—</span>'
+        : `<span class="tag ${r.paidCount === r.others.length ? 'profile' : 'none'}">${r.paidCount} of ${r.others.length}</span>`}
+    ],
+    view: r => {
+      const rc = r.receipts[0];
+      if (!rc) return [['Split ID', r.event_id], ['Name', r.event_name], ['Receipt', 'None']];
+      const sub = rc.items.reduce((t, i) => t + i.price_cents, 0);
+      return [['Split ID', r.event_id], ['Name', r.event_name], ['Paid by', `${r.owner_name} (user #${r.user_id})`],
+        ['Merchant', r.merchant], ['Date', day(r.date)], ...(r.receipts.length > 1 ? [['Receipts', String(r.receipts.length)]] : []),
+        ...r.receipts.flatMap(x => x.items).map((it, n) => [`Item ${n + 1}`, `${it.description}, ${money(it.price_cents)}: ${it.shares.map(s => r.nameOf(s.contact_id)).join(', ') || 'nobody'}`]),
+        ...(r.receipts.length === 1 ? [['Items', money(sub)], ['Tax', money(rc.tax_cents)], ['Fees', money(rc.fees_cents)], ['Tip', money(rc.tip_cents)],
+          ['Receipt total', `${money(rc.total_cents)} printed, plus ${money(rc.tip_cents)} tip`]] : [['Total', money(r.total)]]),
+        ...r.people.map(p => [p.is_self ? `${fullName(p) || 'You'} (payer)` : fullName(p) || 'No name',
+          `${money(r.owed[p.contact_id] || 0)}${p.is_self ? ' (their own share)' : p.paid_method_id ? ` · Paid with ${methodName(p.paid_method_id)}` : ' · Not paid yet'}`])];
+    },
+    blank: () => ({owner:'', sname:'', merchant:'', date:new Date().toLocaleDateString('en-CA'), tax:'', fees:'', tip:'', total:'',
+      items:[{desc:'', price:'', people:[]}], paid:{}}),
+    draft: r => {
+      const rc = r.receipts[0];
+      return {owner:String(r.user_id), sname:r.event_name, merchant:rc.merchant_name, date:rc.receipt_date,
+        tax:dollars(rc.tax_cents), fees:dollars(rc.fees_cents), tip:dollars(rc.tip_cents), total:dollars(rc.total_cents),
+        items:rc.items.map(i => ({desc:i.description, price:dollars(i.price_cents), people:i.shares.map(s => String(s.contact_id))})),
+        paid:Object.fromEntries(r.people.filter(p => p.paid_method_id).map(p => [String(p.contact_id), String(p.paid_method_id)]))};
+    },
+    form: (d, r) => {
+      const people = payerContacts(d.owner);
+      return `${ownerField(d, r, 'split', 'Paid by', r ? 'A split\'s payer can\'t be changed.' : 'The user who paid the bill. Everyone on the split comes from their contacts.')}
+        <div class="grid2">${field('sname', 'Split name', `<input id="f-sname" type="text" data-f="sname" maxlength="100" value="${esc(d.sname)}" placeholder="Ramen night" autocomplete="off">`)}
+          ${field('merchant', 'Merchant', `<input id="f-merchant" type="text" data-f="merchant" maxlength="100" value="${esc(d.merchant)}" placeholder="Sakura Ramen" autocomplete="off">`)}</div>
+        <div class="grid2">${field('date', 'Receipt date', `<input id="f-date" type="date" data-f="date" value="${esc(d.date)}">`)}
+          ${field('total', 'Printed total <small>optional</small>', `<input id="f-total" type="text" inputmode="decimal" data-f="total" value="${esc(d.total)}" placeholder="Items + tax + fees" autocomplete="off">`, 'Before tip. Leave blank to use items + tax + fees.')}</div>
+        <div class="grid3">${['tax', 'fees', 'tip'].map(k => field(k, `${k[0].toUpperCase() + k.slice(1)} <small>optional</small>`,
+          `<input id="f-${k}" type="text" inputmode="decimal" data-f="${k}" value="${esc(d[k])}" placeholder="0.00" autocomplete="off">`)).join('')}</div>
+        <p class="sub-h">Items</p>
+        <div id="f-items" tabindex="-1">${d.items.map((it, i) => `<div class="item">
+          <div class="item-top"><span class="item-n mono">${i + 1}</span>
+            <input id="f-item-${i}" type="text" data-item="${i}" data-k="desc" maxlength="120" value="${esc(it.desc)}" placeholder="Item description" aria-label="Item ${i + 1} description" autocomplete="off" ${ui.dlg?.errs?.['item-' + i] ? 'aria-invalid="true"' : ''} aria-describedby="e-item-${i}">
+            <input id="f-item-${i}-price" class="price" type="text" inputmode="decimal" data-item="${i}" data-k="price" value="${esc(it.price)}" placeholder="0.00" aria-label="Item ${i + 1} price" autocomplete="off">
+            <button type="button" class="x" data-act="rmitem" data-i="${i}" aria-label="Remove item ${i + 1}" ${d.items.length < 2 ? 'disabled' : ''}>${I('x')}</button></div>
+          <div class="ppl" role="group" aria-label="Who shares item ${i + 1}">${!d.owner ? '<span class="muted">Pick who paid first.</span>'
+            : people.map(c => `<label><input type="checkbox" data-item="${i}" data-person="${c.contact_id}" ${it.people.includes(String(c.contact_id)) ? 'checked' : ''}>${esc(c.is_self ? `You (${fullName(c) || 'payer'})` : fullName(c) || 'No name')}</label>`).join('')}</div>
+          ${errLine('item-' + i)}</div>`).join('')}</div>
+        <button type="button" class="btn small ghost" data-act="additem" style="margin:0 0 6px">${I('plus')}Add item</button>${errLine('items')}
+        <div id="split-live" aria-live="polite">${splitLive(d)}</div>`;
+    },
+    // Item rows and paid dropdowns aren't single fields, so they're read here.
+    read: d => {
+      const items = [], els = document.querySelectorAll('#dlg-form [data-item]');
+      if (!els.length) return;
+      els.forEach(el => { const it = items[Number(el.dataset.item)] ||= {desc:'', price:'', people:[]};
+        if (el.dataset.person) { if (el.checked) it.people.push(el.dataset.person); } else it[el.dataset.k] = el.value.trim(); });
+      d.items = items;
+      document.querySelectorAll('#dlg-form [data-paid]').forEach(el => { d.paid[el.dataset.paid] = el.value; });
+    },
+    // Typing a price or ticking a person updates the totals and the people list without redrawing the form.
+    onInput: el => {
+      if (el.dataset.paid || el.dataset.f === 'owner' || !el.closest?.('#dlg-form')) return;
+      readForm(); const box = $('split-live'); if (box) box.innerHTML = splitLive(ui.dlg.draft);
+      const k = el.dataset.item !== undefined ? 'item-' + el.dataset.item : null, d = ui.dlg;
+      if (k && d.errs?.[k] && !itemProblem(d.draft.items[Number(el.dataset.item)], Number(el.dataset.item))) {
+        delete d.errs[k]; $('f-' + k)?.removeAttribute('aria-invalid'); const b = $('e-' + k); if (b) { b.hidden = true; b.innerHTML = ''; }
+      }
+    },
+    check: (d, r) => {
+      const e = {owner:r || d.owner ? '' : 'Pick who paid.', sname:CHECK.sname(d.sname), merchant:CHECK.merchant(d.merchant), date:CHECK.date(d.date),
+        tax:CHECK.tax(d.tax), fees:CHECK.fees(d.fees), tip:CHECK.tip(d.tip), total:CHECK.total(d.total), items:d.items.length ? '' : 'Add at least one item.'};
+      d.items.forEach((it, i) => { e['item-' + i] = itemProblem(it, i); });
+      return e;
+    },
+    save: async (d, r) => {
+      const onSplit = new Set(d.items.flatMap(it => it.people));
+      return need(await sb.rpc('admin_save_split', {p_event_id:r ? r.event_id : null, p_user_id:Number(d.owner) || null, p_split:{
+        name:d.sname, merchant:d.merchant, date:d.date, tax_cents:cents(d.tax) || 0, fees_cents:cents(d.fees) || 0, tip_cents:cents(d.tip) || 0, total_cents:cents(d.total),
+        items:d.items.map(it => ({description:it.desc, price_cents:cents(it.price), contact_ids:it.people.map(Number)})),
+        paid:Object.fromEntries(Object.entries(d.paid).filter(([c, m]) => m && onSplit.has(c)).map(([c, m]) => [c, Number(m)]))}}));
+    },
+    errField: m => { const n = /^Item (\d+):/.exec(m); return n ? 'item-' + (n[1] - 1) : /split name/i.test(m) ? 'sname' : /merchant/i.test(m) ? 'merchant'
+      : /date/i.test(m) ? 'date' : /who paid|payer can't be changed|payer no longer/i.test(m) ? 'owner' : /at least one item/i.test(m) ? 'items' : null; },
+    canEdit: r => r.receipts.length === 1 ? '' : r.receipts.length ? 'This split has more than one receipt, so it can\'t be edited here. You can still view or delete it.'
+      : 'This split has no receipt, so there\'s nothing to edit. You can delete it.',
+    canDelete: () => '',
+    deleteText: r => `This permanently deletes the split ${esc(r.event_name)}${r.merchant ? ` (${esc(r.merchant)}, ${esc(day(r.date))})` : ''}: `
+      + `${plural(r.receipts.reduce((t, x) => t + x.items.length, 0), 'item')} and the paid records for ${plural(r.others.length, 'person', 'people')}. `
+      + `It disappears from ${esc(r.owner_name)}'s History. Contacts aren't changed.`,
+    del: async r => need(await sb.rpc('admin_delete_split', {p_event_id:r.event_id})),
+    prepare: rows => rows.map(r => {
+      const receipts = r.receipts || [], people = r.people || [], owed = {};
+      receipts.forEach(rc => Object.entries(owedFor(rc)).forEach(([c, v]) => owed[c] = (owed[c] || 0) + v));
+      const names = Object.fromEntries(people.map(p => [p.contact_id, p.is_self ? 'You' : fullName(p) || 'No name']));
+      const others = people.filter(p => !p.is_self);
+      return {...r, receipts, people, owed, others, paidCount:others.filter(p => p.paid_method_id).length,
+        owner_name:r.user_id ? ownerName(r) : 'No payer', nameOf:id => names[id] || `Contact #${id}`,
+        merchant:receipts.map(x => x.merchant_name).join(' + '), date:receipts[0]?.receipt_date || '',
+        total:receipts.reduce((t, x) => t + x.total_cents + x.tip_cents, 0)};
+    }),
+    live: {owner: d => { d.items.forEach(it => { it.people = []; }); d.paid = {}; }}
+  },
   methods: {
     label:'Payment Methods', one:'payment method', sql:'admin-records',
     lede:'The payment apps contacts can have and payments can be marked with. The six built-in ones are fixed; you can add others.',
@@ -469,7 +669,7 @@ function renderDialog(){
     body = `${d.alert ? `<div class="alert" role="alert">${esc(d.alert)}</div>` : ''}<form id="dlg-form" novalidate>${t.form(d.draft, r)}<button type="submit" hidden></button></form>`;
     acts = `<button class="btn ghost" data-act="close" ${busy}>Cancel</button><button class="btn accent" data-act="save" ${busy}>${d.busy ? 'Saving…' : r ? 'Save changes' : `Add ${t.one}`}</button>`;
   }
-  $('overlay').innerHTML = `<div class="dlg-bg" data-act="bg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+  $('overlay').innerHTML = `<div class="dlg-bg" data-act="bg"><div class="dlg${t.wide ? ' wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
     <header><div><h2 id="dlg-t">${esc(title)}</h2>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}</div><button class="x" data-act="close" aria-label="Close" ${busy}>${I('x')}</button></header>
     <div class="body">${body}</div><div class="acts">${acts}</div></div></div>`;
 }
@@ -508,6 +708,7 @@ function readForm(){
   const lists = {};
   document.querySelectorAll('#dlg-form [data-list]').forEach(el => { (lists[el.dataset.list] ||= []); if (el.checked) lists[el.dataset.list].push(el.value); });
   Object.assign(d, lists);
+  T().read?.(d);
   if (typeof d.email === 'string') d.email = d.email.toLowerCase();
   return d;
 }
@@ -543,7 +744,13 @@ const ACTIONS = {
   bg: (el, e) => { if (e.target === el) closeDialog(); },
   filter: el => { ui.filter = el.dataset.k; renderMain(); document.querySelector(`[data-act="filter"][data-k="${el.dataset.k}"]`)?.focus(); },
   sort: el => { const k = el.dataset.k; ui.sort = ui.sort.key === k ? {key:k, dir:-ui.sort.dir} : {key:k, dir:1}; renderMain(); document.querySelector(`[data-act="sort"][data-k="${k}"]`)?.focus(); },
-  reload: load
+  reload: load,
+  // Splits: add or remove an item row.
+  additem: () => { const d = ui.dlg; if (!d) return; readForm(); d.draft.items.push({desc:'', price:'', people:[]}); delete d.errs?.items;
+    renderDialog(); $('f-item-' + (d.draft.items.length - 1))?.focus(); },
+  rmitem: el => { const d = ui.dlg, i = Number(el.dataset.i); if (!d || d.draft.items.length < 2) return; readForm(); d.draft.items.splice(i, 1);
+    d.errs = Object.fromEntries(Object.entries(d.errs || {}).filter(([k]) => !k.startsWith('item-')));
+    renderDialog(); $('f-item-' + Math.min(i, d.draft.items.length - 1))?.focus(); }
 };
 document.addEventListener('click', e => { const el = e.target.closest?.('[data-act]'); if (el && ACTIONS[el.dataset.act] && !el.disabled) ACTIONS[el.dataset.act](el, e); });
 document.addEventListener('submit', e => { if (e.target.id === 'dlg-form') { e.preventDefault(); save(); } });
@@ -555,6 +762,7 @@ document.addEventListener('input', e => {
     readForm(); T().live[k](d.draft); if (d.errs) delete d.errs[k];
     renderDialog(); $('f-' + k)?.focus(); return;
   }
+  if (d && T().onInput) T().onInput(e.target);
   // Group members: keep the "n contacts picked" count current.
   if (e.target.dataset?.list && d) {
     readForm(); const c = $('l-members')?.querySelector('span'); if (c) c.textContent = `(${plural(d.draft.members.length, 'contact')} picked)`; return;
