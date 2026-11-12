@@ -632,7 +632,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
     <p>Scan a receipt, match items to friends, and track who has paid you back.</p>
     <h2>Screens</h2>
     <div class="jump" id="jump"></div>
-    <p class="fine">Contacts, groups, past splits and who has paid are stored in Supabase. Receipt photos are read in your browser; check the results before splitting. Prepare payment requests here, then review and send in your payment app. New splits stay in this browser and are not saved to History yet.</p>
+    <p class="fine">Contacts, groups, past splits and who has paid are stored in Supabase. Receipt photos are read in your browser; check the results before splitting. Prepare payment requests here, then review and send in your payment app. Tap Save to History on the last screen to save a split; until then it stays in this browser.</p>
   </aside>
   <div class="phone">
     <div class="app" id="app">
@@ -1690,8 +1690,51 @@ V.sent = () => {
       ${linked}${manual.map(manualCard).join('')}
     </details>` : ''}
     ${CFG.preview ? '<p class="fine">Preview only. No requests were sent.</p>' : linked ? '<p class="fine">Finish any pending requests in their payment apps.</p>' : ''}
-    <div class="next two"><button class="btn ghost" data-act="go" data-v="summary">Edit split</button><button class="btn" data-act="${CFG.preview ? 'previewHistory' : 'done'}">${CFG.preview ? 'View preview history' : 'Return home'}</button></div>`;
+    ${!CFG.preview && ui.saveSplitError ? `<p class="alert bad" role="alert">${esc(ui.saveSplitError)}</p>` : ''}
+    <div class="next two"><button class="btn ghost" data-act="go" data-v="summary" ${ui.savingSplit ? 'disabled' : ''}>Edit split</button>${CFG.preview
+      ? '<button class="btn" data-act="previewHistory">View preview history</button>'
+      : `<button class="btn" data-act="saveSplit" ${ui.savingSplit ? 'disabled' : ''}>${ui.savingSplit ? 'Saving…' : ui.saveSplitError ? 'Try again' : 'Save to History'}</button>`}</div>
+    ${CFG.preview ? '' : `<p class="fine" style="text-align:center"><button class="link" data-act="done" ${ui.savingSplit ? 'disabled' : ''}>Not now, keep it in this browser</button></p>`}`;
 };
+
+/* ---------- saving a finished split to History (supabase/save-splits.sql) ----------
+   save_my_split() stores the receipt, items, each person's exact share (from calc(), so History
+   matches the requests) and everyone as "not paid yet". The draft keeps a random saveKey, sent with
+   it: tapping twice, or retrying after a lost answer, returns the split already saved instead of a copy. */
+function splitForSaving(d){
+  const c = calc(d), shares = {};
+  d.people.forEach(p => {
+    const contactId = p.me ? S.selfContactId : p.contactId;
+    if (!contactId) throw new Error(`${p.name} isn't in your contacts. Tap Edit split and add them from Contacts.`);
+    c.lines[p.id].forEach(l => (shares[l.itemId] ||= []).push({contact_id:Number(contactId), share_cents:l.share}));
+  });
+  const today = new Date(), date = today.toLocaleDateString('en-CA');
+  const tipPct = d.tipMode === 'percent' ? Number(d.tipPct) || 0 : c.subtotal ? Math.round(c.tip * 10000 / c.subtotal) / 100 : 0;
+  return {client_key:d.saveKey, name:'Split on ' + today.toLocaleDateString('en-US', {month:'short', day:'numeric'}), merchant:(d.merchant || '').trim(), date,
+    tax_cents:d.tax, fees_cents:d.fees, tip_cents:c.tip, tip_percent:Math.min(tipPct, 999.99), total_cents:d.printed,
+    items:d.items.map(it => ({description:(it.name || '').trim(), price_cents:it.price, shares:shares[it.id] || []}))};
+}
+async function saveSplitToHistory(){
+  if (ui.savingSplit || CFG.preview || !sb) return;
+  const d = S.draft;
+  d.saveKey ||= 's-' + (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  save();  // keep the key even if the page is closed while saving
+  ui.savingSplit = true; ui.saveSplitError = ''; render();
+  try {
+    need(await sb.rpc('save_my_split', {p_split:splitForSaving(d)}));
+    if (S.draft !== d) return;  // the user started something else meanwhile
+    stopCamera(); cancelScan(); clearPhoto(); ui.scanText = '';
+    ui.savingSplit = false; S.draft = newDraft();
+    go('history'); toast('Saved to History.');
+    S.loading = true; render(); loadAll();
+  } catch(e) {
+    ui.savingSplit = false;
+    ui.saveSplitError = /failed to fetch|network|load failed/i.test(e.message) ? OFFLINE
+      : /save_my_split|schema cache/i.test(e.message) ? 'Saving needs a database update: run supabase/save-splits.sql in the Supabase SQL Editor. Your split is still here.'
+      : `Couldn't save to History: ${e.message}`;
+    render();
+  }
+}
 
 /* ---------- live regions (updated while typing without losing focus) ---------- */
 const LIVE = {
@@ -2429,6 +2472,7 @@ function go(v){
   if (v !== 'profile' && S.view === 'profile') { ui.profile = {}; ui.returnToReview = false; }
   if (v === 'people') v = 'assign'; // Older drafts and bookmarks used a separate people step.
   if (v !== 'summary') ui.sendError = '';
+  if (v !== 'sent') ui.saveSplitError = '';
   if (v !== 'assign') { ui.contactPicker = false; ui.contactQuery = ''; }
   if (v !== 'scan') stopCamera();
   if (S.view === 'scanning' && v !== 'scanning') cancelScan();
@@ -2942,6 +2986,7 @@ const A = {
   saveconsent: ds => saveConsent(ds.id),
   send: () => prepareSplitRequests(),
   previewHistory: () => { if (CFG.preview) finishPreviewSplit(); },
+  saveSplit: () => saveSplitToHistory(),
   done: () => { stopCamera(); cancelScan(); clearPhoto(); ui.scanText = ''; go('home'); toast('Split kept in this browser. Use Resume current split to return.'); }
 };
 // Profile: save_my_profile updates the users row and the "You" contact together (supabase/profile.sql).
