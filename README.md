@@ -41,7 +41,7 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 
 ![IOYA system architecture](docs/ioya-architecture.png)
 
-This diagram shows how IOYA is built today. Gray dashed boxes are planned and not built yet. (Profile pictures in Supabase Storage are now built; the diagram still draws them dashed until it is redrawn.) New splits are still kept only in the browser; saving them to the database is also planned.
+This diagram shows how IOYA is built today. Gray dashed boxes are planned and not built yet. (Profile pictures in Supabase Storage are now built; the diagram still draws them dashed until it is redrawn.) New splits are now saved to the database when you tap **Save to History**; the diagram still shows that as planned until it is redrawn.
 
 ## Data Flow Diagrams
 
@@ -117,7 +117,7 @@ Additional per-split methods are **Cash App, Apple Cash and Cash**. Cash App acc
 
 Apple Cash opens a Messages draft for the person's U.S. mobile number. On an eligible iPhone, choose + → Apple Cash → enter the amount → Request → send. The text draft is not itself an Apple Cash request. Apple Cash requires eligible Apple devices/accounts in the U.S.; an Android user cannot send one. This does not add Apple Pay merchant checkout, which needs a separate merchant/payment setup. [Apple Cash instructions](https://support.apple.com/en-us/105013), [Apple Pay setup](https://developer.apple.com/help/account/capabilities/configure-apple-pay-on-the-web). Cash needs no electronic contact and creates no external link; arrange collection in person. None of these options automatically mark payment received. Apple Cash reuses the contact's phone; Cash App details entered for a split stay in that local draft. The saved Contacts editor continues to use the methods already configured in Supabase; no lookup rows or SQL have been changed.
 
-Return home preserves the local split and prepared requests; Resume current split reopens them. Editing the split hides stale handoffs until you prepare updated requests. A successful new scan or Type it in replaces the current draft as before. The old prototype QR/code and simulated delivery timers were removed; legacy simulated results are discarded on reload. No SQL migration is needed. New splits still are not saved to History.
+Return home preserves the local split and prepared requests; Resume current split reopens them. Editing the split hides stale handoffs until you prepare updated requests. A successful new scan or Type it in replaces the current draft as before. The old prototype QR/code and simulated delivery timers were removed; legacy simulated results are discarded on reload. **Save to History** on the last screen saves the split to Supabase: the receipt, items, each person's exact share (the same amounts as the payment requests) and everyone as "not paid yet". The draft is then cleared (no more Resume split) and History opens with the new split. If saving fails, the split stays in the browser with a red message and **Try again**; a split is never saved twice, even after a double tap or a reload while saving (each one carries a random save key, `events.client_key`). **Not now, keep it in this browser** keeps the old behavior. Everyone on the split must be in your Contacts. The database function is `save_my_split()` in [`supabase/save-splits.sql`](supabase/save-splits.sql).
 
 **Groups on Contacts:** Choose New group, enter a name and select your contacts. Search narrows the member list without losing selected members. Empty groups are allowed. Tap an existing group to rename it or replace its members. Save reads back the database's row before updating the list; errors keep the entered name/selections, and retrying after a readback failure updates the saved ID instead of creating a duplicate. Delete group asks for confirmation and removes only the group, keeping contacts and past splits. Saved groups remain available when adding people to a split.
 
@@ -232,6 +232,7 @@ The HTTPS address is a new browser origin: its local draft and camera permission
 - "The database needs an update: run supabase/admin-users.sql" on the Users page: run that file once in the SQL Editor.
 - "The database needs an update: run supabase/admin-records.sql" on the Contacts, Groups or Payment Methods page: run that file once in the SQL Editor.
 - "The database needs an update: run supabase/admin-splits.sql" on the Splits page: run that file once in the SQL Editor.
+- "Saving needs a database update: run supabase/save-splits.sql" after tapping Save to History: run that file once in the SQL Editor. Your split stays in the browser until then.
 - No **Maintain** buttons after logging in: the account isn't an admin yet (see "Make an admin account"), or `supabase/admin-login.sql` hasn't been run.
 - The password-reset email has a link instead of a code: add `{{ .Token }}` to the **Reset Password** template (setup step 2 above).
 - The email has an 8-digit code but the app asks for 6: set **Email OTP Length** to `6` (setup step 1 under "Set up account emails").
@@ -308,6 +309,7 @@ supabase/profile.sql   Adds save_my_profile (name and phone for the Profile scre
 supabase/avatars.sql   Profile pictures: the avatars storage bucket and its rules, users.avatar_path, set_my_avatar
 supabase/admin-users.sql  Maintain Users: admin_list_users, admin_save_user, admin_delete_user; links a first login to an admin-added user
 supabase/admin-records.sql  Maintain Contacts, Groups and Payment Methods: admin_list_/save_/delete_ functions for each
+supabase/save-splits.sql  Save to History: events.client_key and save_my_split() for the signed-in user
 supabase/admin-splits.sql  Maintain Splits: admin_list_splits, admin_save_split (whole split at once), admin_delete_split
 supabase/admin-login.sql  users.user_email, users.is_admin, is_admin(); ensure_my_user() keeps user_email current
 supabase/payment-preference.sql  Preferred payment app: profile_payment_accounts.preferred, get/set_my_payment_preference
