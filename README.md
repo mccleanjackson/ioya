@@ -14,26 +14,30 @@ When one person pays a shared restaurant bill, they are left doing math on a rec
 
 ![IOYA entity relationship diagram](docs/ioya-erd.png)
 
-The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
+The same diagram is in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf), and its source is [`docs/ioya-erd.svg`](docs/ioya-erd.svg). It was redrawn in November 2026 to match the current database; the team's original October diagram is kept in [`docs/ioya-erd-original.png`](docs/ioya-erd-original.png) and [`.pdf`](docs/ioya-erd-original.pdf).
 
 **Relationships and cardinality**
 
 | Relationship | Cardinality | Through |
 |---|---|---|
 | Users → Contacts | one-to-many | `Contacts.UserID` |
-| Users → Friend_Groups | one-to-many | `Friend_Groups.UserID` (live database; exported diagram update pending) |
+| Users → Friend_Groups (the owner) | one-to-many | `Friend_Groups.UserID` |
 | Users → Receipts (as the payer) | one-to-many | `Receipts.PayerUserID` |
+| Users → Profile_Payment_Accounts | one-to-zero-or-one | `Profile_Payment_Accounts.UserID` (the payer's own Venmo, PayPal… accounts) |
+| Users → Manual_Payment_Requests | one-to-many | `Manual_Payment_Requests.UserID` |
+| Users → Manual_Payment_Groups | one-to-many | `Manual_Payment_Groups.UserID` (one shared QR code for a split) |
+| Contacts → Manual_Payment_Requests | one-to-many | `Manual_Payment_Requests.ContactID` (the friend the link is for) |
 | Friend_Groups ↔ Contacts | many-to-many | `Group_Members` |
 | Contacts ↔ Payment_Methods | many-to-many | `Contacts_Payment_Method` (stores the username and whether it is preferred) |
 | Events → Receipts | one-to-many | `Receipts.EventID` |
 | Receipts → Line_Items | one-to-many | `Line_Items.ReceiptID` |
 | Contacts ↔ Events | many-to-many | `Participants` |
-| Payment_Methods → Participants (how they paid) | one-to-many | `Participants.PaidMethodID`, empty until the person pays |
+| Payment_Methods → Participants (how they paid) | one-to-zero-or-many | `Participants.PaidMethodID`, empty until the person pays |
 | Contacts ↔ Line_Items | many-to-many | `Item_Assignments` (stores each person's share in cents) |
 
-**How the diagram becomes tables.** The SQL in [`supabase/schema.sql`](supabase/schema.sql) uses the same 11 tables and columns, written in Postgres's lowercase snake_case style: `Users.UserFirstName` becomes `users.user_first_name`, `Contacts_Payment_Method` becomes `contacts_payment_method`, and so on. `IsPreffered` is spelled `is_preferred` in the database. Money is stored as whole cents, so `1959` means $19.59.
+**How the diagram becomes tables.** The SQL in [`supabase/schema.sql`](supabase/schema.sql) uses the same tables and columns, written in Postgres's lowercase snake_case style: `Users.UserFirstName` becomes `users.user_first_name`, `Contacts_Payment_Method` becomes `contacts_payment_method`, and so on. Money is stored as whole cents, so `1959` means $19.59. One table in `schema.sql` is not drawn: `manual_payment_sms`, which is only for an optional text-message feature the live app doesn't use.
 
-**Accounts.** Three columns are not in the ERD yet. `users.auth_user_id` links a row to its Supabase Auth account; it is empty for the sample users in `seed.sql`. `users.avatar_path` names the user's profile picture file in Supabase Storage (empty = no photo). `friend_groups.user_id` records which user owns a group, so each person can create and edit only their own groups.
+**Accounts.** `Users.AuthUserID` (unique) links a row to its Supabase Auth login; it is empty for the sample users in `seed.sql` and for users an admin adds before they log in. `UserEmail` is the login email, `IsAdmin` marks admins, and `AvatarPath` names the profile picture file in Supabase Storage (empty = no photo). `Events.ClientKey` is a random key the app sends with **Save to History** so a split is never saved twice. `Profile_Payment_Accounts.Accounts` and `Manual_Payment_Requests.Data` hold several values in one JSON column.
 
 **The payer is also a contact.** Each user has one row in `contacts` with the same name and phone as their `users` row. That lets the payer be a participant and be assigned items like everyone else, and the app shows that contact as "You."
 
@@ -41,7 +45,7 @@ The original diagram is also in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf).
 
 ![IOYA system architecture](docs/ioya-architecture.png)
 
-This diagram shows how IOYA is built today. Gray dashed boxes are planned and not built yet. (Profile pictures in Supabase Storage are now built; the diagram still draws them dashed until it is redrawn.) New splits are now saved to the database when you tap **Save to History**; the diagram still shows that as planned until it is redrawn.
+This diagram shows how IOYA is built today: the three pages (landing, app, admin) and the login cookies in the browser, Supabase for the database, functions, login and profile pictures, and the Express server on Render for the payment-request links. Its source is [`docs/ioya-architecture.svg`](docs/ioya-architecture.svg).
 
 ## Data Flow Diagrams
 
@@ -121,7 +125,7 @@ Return home preserves the local split and prepared requests; Resume current spli
 
 **Groups on Contacts:** Choose New group, enter a name and select your contacts. Search narrows the member list without losing selected members. Empty groups are allowed. Tap an existing group to rename it or replace its members. Save reads back the database's row before updating the list; errors keep the entered name/selections, and retrying after a readback failure updates the saved ID instead of creating a duplicate. Delete group asks for confirmation and removes only the group, keeping contacts and past splits. Saved groups remain available when adding people to a split.
 
-The editor uses the existing `save_group` and `delete_group` functions from `supabase/private-data.sql`; it needs no new SQL, grants or schema changes. Groups remain private to the signed-in account. The team still needs to update its source ERD and re-export `docs/ioya-erd.pdf` and `.png` to show required `Friend_Groups.UserID` → `Users.UserID` (one user owns many groups). Per `AGENTS.md`, that diagram edit belongs to the human team; the table above records the live database relationship without claiming the current diagram is updated.
+The editor uses the existing `save_group` and `delete_group` functions from `supabase/private-data.sql`; it needs no new SQL, grants or schema changes. Groups remain private to the signed-in account. The ERD shows the owner as `Friend_Groups.UserID` → `Users.UserID` (one user owns many groups).
 
 ## How to Get It Running
 
@@ -266,7 +270,7 @@ Run `npm test` for deterministic receipt-parser checks. These are software check
 3. Open a group, choose Delete group, cancel once, then confirm deletion of your test group. Refresh and confirm the group is gone while contacts and past splits remain. A group should also be selectable in the split's People step without adding duplicate people.
 4. In an authorized live test, confirm the saved `friend_groups.user_id` belongs to the signed-in guest/profile in Supabase Table Editor and clean up test records. The isolated local preview uses a fake database; its refresh checks do not establish live Supabase deployment state.
 
-**AI assistance for groups:** AI implemented the Contacts group editor, member search/selection, save/readback/retry handling, delete confirmation, error/saving states and software checks. Students remain responsible for their required course testing, findings, disclosure and the team-owned ERD update.
+**AI assistance for groups:** AI implemented the Contacts group editor, member search/selection, save/readback/retry handling, delete confirmation, error/saving states and software checks. Students remain responsible for their required course testing, findings and disclosure. The ERD was later redrawn by AI to match the database (see below).
 
 ### Existing database vertical slice
 
@@ -314,7 +318,7 @@ supabase/admin-splits.sql  Maintain Splits: admin_list_splits, admin_save_split 
 supabase/admin-login.sql  users.user_email, users.is_admin, is_admin(); ensure_my_user() keeps user_email current
 supabase/payment-preference.sql  Preferred payment app: profile_payment_accounts.preferred, get/set_my_payment_preference
 supabase/seed.sql      Sample rows for every table
-docs/ioya-erd.pdf      Our ERD (docs/ioya-erd.png is the same diagram for this README)
+docs/ioya-erd.svg      Our ERD (source); ioya-erd.png and .pdf are exports of it. ioya-erd-original.* is the team's October diagram
 .env.example           Template for your .env file
 ```
 
