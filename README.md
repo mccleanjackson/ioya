@@ -37,7 +37,7 @@ The same diagram is in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf), and its source 
 
 **How the diagram becomes tables.** The SQL in [`supabase/schema.sql`](supabase/schema.sql) uses the same tables and columns, written in Postgres's lowercase snake_case style: `Users.UserFirstName` becomes `users.user_first_name`, `Contacts_Payment_Method` becomes `contacts_payment_method`, and so on. Money is stored as whole cents, so `1959` means $19.59. One table in `schema.sql` is not drawn: `manual_payment_sms`, which is only for an optional text-message feature the live app doesn't use.
 
-**Accounts.** `Users.AuthUserID` (unique) links a row to its Supabase Auth login; it is empty for the sample users in `seed.sql` and for users an admin adds before they log in. `UserEmail` is the login email, `IsAdmin` marks admins, and `AvatarPath` names the profile picture file in Supabase Storage (empty = no photo). `Events.ClientKey` is a random key the app sends with **Save to History** so a split is never saved twice. `Profile_Payment_Accounts.Accounts` and `Manual_Payment_Requests.Data` hold several values in one JSON column.
+**Accounts.** `Users.AuthUserID` (unique) links a row to its Supabase Auth login; it is empty for the sample users in `seed.sql` and for users an admin adds before they log in. `UserEmail` is the login email, `IsAdmin` marks admins, and `AvatarPath` names the profile picture file in Supabase Storage (empty = no photo), and `ProfileCode` (unique) is the random code in a shared profile link, `/u/<code>` (empty until the person first taps **Share my profile**). `Events.ClientKey` is a random key the app sends with **Save to History** so a split is never saved twice. `Profile_Payment_Accounts.Accounts` and `Manual_Payment_Requests.Data` hold several values in one JSON column.
 
 **The payer is also a contact.** Each user has one row in `contacts` with the same name and phone as their `users` row. That lets the payer be a participant and be assigned items like everyone else, and the app shows that contact as "You."
 
@@ -263,6 +263,15 @@ The HTTPS address is a new browser origin: its local draft and camera permission
 
 Run `npm test` for deterministic receipt-parser checks. These are software checks, not student-authored usability, accessibility or course-assignment findings. Students should perform and record their own required testing and disclose AI assistance accurately.
 
+### Check profile sharing
+
+1. Log in to a saved profile (guests don't see the Share box). On the **Profile** tab, tap **Share my profile**. A QR code and a link ending in `/u/` plus 10 letters and digits appear.
+2. Tap **Open my page** (or scan the QR code with a phone). The page shows your name, photo and payment apps, with your preferred app first, and nothing else. It works in a private window, without logging in.
+3. Back in the app, tap **Make a new link**, then **Make new link**. The old link now says "This profile link isn't working", and the new one works.
+4. On the live site the QR code uses the site's public address. On your own computer it uses `http://localhost:3001`, so only that computer can open it.
+
+The database side is [`supabase/profile-share.sql`](supabase/profile-share.sql): run it once in the SQL Editor. Until then, the Share screen says to run it.
+
 ### Check group editing
 
 1. On Contacts, create a group with two test contacts, refresh and check its name/members. Rename it, replace a member, save and refresh again. Verify searching the picker preserves hidden selections and that an empty group can be saved.
@@ -304,6 +313,8 @@ public/index.html      The landing page (/): hero image, How it works, Log in, a
 public/app.html        The app (/app): screens, styles, and Supabase calls
 public/admin.html      Admin Maintain pages (/admin), admins only
 public/session.js      Keeps the Supabase login in cookies (shared by all three pages)
+public/profile.html    The public profile page a friend sees after scanning a profile QR code (/u/<code>)
+profile-share.js       Server routes for /u/<code>: the page, its details (/api/u/<code>) and the QR picture (/api/u/<code>/qr)
 public/images/         Screenshots of the app used on the landing page
 supabase/schema.sql    Creates the 11 tables, security rules and contact/group functions (drops existing tables first)
 supabase/contacts-sync.sql  Adds just the contact functions to a project set up before they existed (older version)
@@ -314,6 +325,7 @@ supabase/avatars.sql   Profile pictures: the avatars storage bucket and its rule
 supabase/admin-users.sql  Maintain Users: admin_list_users, admin_save_user, admin_delete_user; links a first login to an admin-added user
 supabase/admin-records.sql  Maintain Contacts, Groups and Payment Methods: admin_list_/save_/delete_ functions for each
 supabase/save-splits.sql  Save to History: events.client_key and save_my_split() for the signed-in user
+supabase/profile-share.sql  Share my profile: users.profile_code, get_/new_my_profile_code(), read_profile() for the public /u/<code> page
 supabase/admin-splits.sql  Maintain Splits: admin_list_splits, admin_save_split (whole split at once), admin_delete_split
 supabase/admin-login.sql  users.user_email, users.is_admin, is_admin(); ensure_my_user() keeps user_email current
 supabase/payment-preference.sql  Preferred payment app: profile_payment_accounts.preferred, get/set_my_payment_preference

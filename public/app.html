@@ -565,6 +565,15 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .pstats span{font-size:12px;color:var(--muted);font-weight:600}
 .pbox{background:var(--card);border-radius:14px;box-shadow:inset 0 0 0 1.5px var(--line);padding:14px;display:flex;flex-direction:column;gap:10px}
 .pbox p{margin:0}
+.share-box{flex-direction:row;align-items:center;justify-content:space-between;gap:12px}
+.share-box > div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.share-box .btn{flex:none;margin:0}
+.share-box .btn .ic{width:18px;height:18px}
+.share-qr .share-link{width:100%;text-align:left}
+.share-qr .share-link input{font-size:14px}
+.share-qr .next{width:100%}
+.share-qr .next .btn{text-decoration:none}
+@media(max-width:400px){.share-box{flex-direction:column;align-items:stretch}}
 .pbox .acct{display:flex;flex-direction:column;align-items:stretch;gap:12px}
 .pbox .acct b{overflow-wrap:anywhere}
 /* .pbox .acct div (below) makes boxes a column; the button row must win over it */
@@ -686,7 +695,8 @@ const ICONS = {
   applecash:'<path d="M12.2 8.1c.5-1.6 1.9-2.7 3.5-2.9M12 8.2c-1.1-1.4-3.1-1.5-4.3-.4-2.6 2.2-.4 9.7 2.1 10.8 1 .5 1.5-.5 2.3-.5s1.3 1 2.3.5c1.3-.6 2.3-3 2.6-4.4-2.6-.8-2.6-4.6 0-5.3-1.2-1.8-3.7-2-5-.7z"/>',
   cash:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9h.01M18 15h.01"/>',
   none:'<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
-  star:'<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/>'
+  star:'<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/>',
+  qr:'<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/>'
 };
 const I = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
 
@@ -2040,12 +2050,63 @@ function cropEditor(s){
     <div class="next two"><button class="btn ghost" data-act="cropcancel">Cancel</button>
       <button class="btn" data-act="cropdone">Use photo</button></div>`;
 }
+// Profile → Share my profile: a QR code and link to /u/<code>, the public page in public/profile.html.
+// The code comes from get_my_profile_code() (made the first time); new_my_profile_code() replaces it.
+const profileLink = code => location.origin + '/u/' + code;
+async function loadShareCode(fresh){
+  const s = profileState();
+  if (ui.saving) return;
+  ui.saving = true; s.alert = null; s.confirmNewCode = false;
+  render();
+  try {
+    if (fresh || !s.code) {
+      if (CFG.preview) s.code = 'preview2ab';
+      else s.code = need(await sb.rpc(fresh ? 'new_my_profile_code' : 'get_my_profile_code'));
+    }
+    if (fresh) toast('New link made. The old link and QR code no longer work.');
+  } catch (e) {
+    s.alert = /get_my_profile_code|new_my_profile_code|profile_code/i.test(e?.message || '')
+      ? 'Profile sharing isn\'t set up in the database yet. Run supabase/profile-share.sql in the Supabase SQL Editor.'
+      : (e?.message || 'Your profile link couldn\'t be loaded. Try again.');
+  } finally { ui.saving = false; }
+  if (profileState() === s && s.step === 'share') render();
+}
+async function copyProfileLink(){
+  const s = profileState(); if (!s.code) return;
+  try { await navigator.clipboard.writeText(profileLink(s.code)); toast('Profile link copied.'); }
+  catch { toast('Clipboard unavailable. Select the link and copy it.'); document.getElementById('f-share-link')?.select(); }
+}
+function shareProfile(s, page){
+  const busy = ui.saving ? 'disabled' : '';
+  const head = `<div class="sheet-head"><button class="iconbtn" data-act="pstep" aria-label="Back to profile" ${busy}>${I('back')}</button>
+    ${page ? '<h1 class="h">Share my profile</h1>' : '<h2 id="sh-t">Share my profile</h2>'}<span></span></div>`;
+  if (!s.code) return `${head}${alertBox(s)}${s.alert ? `<button class="btn" data-act="pstep" data-step="share" ${busy}>Try again</button>`
+    : '<p class="fine center" role="status">Getting your link…</p>'}`;
+  const link = profileLink(s.code);
+  return `${head}
+    <section class="shared-qr pcard share-qr">
+      <img class="qr" src="/api/u/${esc(s.code)}/qr" alt="QR code for your IOYA profile" width="290" height="290">
+      <p class="fine">Friends scan this with their phone camera to see your name, photo and payment apps. They don't need IOYA.</p>
+      ${alertBox(s)}
+      <label class="field share-link"><span>Your profile link</span>
+        <input id="f-share-link" readonly value="${esc(link)}"></label>
+      <div class="next two"><button class="btn ghost" data-act="copyProfileLink" ${busy}>Copy link</button>
+        <a class="btn" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Open my page</a></div>
+    </section>
+    <p class="fine">Only your name, photo and payment apps are shown. Your phone number, email, contacts and splits stay private.</p>
+    ${s.confirmNewCode ? `<div class="pbox" role="group" aria-label="Make a new link"><p><b>Make a new link?</b></p>
+        <p class="fine">Your current link and QR code will stop working right away. Anyone who saved them will need the new one.</p>
+        <div class="next two"><button class="btn ghost" data-act="newProfileCode" data-cancel="1" ${busy}>Cancel</button>
+          <button class="btn" data-act="newProfileCode" data-confirm="1" ${busy}>${ui.saving ? 'Making…' : 'Make new link'}</button></div></div>`
+      : `<p class="fine center">Shared it with the wrong person? <button class="link" data-act="newProfileCode" ${busy}>Make a new link</button></p>`}`;
+}
 function profileSheet(s,page = false){
   const busy = ui.saving ? 'disabled' : '';
   const create = s.mode === 'create', signin = s.mode === 'signin';
   const reset = s.mode === 'reset', change = s.mode === 'change';
   const steps = n => create ? `<p class="pstepno">Step ${n} of 4</p>` : '';
   if (s.step === 'payments') return `<h1 class="h">Profile</h1>${profilePaymentAccounts(s)}`;
+  if (s.step === 'share') return shareProfile(s, page);
   if (s.step === 'edit' && s.crop) return cropEditor(s);
   if (s.step === 'edit'){
     const me = s.draft || S.me;
@@ -2118,10 +2179,13 @@ function profileSheet(s,page = false){
       <div><b>${money(owed)}</b><span>Owed to you</span></div>
     </div>
     ${page ? profilePaymentAccounts(s) : ''}
+    ${S.account.guest ? '' : `<div class="pbox share-box"><div><b>Share your profile</b>
+        <p class="fine">Show friends a QR code so they can see your name, photo and payment apps.</p></div>
+        <button class="btn small" data-act="pstep" data-step="share" ${busy}>${I('qr')}Share my profile</button></div>`}
     <p class="eyebrow">Account</p>
     ${S.account.guest
       ? `<div class="pbox"><p><b>You're using IOYA as a guest.</b></p>
-          <p class="fine">Your contacts and splits are saved only in this browser. Create a profile to keep them and use IOYA on any device.</p>
+          <p class="fine">Your contacts and splits are saved only in this browser. Create a profile to keep them, use IOYA on any device, and share your profile with a QR code.</p>
           <button class="btn" data-act="pstep" data-step="edit" data-mode="create" ${busy}>Create profile</button></div>
         <p class="fine center">Already have a profile? <button class="link" data-act="pstep" data-step="email" data-mode="signin" ${busy}>Log in</button></p>`
       : `<div class="pbox"><div class="acct"><div><span class="fine">Signed in as</span><b>${esc(S.account.email || '')}</b></div>
@@ -2946,6 +3010,13 @@ const A = {
     document.getElementById('f-photo')?.focus();
   },
   savePayerAccounts: () => savePayerAccounts(),
+  copyProfileLink: () => copyProfileLink(),
+  newProfileCode: ds => {
+    const s = profileState(); if (ui.saving || s.step !== 'share') return;
+    if (ds.confirm) return loadShareCode(true);
+    s.confirmNewCode = ds.cancel ? false : true; render();
+    document.querySelector(s.confirmNewCode ? '[data-act="newProfileCode"][data-confirm]' : '[data-act="newProfileCode"]')?.focus();
+  },
   pstep: ds => {
     if (ui.saving) return;
     const state = profileState();
@@ -2955,6 +3026,8 @@ const A = {
     if (ds.step !== 'email' && ds.step !== 'code') state.draft = null;
     state.paymentDraft = ds.step === 'payments' ? {...S.paymentAccounts} : null;
     state.prefDraft = ds.step === 'payments' ? preferredMethod() : null;
+    state.confirmNewCode = false; state.code = null;
+    if (ds.step === 'share') return loadShareCode(false);
     render();
     const firstPay = ds.add ? PROFILE_METHODS.find(m => !S.paymentAccounts[m]) || 'venmo' : 'venmo';
     document.getElementById({edit:'f-first',email:'f-email',code:'f-code',password:'f-password',payments:'f-pay-' + firstPay}[ds.step] || '')?.focus();
