@@ -127,6 +127,16 @@ Return home preserves the local split and prepared requests; Resume current spli
 
 The editor uses the existing `save_group` and `delete_group` functions from `supabase/private-data.sql`; it needs no new SQL, grants or schema changes. Groups remain private to the signed-in account. The ERD shows the owner as `Friend_Groups.UserID` → `Users.UserID` (one user owns many groups).
 
+**Add someone while splitting:** In Match items, open Add Contacts → New contact. Enter their name, phone and optional payment accounts, then choose Save & add. The existing `save_contact()` function saves them to Contacts before adding them to the current split. A matching contact is reused. Failed saves retain the form; a failed readback retries the saved id rather than creating another contact. Removing the person from the current split keeps their saved contact.
+
+**Import device contacts:** Contacts and the split's Add Contacts picker both offer Import device contacts. Supported browsers on a secure top-level page can open the native contact picker; access is requested only after tapping Choose from device. [Contact Picker API support is limited](https://developer.chrome.com/docs/capabilities/web-apis/contact-picker), so other browsers offer a `.vcf` file exported from their Contacts app. UTF-8 vCard 3.0/4.0 files up to 5 MB and 1,000 contacts are supported; old quoted-printable/base64 name fields need re-exporting. Only the name and first phone number are used. Email addresses, photos and other fields are ignored.
+
+Review imported entries, check individual contacts or Select all, then choose Save selected. Repeated/existing phone numbers (ignoring punctuation and U.S. +1), or matching names when neither entry has a phone, are skipped; existing contact records/payment accounts are not overwritten. Files and unselected contacts stay in tab memory and are discarded when the dialog closes. Selected contacts use the existing owner-scoped contact RPC and readback; partial failures keep completed contacts, and retry reads any saved id before creating another. Imported contacts are available to select for the split; importing never adds a whole address book to a receipt. No new SQL or database permissions are required.
+
+**Software checks and remaining device checks:** Automated checks use fake data. On a supported physical phone, verify the native picker, cancellation and chosen entries. On an iPhone or desktop without native picker support, export a small UTF-8 `.vcf`, review/select entries, save, refresh and verify them in Contacts. Test New contact from Match items, then remove the person and confirm Contacts still retains them. Check your required student testing separately.
+
+**AI assistance for contacts and responsive layout:** AI removed the prototype sidebar, implemented responsive laptop/phone layouts, contact creation from the split, native/file import with explicit review and selection, duplicate/retry handling, documentation and isolated software checks. Real-device contact-picker behavior and live Supabase persistence still require verification; software checks are not student-authored findings.
+
 ## How to Get It Running
 
 You need **Node.js 18 or newer** ([download](https://nodejs.org)) and a Supabase project.
@@ -194,7 +204,7 @@ SUPABASE_ANON_KEY=your-anon-public-key
 npm start
 ```
 
-Open **http://localhost:3001** for the landing page, or **http://localhost:3001/app** for the app. On a laptop the app appears in a phone frame, with a list of screens on the left.
+Open **http://localhost:3001** for the landing page, or **http://localhost:3001/app** for the app. The app uses a spacious workspace with top navigation on laptops and a full-screen layout with bottom navigation on phones. The prototype screen-jump sidebar and technical storage notes have been removed.
 
 #### Make an admin account
 

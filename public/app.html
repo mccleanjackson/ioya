@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-/* Layout: a phone-frame prototype on a desk surface, with a screen index beside it on wide screens; full-bleed app on phones. */
+/* Responsive app: full-width on phones, spacious workspace on laptops. */
 :root{
   --desk:#E8EBF0; --paper:#FAFBFC; --card:#FFFFFF; --ink:#15171C; --muted:#5C6371; --line:#D9DEE6;
   --accent:#CC6FCC; --accent-ink:#FFFFFF; --accent-soft:#F6E5F6;
@@ -76,34 +76,12 @@ button{cursor:pointer;background:none;border:0;padding:0}
 :focus-visible{outline:2px solid var(--pen);outline-offset:2px;border-radius:6px}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 
-.stage{display:flex;gap:56px;justify-content:center;align-items:center;padding:32px 16px;min-height:100vh}
-.aside{width:260px;display:flex;flex-direction:column;gap:18px}
-.aside h1{font-family:var(--f-logo);font-size:28px;margin:0;line-height:1;letter-spacing:.01em}
-.aside h1 span{color:var(--accent)}
-.aside .aside-logo{display:block;width:220px;height:100px;object-fit:cover;object-position:center;margin-inline:auto}
-.aside p{margin:0;color:var(--muted)}
-.aside h2{font:600 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:6px 0 0}
-.jump{display:flex;flex-direction:column;gap:2px;position:relative}
-.jump::before{content:"";position:absolute;z-index:0;pointer-events:none;left:0;right:0;top:var(--jump-highlight-top,0px);height:var(--jump-highlight-height,0px);border-radius:8px;background:var(--card);box-shadow:inset 3px 0 0 var(--accent);transform-origin:center}
-.jump.jump-ready::before{transition:top .4s cubic-bezier(.2,1.12,.3,1),height .3s cubic-bezier(.2,.8,.2,1)}
-.jump.jump-squash::before{animation:jump-highlight-squash .4s cubic-bezier(.2,.8,.2,1)}
-@keyframes jump-highlight-squash{0%,100%{transform:scaleY(1)}34%{transform:scaleY(1.035)}66%{transform:scaleY(.98)}}
-.jump button{display:flex;justify-content:space-between;gap:10px;text-align:left;padding:8px 10px;border-radius:8px;color:var(--ink);position:relative;z-index:1}
-.jump button:hover:not(.on){background:var(--card)}
-.jump button.on{background:transparent;box-shadow:none}
-.jump small{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
-.aside .reset{align-self:flex-start;font-size:13px;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
-
-.phone{width:390px;max-width:100%;height:min(820px,calc(100vh - 64px));min-height:640px;border:10px solid var(--bezel);border-radius:46px;background:var(--paper);box-shadow:var(--shadow);overflow:hidden;position:relative;flex:none}
+.stage{padding:0;min-height:0;display:block}
+.phone{width:100%;max-width:none;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:0;border:0;border-radius:0;background:var(--paper);overflow:hidden;position:relative}
 .app{position:relative;height:100%;display:grid;grid-template-rows:1fr auto;overflow:hidden}
 .screen{overflow-y:auto;overflow-x:hidden;padding:22px 18px 28px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth}
 /* Keep every block at its full height so long lists scroll instead of being squeezed and clipped. */
 .screen > *{flex-shrink:0}
-@media (max-width:760px){
-  .stage{padding:0;display:block;min-height:0}
-  .aside{display:none}
-  .phone{width:100%;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:0;border:0;border-radius:0;box-shadow:none}
-}
 
 /* tab bar */
 .tabbar{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--card);padding:6px 6px calc(8px + env(safe-area-inset-bottom,0px));position:relative}
@@ -632,17 +610,44 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .shared-qr .fine{margin:0}
 .request-status{font:700 18px/1.2 var(--f-display);margin:0}
 .request-finish{display:grid;gap:8px}
+.contact-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.import-list{display:grid;gap:6px;max-height:40vh;overflow-y:auto;list-style:none;padding:0;margin:0}
+.import-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.import-row input{width:20px;height:20px;flex:none;accent-color:var(--accent)}
+.import-row span{min-width:0;overflow-wrap:anywhere}
+.import-row small{display:block;color:var(--muted)}
+.import-row .import-error{color:var(--bad)}
+.import-note{padding:12px;border-radius:12px;background:var(--accent-soft);color:var(--ink)}
+@media (min-width:761px){
+  .stage{padding:24px;max-width:1440px;margin:auto}
+  .phone{height:calc(100dvh - 48px);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+  .app{grid-template-rows:auto minmax(0,1fr)}
+  .tabbar{grid-row:1;grid-column:1;border-top:0;border-bottom:1px solid var(--line);padding:8px 24px;gap:8px}
+  .tabbar button{flex-direction:row;justify-content:center;min-height:48px;font-size:14px;gap:10px;border-radius:12px}
+  .tabbar button:hover{background:var(--accent-soft)}
+  .tabbar::before{top:auto;bottom:0;border-radius:3px 3px 0 0}
+  .screen{grid-row:2;grid-column:1;padding:32px max(32px,calc((100% - 1000px)/2));gap:20px;min-width:0;min-height:0}
+  .screen[data-view="review"],.screen[data-view="summary"],.screen[data-view="sent"],.screen[data-view="profile"]{padding-inline:max(32px,calc((100% - 800px)/2))}
+  .screen .h{font-size:36px}
+  .screen .cta{min-height:96px}
+  .screen .board-grid{min-height:180px}
+  .screen .ctable .crow{padding-block:16px}
+  .screen .next{max-width:560px;width:100%;align-self:center}
+  .screen .groups{gap:24px}
+  .sheet{left:50%;right:auto;bottom:auto;top:50%;transform:translate(-50%,-50%);width:min(640px,calc(100% - 64px));max-height:calc(100% - 64px);border-radius:24px;padding:28px;animation:fade .2s}
+  .screen.camera-screen{padding:20px max(32px,calc((100% - 640px)/2));gap:12px}
+  .camera-stage{justify-content:center}
+  .screen.match-screen{padding:24px max(32px,calc((100% - 1000px)/2)) 0}
+  .match-head{padding-inline:0}
+  .match-items{padding:12px 0 24px}
+  .match-picker{border-radius:20px 20px 0 0}
+  .match-screen.picker-open + .tabbar{display:grid}
+  .import-list{max-height:36vh}
+}
 </style>
 </head>
 <body>
 <div class="stage">
-  <aside class="aside">
-    <img class="aside-logo" src="/ioya_logo.png" alt="IOYA">
-    <p>Scan a receipt, match items to friends, and track who has paid you back.</p>
-    <h2>Screens</h2>
-    <div class="jump" id="jump"></div>
-    <p class="fine">Contacts, groups, past splits and who has paid are stored in Supabase. Receipt photos are read in your browser; check the results before splitting. Prepare payment requests here, then review and send in your payment app. Tap Save to History on the last screen to save a split; until then it stays in this browser.</p>
-  </aside>
   <div class="phone">
     <div class="app" id="app">
       <main class="screen" id="screen"></main>
@@ -656,6 +661,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 <!-- Served by server.js from .env, so the Supabase URL and key are never committed. -->
 <script src="/config.js"></script>
 <script src="/session.js"></script>
+<script src="/contact-import.js"></script>
 <script>
 (() => {
 /* ---------- helpers ---------- */
@@ -1337,6 +1343,7 @@ V.contacts = () => `
   ${findBar('c', 'Search names or payment methods', 'Search contacts by first and last name or payment method', contactFilters(), 'Filter by payment method')}
   <div class="clist" data-live="clist">${contactList()}</div>
   <button class="addrow" data-act="sheet" data-s="contact">${I('plus')} Add contact</button>
+  <button class="btn ghost" data-act="importcontacts">${I('contacts')} Import device contacts</button>
   <p class="fine">Your contacts and groups are saved to your account. Pick a group when adding people to a split.</p>`;
 
 V.scan = () => `
@@ -1462,6 +1469,7 @@ V.assign = () => `
   <section id="match-picker" class="match-picker" role="dialog" aria-labelledby="match-picker-title" ${ui.contactPicker ? '' : 'hidden'}>
     <header class="match-picker-head"><h2 id="match-picker-title">Add Contacts</h2><button class="link" data-act="closePicker">Done</button></header>
     <label class="search">${I('search')}<input id="contact-query" data-in="contact-query" value="${esc(ui.contactQuery)}" placeholder="Search contacts or groups" aria-label="Search contacts or groups" autocomplete="off"></label>
+    <div class="contact-tools"><button class="btn small ghost" data-act="newSplitContact">${I('plus')} New contact</button><button class="link" data-act="importcontacts">Import device contacts</button></div>
     <div id="match-picker-list" class="match-picker-list">${ui.contactPicker ? pickerResults() : ''}</div>
   </section>`;
 
@@ -2268,12 +2276,13 @@ function sheetHTML(){
   let body = '';
   if (s.type === 'profile') body = profileSheet(s);
   if (s.type === 'contact'){
-    const c = S.contacts.find(x => x.id === s.id) || {first:'', last:'', phone:'', methods:[]};
+    const c = s.draft || S.contacts.find(x => x.id === s.id) || {first:'', last:'', phone:'', methods:[]};
     const methods = S.payMethods.filter(m => m.name !== 'Cash');
     const cashMethod = S.payMethods.find(m => m.name === 'Cash');
     const has = id => c.methods.find(x => x.id === id);
     const prefId = (c.methods.find(x => x.preferred) || {}).id;
     body = `<h2 id="sh-t">${s.id ? 'Edit ' + esc(c.name) : 'New contact'}</h2>
+      ${s.addToSplit ? '<p class="fine">Save this person to your Contacts and add them to this split.</p>' : ''}
       <p class="eyebrow">General Info</p>
       <div class="slot-m" style="grid-template-columns:1fr 1fr">
         <label class="field"><span>First Name:</span><input id="f-first" value="${esc(c.first)}" autocomplete="off"></label>
@@ -2285,13 +2294,14 @@ function sheetHTML(){
         <label class="field" style="flex:1"><span>${esc(m.name)}:</span><input id="f-m-${m.id}" value="${esc(has(m.id)?.username || '')}" placeholder="${esc(PROFILE_HINTS[METHOD_KEY[m.name]] || 'Account details')}" autocomplete="off"></label>
         <label class="checkrow" style="padding-top:18px"><input type="radio" name="f-pref" id="f-pref-${m.id}" value="${m.id}" ${prefId === m.id ? 'checked' : ''}> Preferred</label></div>`).join('')}
       ${cashMethod ? `<div class="frow" style="gap:10px"><div class="field" style="flex:1"><span>Cash:</span></div><label class="checkrow" style="padding-top:18px"><input type="checkbox" id="f-cash-enabled" data-cash-available ${has(cashMethod.id) ? 'checked' : ''}> Available</label><label class="checkrow" style="padding-top:18px"><input type="radio" name="f-pref" id="f-pref-${cashMethod.id}" data-cash-preferred value="${cashMethod.id}" ${prefId === cashMethod.id ? 'checked' : ''}> Preferred</label></div>` : ''}
-      <p class="fine" id="f-err" role="alert" hidden></p>
-      <div class="next two">${s.id ? `<button class="btn ghost" data-act="delcontact" data-id="${s.id}" ${ui.saving ? 'disabled' : ''}>Delete</button>` : `<button class="btn ghost" data-act="close">Cancel</button>`}
-        <button class="btn" data-act="savecontact" data-id="${s.id || ''}" ${ui.saving ? 'disabled' : ''}>${ui.saving ? 'Saving…' : 'Save'}</button></div>`;
+      <p class="fine" id="f-err" role="alert" ${s.error ? '' : 'hidden'}>${esc(s.error || '')}</p>
+      <div class="next two">${s.id && !s.addToSplit ? `<button class="btn ghost" data-act="delcontact" data-id="${s.id}" ${ui.saving ? 'disabled' : ''}>Delete</button>` : `<button class="btn ghost" data-act="close" ${ui.saving ? 'disabled' : ''}>Cancel</button>`}
+        <button class="btn" data-act="savecontact" data-id="${s.id || ''}" ${ui.saving ? 'disabled' : ''}>${ui.saving ? 'Saving…' : s.addToSplit ? 'Save & add' : 'Save'}</button></div>`;
   }
   if (s.type === 'group'){
     body = groupSheet(s);
   }
+  if (s.type === 'import') body = importContactsSheet(s);
   if (s.type === 'req'){
     const sp = S.history.find(x => x.id === s.sid), r = sp.requests[s.i];
     const choice = s.payWith || (r.pref && r.pref.id) || S.payMethods[0]?.id;
@@ -2344,21 +2354,6 @@ const scr = document.getElementById('screen');
 let lastView = null;
 let lastActiveTabIndex = null;
 let tabSquashTimer = null;
-function syncJumpHighlight(animate=false){
-  const jump = document.getElementById('jump'), selected = jump?.querySelector('button.on');
-  if (!jump || !selected) return;
-  const canSlide = animate && jump.classList.contains('jump-ready');
-  if (!canSlide) jump.classList.remove('jump-ready','jump-squash');
-  jump.style.setProperty('--jump-highlight-top', `${selected.offsetTop}px`);
-  jump.style.setProperty('--jump-highlight-height', `${selected.offsetHeight}px`);
-  if (!canSlide){ void jump.offsetWidth; jump.classList.add('jump-ready'); }
-  else {
-    jump.classList.remove('jump-squash');
-    void jump.offsetWidth;
-    jump.classList.add('jump-squash');
-    jump.addEventListener('animationend', () => jump.classList.remove('jump-squash'), {once:true});
-  }
-}
 let lastFlowStep = null;
 let flowProgressFrame = null;
 let flowStartWidths = null;
@@ -2474,9 +2469,14 @@ function sizeRequestNote(el){
 function sizeRequestNotes(){
   document.querySelectorAll('.request-note').forEach(sizeRequestNote);
 }
+function syncTabIndicator(){
+  const bar=document.getElementById('tabbar'), active=bar?.querySelector('button.on');
+  if(!active)return;
+  bar.style.setProperty('--tab-indicator-left', `${active.offsetLeft + active.offsetWidth * .3}px`);
+  bar.style.setProperty('--tab-indicator-width', `${active.offsetWidth * .4}px`);
+}
 function render(){
   const v = S.view;
-  const changedView = v !== lastView;
   const stripScroll = v === lastView ? document.getElementById('match-strip')?.scrollLeft : 0;
   const itemScroll = v === lastView ? document.getElementById('match-items')?.scrollTop : 0;
   scr.classList.toggle('match-screen', v === 'assign');
@@ -2509,10 +2509,7 @@ function render(){
       return `<button class="${k === 'split' ? 'scan-tab ' : ''}${on ? 'on' : ''}" data-act="tab" data-v="${k}" ${on ? 'aria-current="page"' : ''}>${icon}${label}</button>`; }).join('');
   const activeTab = tabbar.querySelector('button.on');
   const activeTabIndex = [...tabbar.children].indexOf(activeTab);
-  if (activeTab){
-    tabbar.style.setProperty('--tab-indicator-left', `${activeTab.offsetLeft + activeTab.offsetWidth * .3}px`);
-    tabbar.style.setProperty('--tab-indicator-width', `${activeTab.offsetWidth * .4}px`);
-  }
+  syncTabIndicator();
   tabbar.classList.add('tab-ready');
   if (lastActiveTabIndex !== null && activeTabIndex !== lastActiveTabIndex){
     tabbar.classList.remove('tab-squash');
@@ -2523,9 +2520,7 @@ function render(){
   }
   lastActiveTabIndex = activeTabIndex;
   document.getElementById('overlay').innerHTML = sheetHTML() + (ui.toast ? `<div class="toast" role="status">${esc(ui.toast)}</div>` : '');
-  document.getElementById('jump').innerHTML = [['home','Home','—'],['history','History','—'],['scan','Scan receipt','R1 R4'],['review','Check items','R2 R3 R11'],['assign','Match items','R5–R8'],['summary','Review & send','R12–R17'],['sent','Payment requests','R18'],['contacts','Contacts','—'],['profile','Profile','—']]
-    .map(([k, label, r]) => `<button class="${k === v ? 'on' : ''}" data-act="jump" data-v="${k}"><span>${label}</span><small>${r}</small></button>`).join('');
-  syncJumpHighlight(changedView);
+  scr.dataset.view = v;
   if (CFG.preview && v === 'home') scr.insertAdjacentHTML('afterbegin',
     '<div class="alert ok"><b>Local IOYA preview</b>Try the redesigned split with fictional contacts.<button class="link" data-act="previewSplit">Try an example split</button></div>');
   if (v === 'scan' && ui.cameraOpen) attachCameraPreview();
@@ -2931,6 +2926,18 @@ const A = {
     matchButton('matchPerson', activeMatchPerson()?.id)?.focus({preventScroll:true});
   },
   addc: ds => addMatchContacts([ds.id]),
+  newSplitContact: () => {
+    if (S.draft.people.length >= 12) return toast('A split can have up to 12 people.');
+    const words = ui.contactQuery.trim().split(/\s+/);
+    ui.sheet = {type:'contact',id:null,addToSplit:true,draft:{first:words.shift() || '',last:words.join(' '),phone:'',methods:[]}};
+    render();
+  },
+  importcontacts: () => { if (!ui.saving) { ui.sheet = {type:'import',rows:[],error:'',account:S.userId}; render(); } },
+  pickdevice: () => pickDeviceContacts(),
+  pickcontactfile: () => document.getElementById('contacts-file')?.click(),
+  importall: () => { const s=ui.sheet;if(s?.type==='import' && !ui.saving){s.rows.forEach(r=>{if(!r.duplicate && !r.saved)r.selected=true;});render();} },
+  importnone: () => { const s=ui.sheet;if(s?.type==='import' && !ui.saving){s.rows.forEach(r=>r.selected=false);render();} },
+  saveimports: () => saveImportedContacts(),
   addg: ds => addMatchContacts(S.groups.find(g => g.id === ds.id)?.members || []),
   toggle: ds => {
     const d = S.draft, p = activeMatchPerson();
@@ -2953,7 +2960,7 @@ const A = {
   },
   sheet: ds => { if (ds.s === 'group') return openGroup(ds.id); ui.sheet = {type:ds.s, id:ds.id || null};
     render(); },
-  close: () => { if (ui.sheet?.type === 'unmatched') return A.fixMatches(); if (ui.saving && ui.sheet?.type === 'group') return; ui.sheet = null; render(); },
+  close: () => { if (ui.saving) return; if (ui.sheet?.type === 'unmatched') return A.fixMatches(); ui.sheet = null; render(); },
   savegroup: () => saveGroup(),
   askdeletegroup: () => { if (ui.sheet?.type === 'group' && ui.sheet.id && !ui.saving) { ui.sheet.confirmDelete = true; ui.sheet.error = ''; render(); } },
   keepgroup: () => { if (ui.sheet?.type === 'group' && !ui.saving) { ui.sheet.confirmDelete = false; ui.sheet.error = ''; render(); } },
@@ -3376,7 +3383,79 @@ async function savePayerAccounts(){
 }
 
 // Contacts sync: Supabase functions save_contact / delete_contact (see supabase/contacts-sync.sql).
+function deviceContactsAvailable(){return !!(window.isSecureContext && window.navigator?.contacts?.select && window.top === window.self);}
+function importContactsSheet(s){
+  const selectable=s.rows.filter(r=>!r.duplicate && !r.saved), selected=selectable.filter(r=>r.selected).length;
+  return `<h2 id="sh-t">Import contacts</h2>
+    <p class="fine">Choose contacts from your device or a .vcf file exported from your Contacts app. Review them here before saving.</p>
+    <p class="fine import-note">Only selected names and one phone number per person are saved to your IOYA account. Existing contacts are kept. Email addresses, photos and other contact details are not imported.</p>
+    <div class="contact-tools">${deviceContactsAvailable() ? `<button class="btn small ghost" data-act="pickdevice" ${ui.saving || s.loading ? 'disabled' : ''}>Choose from device</button>` : '<p class="fine">This browser cannot open device contacts directly. Export a vCard (.vcf) from your Contacts app, then choose it below.</p>'}
+    <button class="btn small ghost" data-act="pickcontactfile" ${ui.saving || s.loading ? 'disabled' : ''}>Choose contact file</button></div>
+    <input id="contacts-file" type="file" accept=".vcf,text/vcard,text/x-vcard" hidden>
+    ${s.error ? `<p class="alert bad" role="alert">${esc(s.error)}</p>` : ''}
+    ${s.loading ? '<p role="status">Reading contacts…</p>' : ''}
+    ${s.rows.length ? `<div class="contact-tools"><button class="link" data-act="importall" ${ui.saving ? 'disabled' : ''}>Select all</button><button class="link" data-act="importnone" ${ui.saving ? 'disabled' : ''}>Clear selection</button><span class="fine" role="status">${selected} selected · ${s.rows.filter(r=>r.saved).length} saved · ${s.rows.filter(r=>r.duplicate).length} already present</span></div>
+    <ul class="import-list">${s.rows.map((r,i)=>`<li><label class="import-row"><input type="checkbox" data-import-row="${i}" ${r.selected && !r.saved ? 'checked' : ''} ${ui.saving || r.saved || r.duplicate ? 'disabled' : ''}><span><b>${esc(r.name)}</b><small>${esc(r.phone || 'No phone number')}</small>${r.duplicate ? '<small>Already in Contacts or repeated in this selection</small>' : r.saved ? '<small>Saved to Contacts</small>' : ''}${r.error ? `<small class="import-error" role="alert">${esc(r.error)}</small>` : ''}</span></label></li>`).join('')}</ul>` : ''}
+    <div class="next two"><button class="btn ghost" data-act="close" ${ui.saving || s.loading ? 'disabled' : ''}>${s.rows.some(r=>r.saved) ? 'Done' : 'Cancel'}</button><button class="btn" data-act="saveimports" ${!selected || ui.saving || s.loading ? 'disabled' : ''}>${ui.saving ? 'Saving contacts…' : `Save selected${selected ? ' ('+selected+')' : ''}`}</button></div>`;
+}
+function stageImportedContacts(s,entries){
+  if(ui.sheet!==s || S.userId!==s.account)return;
+  if(!window.IOYA_CONTACT_IMPORT)throw new Error('The contact importer did not load. Refresh the page and try again.');
+  if(entries.length > 1000)throw new Error('Import up to 1,000 contacts at a time.');
+  const self={first:S.me.first || '',last:S.me.last || '',phone:S.me.phone || ''};
+  s.rows=window.IOYA_CONTACT_IMPORT.prepare(entries,[...S.contacts,self]);
+  s.error=entries.length ? '' : 'No contacts with names were selected.';
+}
+async function pickDeviceContacts(){
+  const s=ui.sheet;if(s?.type!=='import' || ui.saving || s.loading || !deviceContactsAvailable())return;
+  s.loading=true;s.error='';
+  try {
+    // Call within the tap's user activation, before rendering or awaiting anything else.
+    const pending=window.navigator.contacts.select(['name','tel'],{multiple:true});
+    render();
+    const entries=await pending;
+    stageImportedContacts(s,window.IOYA_CONTACT_IMPORT.fromDevice(entries));
+  } catch(e){if(ui.sheet===s && e.name!=='AbortError')s.error='Could not open device contacts. Try a contact file instead.';}
+  finally{s.loading=false;if(ui.sheet===s)render();}
+}
+async function readContactFile(file){
+  const s=ui.sheet;if(s?.type!=='import' || ui.saving || s.loading)return;
+  s.loading=true;s.error='';render();
+  try {
+    if(file.size > 5*1024*1024)throw new Error('Choose a contact file smaller than 5 MB.');
+    if(!/\.vcf$/i.test(file.name))throw new Error('Choose a .vcf file exported from your Contacts app.');
+    const source=await file.text();
+    stageImportedContacts(s,window.IOYA_CONTACT_IMPORT.fromVCard(source));
+  }catch(e){if(ui.sheet===s)s.error=e.message;}
+  finally{s.loading=false;if(ui.sheet===s)render();}
+}
+function storeContact(saved){
+  const i=S.contacts.findIndex(c=>c.id===saved.id);
+  if(i<0)S.contacts.push(saved);else S.contacts[i]=saved;
+}
+async function saveImportedContacts(){
+  const s=ui.sheet;if(s?.type!=='import' || ui.saving || s.loading || s.account!==S.userId)return;
+  const rows=s.rows.filter(r=>r.selected && !r.duplicate && !r.saved);if(!rows.length)return;
+  ui.saving=true;s.error='';render();
+  try {
+    for(const row of rows){
+      if(S.userId!==s.account || ui.sheet!==s)break;
+      row.error='';
+      try {
+        // Retry a failed read using the saved id; never create a second copy.
+        if(!row.savedId)row.savedId=String(need(await sb.rpc('save_contact',{p_contact_id:null,p_first_name:row.first,p_last_name:row.last,p_phone:row.phone,p_methods:[]})));
+        if(S.userId!==s.account || ui.sheet!==s)break;
+        const saved=normContact(need(await sb.from('contacts').select(CONTACT_SELECT).eq('contact_id',Number(row.savedId)).single()));
+        if(S.userId!==s.account || ui.sheet!==s)break;
+        storeContact(saved);row.saved=true;row.selected=false;
+      }catch(e){row.error=row.savedId ? 'Saved, but could not reload. Select Save again to retry.' : `Could not save: ${e.message}`;}
+    }
+    if(s.rows.some(r=>r.error))s.error='Some contacts could not be finished. Saved contacts are kept; try Save selected again for the remaining ones.';
+  }finally{ui.saving=false;if(ui.sheet===s)render();}
+}
 async function saveContact(id){
+  const s=ui.sheet;if(s?.type!=='contact' || ui.saving)return;
+  const account=S.userId;
   const val = k => (document.getElementById(k)?.value || '').trim();
   const err = document.getElementById('f-err');
   const fail = m => { err.hidden = false; err.textContent = m; };
@@ -3394,23 +3473,35 @@ async function saveContact(id){
     if (firstAccountMethod) firstAccountMethod.preferred = true;  // first electronic account becomes preferred
   }
   const draft = {first, last:val('f-last'), phone:val('f-phone')};
+  const contactImport=window.IOYA_CONTACT_IMPORT;
+  const existing=!id && contactImport && S.contacts.find(c=>contactImport.sameContact(c,draft));
+  if(existing){
+    if(!s.addToSplit)return fail('This person is already in Contacts. Open their contact to edit it.');
+    ui.sheet=null;addMatchContacts([existing.id]);render();return;
+  }
+  s.draft={...draft,name:fullName(draft.first,draft.last),methods:methods.map(m=>({id:m.pay_method_id,username:m.username,preferred:m.preferred}))};s.error='';
   ui.saving = true; render();
   try {
-    const newId = need(await sb.rpc('save_contact', {p_contact_id: id ? Number(id) : null, p_first_name:draft.first, p_last_name:draft.last, p_phone:draft.phone, p_methods:methods}));
+    const newId = need(await sb.rpc('save_contact', {p_contact_id: s.savedId ? Number(s.savedId) : id ? Number(id) : null, p_first_name:draft.first, p_last_name:draft.last, p_phone:draft.phone, p_methods:methods}));
+    if(S.userId!==account || ui.sheet!==s)return;
+    s.savedId=String(newId);
     const saved = normContact(need(await sb.from('contacts').select(CONTACT_SELECT).eq('contact_id', newId).single()));
-    const i = S.contacts.findIndex(c => c.id === saved.id);
-    if (i >= 0) S.contacts[i] = saved; else S.contacts.push(saved);
+    if(S.userId!==account || ui.sheet!==s)return;
+    storeContact(saved);
     ui.saving = false; ui.sheet = null;
-    toast(`Saved ${saved.name}.`);
+    if(s.addToSplit){addMatchContacts([saved.id]);ui.matchPersonId=S.draft.people.find(p=>p.contactId===saved.id)?.id;}
+    toast(s.addToSplit ? `Saved ${saved.name} to Contacts and added to the split.` : `Saved ${saved.name}.`);
   } catch(e) {
+    if(S.userId!==account || ui.sheet!==s)return;
     ui.saving = false; render();
     // keep what was typed after the re-render
     Object.entries({'f-first':draft.first, 'f-last':draft.last, 'f-phone':draft.phone}).forEach(([k, v]) => { const el = document.getElementById(k); if (el) el.value = v; });
     methods.forEach(m => { const el = document.getElementById('f-m-' + m.pay_method_id); if (el) el.value = m.username; });
     const cashAvailable = document.getElementById('f-cash-enabled'); if (cashAvailable) cashAvailable.checked = cashEnabled;
     const preferred = prefChoice ? document.getElementById('f-pref-' + prefChoice) : null; if (preferred) preferred.checked = true;
-    const e2 = document.getElementById('f-err'); e2.hidden = false; e2.textContent = `Couldn't save: ${e.message}`;
-  }
+    s.error=s.savedId ? `Contact saved, but could not reload. Try Save again. ${e.message}` : `Couldn't save: ${e.message}`;
+    const e2 = document.getElementById('f-err'); e2.hidden = false; e2.textContent = s.error;
+  }finally{ui.saving=false;}
 }
 async function deleteContact(id){
   const c = S.contacts.find(x => x.id === id);
@@ -3511,6 +3602,17 @@ document.addEventListener('input', e => {
   refresh(); save();
 });
 document.addEventListener('change', e => {
+  if(e.target.id==='contacts-file'){const file=e.target.files[0];e.target.value='';if(file)readContactFile(file);return;}
+  if(e.target.matches('[data-import-row]')){
+    const s=ui.sheet,index=Number(e.target.dataset.importRow),r=s?.type==='import' && s.rows[index];
+    if(r && !ui.saving && !r.saved && !r.duplicate){
+      const top=document.querySelector('.import-list')?.scrollTop || 0;
+      r.selected=e.target.checked;render();
+      const list=document.querySelector('.import-list');if(list)list.scrollTop=top;
+      document.querySelector(`[data-import-row="${index}"]`)?.focus({preventScroll:true});
+    }
+    return;
+  }
   if (e.target.matches('[data-cash-available]') && !e.target.checked) {
     const cashPreferred = document.querySelector('[data-cash-preferred]');
     if (cashPreferred) cashPreferred.checked = false;
@@ -3535,7 +3637,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && ui.cameraOpen){ stopCamera(); if (S.view === 'scan') render(); }
 });
 window.addEventListener?.('pagehide', () => stopCamera());
-window.addEventListener?.('resize', sizeRequestNotes);
+window.addEventListener?.('resize', () => {sizeRequestNotes();syncTabIndicator();syncHistoryFilterGlider();syncContactsFilterGlider();});
 // Photo adjuster: one finger or the mouse drags; two fingers pinch to zoom.
 const cropPointers = new Map();
 document.addEventListener('pointerdown', e => {
