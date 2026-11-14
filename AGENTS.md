@@ -217,6 +217,10 @@ Additional draft request methods are Cash App (`cashapp`, $cashtag/email/U.S. ph
 
 ## Group editor database contract and maintenance
 
+**Responsive app and contact intake:** `public/app.html` now uses full-width mobile layout and a desktop workspace with top navigation; do not restore the prototype testing sidebar or phone bezel. New contact in the Match items picker uses the existing `save_contact()` RPC before adding the returned contact to the draft. Keep typed form state and the saved id after readback failure; protect against duplicate submissions and late results for another account.
+
+`public/contact-import.js` parses UTF-8 vCards and prepares native-picker entries without persisting them. Import selection is transient in `ui.sheet.rows`; save only explicitly selected names/first phones through the existing contact RPC. Never import emails/photos/other fields, overwrite existing contact/payment records, or persist the raw file/unselected rows. Native contact access must occur directly after a user tap and only on supported secure top-level pages. Retain the `.vcf` fallback, selection preview, duplicate skipping, per-row retries and saved-id readback recovery. No new SQL is needed. `test/contact-import.test.js` uses fake data; physical-device and live database checks remain separate.
+
 Contacts now supports creating, editing and deleting groups. **The existing database functions are already live on the shared Supabase project** (`supabase/private-data.sql`), according to the team's setup record. Do not write new SQL, table grants or policies for this feature, and do not ask your human to run any SQL. If something seems to need a database change, stop and ask Jackson first. Isolated software/preview checks do not independently verify the live deployment.
 
 **What already exists in the database**
