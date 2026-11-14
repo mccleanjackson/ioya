@@ -153,7 +153,9 @@ dl.kv dd{margin:0;font-weight:600;overflow-wrap:anywhere}
 .tag.builtin{background:var(--soft);color:var(--muted)}
 .tag.added{background:var(--good-soft);color:var(--good)}
 .danger-box{background:var(--bad-soft);color:#7E1F12;border-radius:12px;padding:12px 14px}
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;box-shadow:0 18px 40px -18px rgba(21,23,28,.5);z-index:30}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;box-shadow:0 18px 40px -18px rgba(21,23,28,.5);z-index:30;animation:toast-in .2s ease-out;transition:opacity .2s ease-out}
+.toast.fadeout{opacity:0}
+@keyframes toast-in{from{opacity:0;transform:translate(-50%,8px)}}
 @media (max-width:860px){.layout{grid-template-columns:minmax(0,1fr)}.side{flex-direction:row;overflow-x:auto}.side a{white-space:nowrap}}
 @media (max-width:560px){.grid2,.grid3{grid-template-columns:1fr}.who-owes{grid-template-columns:1fr auto}.who-owes select{grid-column:1/-1}.item-top input.price{flex-basis:84px}.ppl{margin-left:0}.who span{display:none}.search{min-width:0;max-width:none}}
 </style>
@@ -601,7 +603,7 @@ function splitLive(d){
 
 // ---------- State ----------
 let me = null;
-const ui = {key:null, rows:[], loading:false, error:'', q:'', filter:null, sort:null, dlg:null, toast:'', toastTimer:0};
+const ui = {key:null, rows:[], loading:false, error:'', q:'', filter:null, sort:null, dlg:null, toast:'', toastTimer:0, toastHideTimer:0};
 const T = () => TABLES[ui.key];
 function field(k, label, input, hint){
   const d = ui.dlg, bad = d?.errs?.[k];
@@ -652,7 +654,7 @@ function renderMain(){
 }
 function renderDialog(){
   const d = ui.dlg, t = T();
-  if (!d) { $('overlay').innerHTML = ''; return; }
+  if (!d) { $('overlay').replaceChildren(); return; }
   const r = d.row, busy = d.busy ? 'disabled' : '';
   let title, sub = '', body, acts;
   if (d.mode === 'view') {
@@ -669,16 +671,30 @@ function renderDialog(){
     body = `${d.alert ? `<div class="alert" role="alert">${esc(d.alert)}</div>` : ''}<form id="dlg-form" novalidate>${t.form(d.draft, r)}<button type="submit" hidden></button></form>`;
     acts = `<button class="btn ghost" data-act="close" ${busy}>Cancel</button><button class="btn accent" data-act="save" ${busy}>${d.busy ? 'Saving…' : r ? 'Save changes' : `Add ${t.one}`}</button>`;
   }
-  $('overlay').innerHTML = `<div class="dlg-bg" data-act="bg"><div class="dlg${t.wide ? ' wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+  const template = document.createElement('template');
+  template.innerHTML = `<div class="dlg-bg" data-act="bg"><div class="dlg${t.wide ? ' wide' : ''}" data-dialog-key="${esc(ui.key + ':' + d.mode)}" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
     <header><div><h2 id="dlg-t">${esc(title)}</h2>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}</div><button class="x" data-act="close" aria-label="Close" ${busy}>${I('x')}</button></header>
     <div class="body">${body}</div><div class="acts">${acts}</div></div></div>`;
+  const nextBg = template.content.firstElementChild, nextDlg = nextBg.firstElementChild;
+  const currentDlg = $('overlay').querySelector('.dlg');
+  if (currentDlg && currentDlg.dataset.dialogKey === nextDlg.dataset.dialogKey){
+    currentDlg.className = nextDlg.className;
+    currentDlg.innerHTML = nextDlg.innerHTML;
+  } else $('overlay').replaceChildren(nextBg);
 }
 function renderToast(){
-  const old = document.querySelector('.toast'); if (old) old.remove();
-  if (ui.toast) document.body.insertAdjacentHTML('beforeend', `<div class="toast" role="status">${esc(ui.toast)}</div>`);
+  let node = document.querySelector('.toast');
+  if (ui.toast){
+    if (!node){ node = document.createElement('div'); node.className = 'toast'; node.setAttribute('role','status'); document.body.append(node); }
+    node.classList.remove('fadeout'); node.textContent = ui.toast;
+  } else if (node && !node.classList.contains('fadeout')){
+    node.classList.add('fadeout');
+    clearTimeout(ui.toastHideTimer);
+    ui.toastHideTimer = setTimeout(() => { if (!ui.toast) node.remove(); }, 220);
+  }
 }
 function render(){ renderSide(); renderMain(); renderDialog(); renderToast(); }
-function toast(m){ ui.toast = m; renderToast(); clearTimeout(ui.toastTimer); ui.toastTimer = setTimeout(() => { ui.toast = ''; renderToast(); }, 3500); }
+function toast(m){ ui.toast = m; clearTimeout(ui.toastTimer); clearTimeout(ui.toastHideTimer); renderToast(); ui.toastTimer = setTimeout(() => { ui.toast = ''; renderToast(); }, 3500); }
 
 // ---------- Actions ----------
 async function load(){

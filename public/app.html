@@ -564,7 +564,8 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .center{align-self:center;padding:6px}
 .kv span:first-child{color:var(--muted)}
 
-.toast{position:absolute;left:18px;right:18px;bottom:84px;z-index:9;background:var(--ink);color:var(--paper);padding:12px 14px;border-radius:12px;font-weight:600;font-size:14px;animation:up .2s ease-out}
+.toast{position:absolute;left:18px;right:18px;bottom:84px;z-index:9;background:var(--ink);color:var(--paper);padding:12px 14px;border-radius:12px;font-weight:600;font-size:14px;animation:up .2s ease-out;transition:opacity .2s ease-out}
+.toast.fadeout{opacity:0}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
@@ -2346,7 +2347,7 @@ function sheetHTML(){
       <ul>${unassigned.map(it => `<li>${esc(it.name || 'Untitled item')}</li>`).join('')}</ul>
       <div class="next"><button class="btn" data-act="fixMatches">Back to matching</button></div>`;
   }
-  return `<div class="sheet-bg" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t">${body}</div>`;
+  return `<div class="sheet-bg" data-act="close"></div><div class="sheet" data-sheet-type="${esc(s.type)}" role="dialog" aria-modal="true" aria-labelledby="sh-t">${body}</div>`;
 }
 
 /* ---------- render ---------- */
@@ -2519,7 +2520,7 @@ function render(){
     tabSquashTimer = setTimeout(() => tabbar.classList.remove('tab-squash'), 440);
   }
   lastActiveTabIndex = activeTabIndex;
-  document.getElementById('overlay').innerHTML = sheetHTML() + (ui.toast ? `<div class="toast" role="status">${esc(ui.toast)}</div>` : '');
+  updateOverlay();
   scr.dataset.view = v;
   if (CFG.preview && v === 'home') scr.insertAdjacentHTML('afterbegin',
     '<div class="alert ok"><b>Local IOYA preview</b>Try the redesigned split with fictional contacts.<button class="link" data-act="previewSplit">Try an example split</button></div>');
@@ -2541,7 +2542,43 @@ function go(v){
   if (FLOW.includes(v)) S.draft.at = v;
   S.view = v; render();
 }
-function toast(t){ ui.toast = t; render(); clearTimeout(toast.t); toast.t = setTimeout(() => { ui.toast = null; render(); }, 2600); }
+function updateOverlay(){
+  const overlay = document.getElementById('overlay');
+  if (!overlay) return;
+  const template = document.createElement('template');
+  template.innerHTML = sheetHTML();
+  const nextBg = template.content.querySelector('.sheet-bg');
+  const nextSheet = template.content.querySelector('.sheet');
+  const currentBg = overlay.querySelector('.sheet-bg');
+  const currentSheet = overlay.querySelector('.sheet');
+  if (nextSheet && currentSheet && nextSheet.dataset.sheetType === currentSheet.dataset.sheetType){
+    // Keep the animated shell mounted during same-kind sheet updates.
+    currentSheet.innerHTML = nextSheet.innerHTML;
+  } else {
+    currentBg?.remove(); currentSheet?.remove();
+    if (nextBg) overlay.prepend(nextBg);
+    if (nextSheet) overlay.append(nextSheet);
+  }
+  let toastNode = overlay.querySelector('.toast');
+  if (ui.toast){
+    if (!toastNode){
+      toastNode = document.createElement('div');
+      toastNode.className = 'toast'; toastNode.setAttribute('role','status');
+      overlay.append(toastNode);
+    }
+    toastNode.textContent = ui.toast;
+  } else toastNode?.remove();
+}
+function toast(t){
+  ui.toast = t; clearTimeout(toast.t); clearTimeout(toast.hideTimer); render();
+  toast.t = setTimeout(() => {
+    ui.toast = null;
+    const node = document.querySelector('#overlay .toast');
+    if (!node) return;
+    node.classList.add('fadeout');
+    toast.hideTimer = setTimeout(() => { if (!ui.toast) node.remove(); }, 220);
+  }, 2600);
+}
 function addContact(cid){
   const d = S.draft, c = S.contacts.find(x => x.id === cid);
   if (!c || d.people.length >= 12 || d.people.some(p => p.contactId === cid)) return;
@@ -3480,7 +3517,13 @@ async function saveContact(id){
     ui.sheet=null;addMatchContacts([existing.id]);render();return;
   }
   s.draft={...draft,name:fullName(draft.first,draft.last),methods:methods.map(m=>({id:m.pay_method_id,username:m.username,preferred:m.preferred}))};s.error='';
-  ui.saving = true; render();
+  // Keep the current sheet DOM in place while the RPC runs. Re-rendering here
+  // restarts the sheet's entrance animation, which looks like a second popup.
+  ui.saving = true;
+  const contactSheet = document.querySelector('#overlay');
+  contactSheet?.querySelectorAll('input, button').forEach(el => { el.disabled = true; });
+  const saveButton = contactSheet?.querySelector('[data-act="savecontact"]');
+  if (saveButton) saveButton.textContent = 'Saving…';
   try {
     const newId = need(await sb.rpc('save_contact', {p_contact_id: s.savedId ? Number(s.savedId) : id ? Number(id) : null, p_first_name:draft.first, p_last_name:draft.last, p_phone:draft.phone, p_methods:methods}));
     if(S.userId!==account || ui.sheet!==s)return;
