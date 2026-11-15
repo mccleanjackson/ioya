@@ -2916,7 +2916,7 @@ async function runScan(file){
   const fail = () => {
     if (!active()) return;
     cancelScan(); clearPhoto();
-    ui.scanError = 'There was an error. Try to scan again, upload a photo , or typing the items in.';
+    ui.scanError = 'There was an error. Try to scan again, upload a photo, or type the items in.';
     S.view = 'scan'; render();
   };
   ui.scanProgress = 0; ui.scanStatus = 'Preparing receipt reader…';

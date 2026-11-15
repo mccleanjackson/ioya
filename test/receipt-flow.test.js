@@ -90,7 +90,7 @@ test('cancel during recognition ignores a late result and preserves draft',async
   assert.equal(worker.terminated,1);
 });
 
-const scanFailureMessage = 'There was an error. Try to scan again, upload a photo , or typing the items in.';
+const scanFailureMessage = 'There was an error. Try to scan again, upload a photo, or type the items in.';
 
 test('unreadable photo and OCR failure preserve the draft and offer manual entry',async()=>{
   for(const mode of ['blank','failure']){
