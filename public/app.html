@@ -128,18 +128,15 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .cta .ic{width:34px;height:34px}
 .cta b{display:block;font-family:var(--f-display);font-size:20px;letter-spacing:-.01em}
 .cta small{font-size:13px;opacity:.85}
-.chips{display:flex;gap:8px;flex-wrap:wrap}
-.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;box-shadow:inset 0 0 0 1.5px var(--ink);font-weight:600;font-size:14px}
-.chip .ic{width:16px;height:16px}
 
 .board{background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line);overflow:hidden}
-.board-grid{display:grid;grid-template-columns:1fr 1fr}
-.col{display:flex;flex-direction:column;min-width:0}
-.col + .col{border-left:1.5px solid var(--line)}
-.col-h{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;font:600 12px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;border-bottom:1.5px solid var(--line)}
-.col-h span{border-radius:999px;padding:3px 7px;font-size:11px;letter-spacing:0}
-.col-h.paid span{background:var(--history-paid-soft);color:var(--history-paid)}
-.col-h.unpaid span{background:var(--history-unpaid-soft);color:var(--history-unpaid)}
+.home-bill + .home-bill{border-top:1px solid var(--line)}
+.home-people{background:var(--desk);padding-inline-start:16px}
+.home-people .brow{grid-template-columns:1fr auto}
+.home-people .brow:hover{background:var(--paper)}
+.reminder-card{display:grid;gap:10px;padding:12px;border-radius:12px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.reminder-card header{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.reminder-card textarea{width:100%;min-height:90px;resize:vertical;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);font:inherit}
 .brow{display:grid;grid-template-columns:1fr auto;gap:0 6px;text-align:left;padding:10px 12px;border-bottom:1px dashed var(--line)}
 .brow:hover{background:var(--paper)}
 .brow:last-child{border-bottom:0}
@@ -295,15 +292,13 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .hstatus-bar{display:flex;height:10px;overflow:hidden;border-radius:999px;background:var(--line);gap:3px}
 .hstatus-bar i{display:block;height:100%;min-width:0}
 .hstatus-bar .paid{background:var(--history-paid)}
-.hstatus-bar .part{background:var(--history-part)}
 .hstatus-bar .unpaid{background:var(--history-unpaid)}
 .hstatus-empty{width:100%;background:var(--line)}
-.hstatus-counts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+.hstatus-counts{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:12px}
 .hstatus-count{display:flex;flex-direction:column;gap:2px;min-width:0}
 .hstatus-count span{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;white-space:nowrap}
 .hstatus-count span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
 .hstatus-count.paid span::before{background:var(--history-paid)}
-.hstatus-count.part span::before{background:var(--history-part);box-shadow:inset 0 0 0 1px rgba(21,23,28,.18)}
 .hstatus-count.unpaid span::before{background:var(--history-unpaid)}
 .hstatus-count strong{font:600 22px/1 var(--f-mono)}
 .hstatus-count:not(:last-child){border-right:1px solid var(--line)}
@@ -321,7 +316,6 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-filter-glider.ready{transition:left .4s cubic-bezier(.2,1.12,.3,1),width .3s cubic-bezier(.2,.8,.2,1),background-color .18s ease}
 .history-filter-glider[data-f="all"]{background:var(--accent)}
 .history-filter-glider[data-f="unpaid"]{background:var(--history-unpaid)}
-.history-filter-glider[data-f="part"]{background:var(--history-part)}
 .history-filter-glider[data-f="paid"]{background:var(--history-paid)}
 .history-filter-glider.squash{animation:history-filter-squash .4s cubic-bezier(.2,.8,.2,1)}
 @keyframes history-filter-squash{0%,100%{transform:scaleX(1)}34%{transform:scaleX(1.1)}66%{transform:scaleX(.96)}}
@@ -365,8 +359,6 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-fchips .fchip[data-f="all"].on{background:var(--accent);color:var(--ink);box-shadow:none}
 .history-fchips .fchip[data-f="paid"]{background:var(--history-paid-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-paid)}
 .history-fchips .fchip[data-f="paid"].on{background:var(--history-paid);color:var(--ink);box-shadow:none}
-.history-fchips .fchip[data-f="part"]{background:var(--history-part-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-part)}
-.history-fchips .fchip[data-f="part"].on{background:var(--history-part);color:var(--ink);box-shadow:none}
 .history-fchips .fchip[data-f="unpaid"]{background:var(--history-unpaid-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-unpaid)}
 .history-fchips .fchip[data-f="unpaid"].on{background:var(--history-unpaid);color:var(--ink);box-shadow:none}
 .history-fchips .fchip{position:relative;z-index:1;transition:color .18s ease,background-color .18s ease,box-shadow .18s ease}
@@ -631,7 +623,6 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
   .screen[data-view="review"],.screen[data-view="summary"],.screen[data-view="sent"],.screen[data-view="profile"]{padding-inline:max(32px,calc((100% - 800px)/2))}
   .screen .h{font-size:36px}
   .screen .cta{min-height:96px}
-  .screen .board-grid{min-height:180px}
   .screen .ctable .crow{padding-block:16px}
   .screen .next{max-width:560px;width:100%;align-self:center}
   .screen .groups{gap:24px}
@@ -1019,6 +1010,10 @@ function requestTarget(method, raw){
   if (method === 'sms' && !/^\+1[2-9][0-9]{9}$/.test(phone)) return {error:'Enter a valid U.S. mobile number, including area code.'};
   return phone ? {value:phone} : {error:method === 'zelle' ? 'Enter their enrolled Zelle email or U.S. mobile number.' : method === 'cashapp' ? 'Enter their $cashtag, Cash App email or U.S. mobile number.' : 'Enter a U.S. mobile number, including area code.'};
 }
+function smsDraftUrl(phone, body){
+  const separator = /iPad|iPhone|iPod/.test(navigator.userAgent || '') ? '&' : '?';
+  return `sms:${phone}${separator}body=${encodeURIComponent(body)}`;
+}
 function paymentRequest(r){
   const target = requestTarget(r.method, r.handle);
   if (target.error) return target;
@@ -1040,10 +1035,9 @@ function paymentRequest(r){
     help:'In Cash App, enter this amount → Request, then find this person using their $cashtag, phone or email. Review and send there. You can also create a request link in Cash App and share it; eligible recipients without Cash App can pay that link with Apple Pay or Google Pay.'};
   if (r.method === 'cash') return {target:target.value, detail,
     help:'Arrange to collect this amount in person. No electronic request is created. Mark a saved split paid only after you receive the cash.'};
-  const separator = /iPad|iPhone|iPod/.test(navigator.userAgent || '') ? '&' : '?';
-  if (r.method === 'applecash') return {target:target.value, detail, href:`sms:${target.value}${separator}body=${encodeURIComponent(body)}`, label:'Open Messages for Apple Cash',
+  if (r.method === 'applecash') return {target:target.value, detail, href:smsDraftUrl(target.value, body), label:'Open Messages for Apple Cash',
     help:'On an iPhone, open this conversation, tap + → Apple Cash, enter this amount and choose Request, then send. The message draft alone is not an Apple Cash request. Requires Apple Cash eligibility and compatible Apple devices in the U.S.; Android cannot send Apple Cash requests.'};
-  return {target:target.value, detail, href:`sms:${target.value}${separator}body=${encodeURIComponent(body)}`, label:'Open text message',
+  return {target:target.value, detail, href:smsDraftUrl(target.value, body), label:'Open text message',
     help:'Review the message and add how you want to be paid, then send it in Messages. This does not create a request inside a payment app.'};
 }
 function requestCard(r, index, {showLink = true} = {}){
@@ -1092,16 +1086,13 @@ function flowHead(i, back){
   <span class="step-l">${i+1}/${STEPS.length}</span></div>`;
 }
 
-function allRequests(){
-  const out = [];
-  S.history.forEach(s => s.requests.forEach((r, i) => out.push({s, r, i})));
-  return out;
+function isUnpaid(r){
+  return r.status !== 'paid' && r.amount > 0;
 }
 function splitStatus(s){
-  const paid = s.requests.filter(r => r.status === 'paid').length;
-  if (paid === s.requests.length) return ['paid','Paid'];
-  if (paid === 0) return ['unpaid','Unpaid'];
-  return ['part','Partly paid'];
+  if (!s.requests.some(isUnpaid)) return ['paid','Paid'];
+  if (s.requests.some(r => r.status === 'paid' && r.amount > 0)) return ['part','Partly paid'];
+  return ['unpaid','Unpaid'];
 }
 // Splits `cents` in proportion to `weights` ({contactId: cents}) with largest-remainder rounding, so the parts add up exactly.
 function shareOut(cents, weights){
@@ -1190,37 +1181,82 @@ function receiptSplitDetail(s){
     ${s.receipts.map(receiptCard).join('')}`;
 }
 function historyStatusSummary(){
-  const counts = {paid:0, unpaid:0, part:0};
-  S.history.forEach(s => counts[splitStatus(s)[0]]++);
+  const counts = {paid:0, unpaid:0};
+  S.history.forEach(s => counts[s.requests.some(isUnpaid) ? 'unpaid' : 'paid']++);
   const total = S.history.length;
   const width = cls => total ? `${counts[cls] / total * 100}%` : '0%';
   const bar = total
-    ? ['paid','part','unpaid'].map(cls => counts[cls] ? `<i class="${cls}" style="width:${width(cls)}" aria-hidden="true"></i>` : '').join('')
+    ? ['paid','unpaid'].map(cls => counts[cls] ? `<i class="${cls}" style="width:${width(cls)}" aria-hidden="true"></i>` : '').join('')
     : '<i class="hstatus-empty" aria-hidden="true"></i>';
   return `<section class="hstatus" aria-label="Split status overview">
     <div class="hstatus-title"><b>Payment status</b><small>${total} split${total === 1 ? '' : 's'}</small></div>
-    <div class="hstatus-bar" role="img" aria-label="${counts.paid} paid, ${counts.part} partly paid, ${counts.unpaid} unpaid">${bar}</div>
+    <div class="hstatus-bar" role="img" aria-label="${counts.paid} paid, ${counts.unpaid} unpaid">${bar}</div>
     <div class="hstatus-counts">
       <div class="hstatus-count paid"><span>Paid</span><strong>${counts.paid}</strong></div>
-      <div class="hstatus-count part"><span>Partly paid</span><strong>${counts.part}</strong></div>
       <div class="hstatus-count unpaid"><span>Unpaid</span><strong>${counts.unpaid}</strong></div>
     </div>
   </section>`;
 }
 function reqRow(x, compact){
   const {s, r, i} = x;
-  if (compact) return `<button class="brow" data-act="req" data-sid="${s.id}" data-i="${i}"><b>${esc(r.name)}</b><span class="amt mono">${money(r.amount)}</span><small>${esc(s.merchant)}</small></button>`;
+  if (compact) return `<button class="brow" data-act="req" data-sid="${esc(s.id)}" data-i="${i}"><b>${esc(r.name)}</b><span class="amt mono">${money(r.amount)}</span></button>`;
   const st = r.status === 'paid' ? '<span class="pill paid">Paid</span>' : '<span class="pill unpaid">Unpaid</span>';
   const how = r.status === 'paid' ? `Paid with ${payMethodName(r.paidMethodId)}` : r.pref ? `Prefers ${r.pref.name}` : 'No payment method saved';
   return `<button class="brow" data-act="req" data-sid="${s.id}" data-i="${i}"><span><b>${esc(r.name)}</b><small>${esc(how)}</small></span><span class="amt mono">${money(r.amount)}</span>${st}</button>`;
 }
 
+function unpaidBills(){
+  return S.history.flatMap(s => {
+    const people = s.requests.flatMap((r, i) => isUnpaid(r) ? [{s, r, i}] : []);
+    return people.length ? [{s, people, amount:people.reduce((total, {r}) => total + r.amount, 0)}] : [];
+  });
+}
+
+function textReminders(){
+  const drafts = new Map();
+  const contacts = new Map(S.contacts.map(c => [String(c.id), c]));
+  for (const {s, people} of unpaidBills()){
+    for (const {r} of people){
+      const id = String(r.contactId);
+      if (!drafts.has(id)){
+        const c = contacts.get(id);
+        drafts.set(id, {name:c?.name || r.name, first:c?.first || r.name.split(/\s+/)[0],
+          phone:c?.phone || '', total:0, bills:[]});
+      }
+      const draft = drafts.get(id);
+      draft.total += r.amount;
+      draft.bills.push(`${s.merchant || 'Receipt split'} (${fmtDate(s.date)}): ${money(r.amount)}`);
+    }
+  }
+  return [...drafts.values()].map(d => ({...d, body:`Hi ${d.first}! A quick reminder that your outstanding share is ${money(d.total)}.\n\n${d.bills.join('\n')}\n\nThanks!`}));
+}
+
+function remindersSheet(){
+  const drafts = textReminders();
+  return `<h2 id="sh-t">Text reminders</h2>
+    ${drafts.length ? '<p class="fine">Open each draft in your messaging app to review and send it. If the text doesn’t carry over, copy it here.</p>' : '<p class="fine">There are no outstanding shares to remind anyone about.</p>'}
+    ${drafts.map((d, i) => {
+      const phone = requestTarget('sms', d.phone).value;
+      const href = phone && smsDraftUrl(phone, d.body);
+      const recipient = phone ? phone : d.phone ? 'This contact needs a valid U.S. mobile number.' : 'No phone number saved.';
+      return `<section class="reminder-card" aria-labelledby="reminder-name-${i}">
+        <header><b id="reminder-name-${i}">${esc(d.name)}</b><span class="mono">${money(d.total)}</span></header>
+        <p class="fine">${esc(recipient)}</p>
+        <textarea id="reminder-body-${i}" rows="4" readonly aria-label="Message for ${esc(d.name)}">${esc(d.body)}</textarea>
+        <div class="request-copy">
+          ${href && !CFG.preview ? `<a class="btn small" href="${esc(href)}" aria-label="Open text for ${esc(d.name)}">Open text</a>` : ''}
+          <button class="btn small ghost" data-act="copyReminder" data-index="${i}" aria-label="Copy message for ${esc(d.name)}">Copy message</button>
+        </div>
+      </section>`;
+    }).join('')}
+    ${drafts.length && CFG.preview ? '<p class="fine">Text app links are disabled in this local preview.</p>' : ''}
+    <div class="next"><button class="btn ghost" data-act="close">Close</button></div>`;
+}
+
 const V = {};
 V.home = () => {
-  const all = allRequests();
-  const unpaid = all.filter(x => x.r.status !== 'paid');
-  const paid = all.filter(x => x.r.status === 'paid');
-  const owed = unpaid.reduce((a, x) => a + x.r.amount, 0);
+  const unpaid = unpaidBills();
+  const owed = unpaid.reduce((total, bill) => total + bill.amount, 0);
   return `
   <header class="top home-top">
     <div class="logo"><img src="/ioya_logo.png" alt="IOYA"></div>
@@ -1228,21 +1264,22 @@ V.home = () => {
   <p class="tag">Keep track of the bill with just <mark> one simple system.</mark></p>
   <button class="cta" data-act="start">${I('scan')}<span><b>Pay New Tab</b><small>Click here to split a new receipt!</small></span></button>
   ${S.draft.items.length ? '<button class="link" data-act="resume">Resume current split</button>' : ''}
-  <div class="chips">
-    <button class="chip" data-act="go" data-v="history">${I('history')}History</button>
-    <button class="chip" data-act="go" data-v="contacts">${I('contacts')}Contacts</button>
-  </div>
-  <h2 class="eyebrow">Recent Payments</h2>
-  <section class="board" aria-label="Recent payments">
-    <div class="board-grid">
-      <div class="col"><div class="col-h paid">Paid <span>${paid.length}</span></div>
-        ${paid.slice(0, 6).map(x => reqRow(x, true)).join('') || '<div class="empty">No payments yet</div>'}</div>
-      <div class="col"><div class="col-h unpaid">Unpaid <span>${unpaid.length}</span></div>
-        ${unpaid.slice(0, 6).map(x => reqRow(x, true)).join('') || `<div class="empty">${S.history.length ? 'Everyone has paid you back.' : 'No splits yet'}</div>`}</div>
-    </div>
+  <h2 class="eyebrow" id="unpaid-heading">Unpaid bills</h2>
+  <section class="board" aria-labelledby="unpaid-heading">
+    ${unpaid.map(({s, people, amount}) => {
+      const open = ui.homeOpen === s.id;
+      return `<article class="home-bill">
+        <button class="hhead" data-act="openHomeBill" data-id="${esc(s.id)}" aria-expanded="${open}">
+          <span class="rc">${I('history')}</span>
+          <span class="hm"><b>${esc(s.merchant || 'Receipt split')}</b><small>${fmtDate(s.date)} · ${people.length} unpaid</small></span>
+          <span class="hside mono">${money(amount)}</span><span class="hchev">${I('down')}</span>
+        </button>
+        ${open ? `<div class="hreqs home-people">${people.map(x => reqRow(x, true)).join('')}</div>` : ''}
+      </article>`;
+    }).join('') || `<p class="empty">${S.history.length ? 'Everyone has paid you back.' : 'No splits yet'}</p>`}
     <p class="owed"><span>Friends owe you:</span><span class="mono">${money(owed)}</span></p>
   </section>
-  <p class="fine">${all.length ? 'Select anyone to mark them "paid."' : 'Select "Pay New Tab" to scan a receipt and split it.'}</p>`;
+  <button class="btn ghost" data-act="sheet" data-s="reminders" ${unpaid.length ? '' : 'disabled'}>${I('bell')} Prepare text reminders</button>`;
 };
 
 // Search box and filter chips shared by History (k = 'h') and Contacts (k = 'c'). State lives in ui[k + 'q'] and ui[k + 'f'].
@@ -1254,7 +1291,7 @@ function findBar(k, placeholder, label, filters, filterLabel){
       `<button class="fchip${ui[k + 'f'] === f ? ' on' : ''}" data-act="filter" data-k="${k}" data-f="${f}" aria-pressed="${ui[k + 'f'] === f}">${icon ? I(icon) : ''}${esc(name)}</button>`).join('')}</div>
   </div>`;
 }
-const HFILTERS = [['all','All'],['unpaid','Unpaid'],['part','Partly paid'],['paid','Paid']];
+const HFILTERS = [['all','All'],['unpaid','Unpaid'],['paid','Paid']];
 // Everything a split can be found by, with a label for the parts that aren't already visible on its card.
 function historySearchFields(s){
   return [[s.merchant], [s.eventName], [fmtDate(s.date)], [money(s.you + s.requests.reduce((a, r) => a + r.amount, 0))],
@@ -1271,7 +1308,7 @@ function historyMatch(s, q){
 function historyList(){
   const q = ui.hq.trim();
   const shown = S.history.map(s => ({s, hits:q ? historyMatch(s, q) : []}))
-    .filter(x => x.hits && (ui.hf === 'all' || splitStatus(x.s)[0] === ui.hf));
+    .filter(x => x.hits && (ui.hf === 'all' || x.s.requests.some(isUnpaid) === (ui.hf === 'unpaid')));
   const filtering = q || ui.hf !== 'all';
   const status = HFILTERS.find(([k]) => k === ui.hf)[1].toLowerCase();
   if (!S.history.length) return '<p class="fine">No splits yet. Scan a receipt to start one.</p>';
@@ -2303,6 +2340,7 @@ function sheetHTML(){
     body = groupSheet(s);
   }
   if (s.type === 'import') body = importContactsSheet(s);
+  if (s.type === 'reminders') body = remindersSheet();
   if (s.type === 'req'){
     const sp = S.history.find(x => x.id === s.sid), r = sp.requests[s.i];
     const choice = s.payWith || (r.pref && r.pref.id) || S.payMethods[0]?.id;
@@ -3026,6 +3064,22 @@ const A = {
     document.getElementById(ds.k + 'q')?.focus();
   },
   hopen: ds => { ui.open = ui.open === ds.id ? null : ds.id; render(); },
+  openHomeBill: ds => {
+    ui.homeOpen = ui.homeOpen === ds.id ? null : ds.id;
+    render();
+    [...scr.querySelectorAll('[data-act="openHomeBill"]')].find(button => button.dataset.id === ds.id)?.focus({preventScroll:true});
+  },
+  copyReminder: async ds => {
+    const field = document.getElementById('reminder-body-' + ds.index);
+    if (!field || ui.sheet?.type !== 'reminders') return;
+    try {
+      await navigator.clipboard.writeText(field.value);
+      if (ui.sheet?.type === 'reminders') toast('Message copied.');
+    } catch {
+      field.focus();
+      field.select();
+    }
+  },
   // Vertical slice: "Mark as paid" writes participants.paid_method_id in Supabase, then shows what came back.
   paywith: ds => { ui.sheet.payWith = +ds.m; render(); },
   markpaid: ds => setPaid(+ds.m),
