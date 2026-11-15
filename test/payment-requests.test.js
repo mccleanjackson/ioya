@@ -27,6 +27,69 @@ function split(api){
 }
 const request=(overrides={})=>({name:'Alex',method:'venmo',handle:'@alex-test',amount:1234,note:'Dinner & tea? #1 + tax',...overrides});
 
+function outstandingHistory(api){
+  const bill = (id, merchant, requests) => ({id, merchant, eventName:merchant, requests, date:'2026-11-09', you:1000, receipts:[]});
+  const share = (contactId, name, amount, status='requested') => ({contactId, name, amount, status});
+  api.S.contacts = [{id:'1',name:'Alex',first:'Alex',phone:'(801) 555-0102'},{id:'3',name:'Jordan',phone:''}];
+  api.S.history = [
+    bill('1','Café & Tea',[share(1,'Alex',1225),share(2,'Sam',600,'paid'),share(4,'Morgan',0)]),
+    bill('2','Lunch counter',[share('1','Alex',500),share(3,'Jordan',250)]),
+    bill('3','Pizza place',[share(1,'Alex',200,'paid')]),
+    bill('4','Solo snack',[share(4,'Morgan',0)])
+  ];
+}
+
+test('History combines partly paid bills with unpaid bills and Home expands only outstanding shares',()=>{
+  const api=app();
+  outstandingHistory(api);
+  const all=api.V.history();
+  assert.deepEqual([...all.matchAll(/data-k="h" data-f="([^"]+)"/g)].map(m=>m[1]),['all','unpaid','paid']);
+  assert.match(all,/2 paid, 2 unpaid/);
+  api.ui.hf='unpaid';
+  const unpaid=api.V.history();
+  assert.match(unpaid,/Café &amp; Tea/);
+  assert.match(unpaid,/Partly paid/);
+  assert.match(unpaid,/Lunch counter/);
+  assert.doesNotMatch(unpaid,/Pizza place|Solo snack/);
+  api.ui.hq='Jordan';
+  assert.doesNotMatch(api.V.history(),/Café &amp; Tea/);
+  api.ui.hq='';
+  api.ui.hf='paid';
+  assert.match(api.V.history(),/Pizza place/);
+  assert.doesNotMatch(api.V.history(),/Café &amp; Tea|Lunch counter/);
+  assert.doesNotMatch(api.V.home(),/Alex|Sam|Pizza place|Solo snack/);
+  api.ui.homeOpen='1';
+  assert.match(api.V.home(),/data-sid="1" data-i="0"><b>Alex/);
+  assert.match(api.V.home(),/\$19\.75/);
+  assert.doesNotMatch(api.V.home(),/Sam|Morgan|Jordan/);
+  api.S.history[0].requests[0].status='paid';
+  assert.doesNotMatch(api.V.home(),/Café &amp; Tea|Alex/);
+});
+
+test('Home prepares separate texts by contact, with exact balances and a copy fallback for a missing phone',async()=>{
+  for (const [userAgent, separator] of [['Android','?'],['iPhone','&']]){
+    const api=app({userAgent});
+    outstandingHistory(api);
+    api.A.sheet({s:'reminders'});
+    const sheet=api.sheetHTML();
+    const links=[...sheet.matchAll(/href="(sms:[^"]+)"/g)];
+    assert.equal(links.length,1);
+    const href=links[0][1].replaceAll('&amp;','&');
+    assert.ok(href.startsWith('sms:+18015550102'+separator+'body='));
+    const message=decodeURIComponent(href.split('body=')[1]);
+    assert.match(message,/Hi Alex!.*\$17\.25/);
+    assert.match(message,/Café & Tea.*\$12\.25/);
+    assert.match(message,/Lunch counter.*\$5\.00/);
+    assert.doesNotMatch(message,/Pizza place|Jordan|Sam|\$6\.00/);
+    assert.match(sheet,/Message for Jordan/);
+    assert.match(sheet,/No phone number saved/);
+    api.fallback.value=message;
+    await api.A.copyReminder({index:'0'});
+    assert.deepEqual(api.copied,[message]);
+    assert.equal(api.S.history[0].requests[0].status,'requested');
+  }
+});
+
 test('Venmo opens a charge (not a payment) for one person with exact cents and encoded note',()=>{
   const api=app(), url=new URL(api.paymentRequest(request()).href);
   assert.equal(url.origin,'https://venmo.com');assert.equal(url.searchParams.get('txn'),'charge');
