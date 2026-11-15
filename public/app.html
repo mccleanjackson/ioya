@@ -128,6 +128,9 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .cta .ic{width:34px;height:34px}
 .cta b{display:block;font-family:var(--f-display);font-size:20px;letter-spacing:-.01em}
 .cta small{font-size:13px;opacity:.85}
+.btn.resume-split{background:var(--accent-soft);color:var(--ink);box-shadow:inset 0 0 0 1px var(--accent)}
+.btn.resume-split:hover{background:var(--card)}
+.resume-split .ic{width:16px;height:16px}
 
 .board{background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line);overflow:hidden}
 .home-bill + .home-bill{border-top:1px solid var(--line)}
@@ -170,17 +173,31 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .screen.camera-screen{min-height:0;padding:10px 12px 12px;gap:8px;overflow-y:auto}
 .camera-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .camera-heading .h{margin:0;font-size:21px}
-.camera-heading .link{min-height:44px;font-size:12px}
+.camera-heading .camera-toggle{flex:none;min-height:40px;padding:0 10px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.camera-heading .camera-toggle:hover,.camera-heading .camera-toggle:focus-visible{background:var(--accent-soft)}
+.camera-toggle .ic{width:16px;height:16px}
 .camera-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:10px;background:var(--bad-soft);font-size:13px}
 .camera-banner button{flex:none;min-height:44px}
+.camera-overlay{position:absolute;inset:0 0 auto;pointer-events:none}
+.camera-overlay button{pointer-events:auto}
+.camera-resume{border-radius:0 0 12px 12px;background:var(--accent-soft);box-shadow:inset 0 -1px 0 var(--accent)}
+.camera-resume .btn{width:auto}
+.camera-resume-actions{display:flex;align-items:center;gap:4px}
+.camera-resume-actions .iconbtn{width:32px}
+.camera-resume-actions .iconbtn .ic{width:16px;height:16px}
 .camera-stage{flex:1 1 0;min-height:160px;display:flex;overflow:hidden}
 .camera-preview{width:100%;border-radius:16px;background:var(--finder);overflow:hidden;position:relative;display:grid;place-items:center}
 .camera-preview video{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center}
-.camera-guide{width:68%;height:66%;max-width:360px;border:1px solid rgba(255,255,255,.45);border-radius:12px;pointer-events:none}
+.camera-preview[data-camera-off]{grid-template-rows:auto 1fr;background:color-mix(in srgb,var(--finder) 84%,white)}
+.camera-preview[data-camera-off] .camera-overlay{position:relative;inset:auto;grid-row:1;width:100%}
+.camera-off{grid-row:2;display:grid;justify-items:center;gap:7px;padding:12px;color:white;font-size:14px;font-weight:600;text-align:center}
+.camera-off-icon{display:grid;place-items:center;width:40px;height:40px;border:1px solid rgba(255,255,255,.24);border-radius:12px;background:rgba(255,255,255,.08)}
+.camera-off-icon .ic{width:22px;height:22px}
 .camera-status{position:absolute;bottom:10px;left:10px;right:10px;margin:0;padding:8px 10px;border-radius:10px;background:var(--card);color:var(--ink);font-size:13px;text-align:center}
 .camera-flash{position:absolute;top:10px;right:10px;min-height:44px;padding:0 10px;border-radius:22px;background:var(--card);color:var(--ink);font-size:12px;font-weight:700}
 .camera-tools{margin-top:auto;display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;justify-items:center}
-.camera-tools .camera-action{width:48px;height:48px;border-radius:50%;background:var(--card);display:grid;place-items:center}
+.camera-tools .camera-action{display:grid;justify-items:center;gap:4px;color:var(--ink);font-size:12px;font-weight:600}
+.camera-action-icon{width:48px;height:48px;border-radius:50%;background:var(--card);display:grid;place-items:center}
 .camera-tools .camera-action .ic{width:22px;height:22px}
 .camera-tools .shutter{width:66px;height:66px;border-radius:50%;background:#fff;border:3px solid var(--ink);box-shadow:0 0 0 2px var(--paper),inset 0 0 0 2px var(--ink)}
 .camera-tools .shutter:disabled{opacity:.45;cursor:not-allowed}
@@ -682,6 +699,7 @@ const ICONS = {
   home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
   history:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
   scan:'<path d="M3 8h3.5l2-3h7l2 3H21v12H3z"/><circle cx="12" cy="13.5" r="3.8"/>',
+  cameraOff:'<path d="M3 8v12h16M21 16V8h-3.5l-2-3H8.5M3 3l18 18M9 13.5a3 3 0 0 0 3 3m3-3a3 3 0 0 0-3-3"/>',
   contacts:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14c2.7 0 4.5 1.9 4.5 4.6"/>',
   upload:'<path d="M12 15V4M7 9l5-5 5 5M4 15v5h16v-5"/>',
   pencil:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
@@ -870,7 +888,8 @@ function groupFromRow(g){
   const ids = new Set(S.contacts.map(c => c.id));
   return {id:String(g.group_id), name:g.group_name, members:(g.group_members || []).map(m => String(m.contact_id)).filter(id => ids.has(id))};
 }
-const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', scanText:'', originalNames:{}, cameraOpen:false, cameraLoading:false, cameraError:'', cameraDenied:false, cameraLightMode:null, cameraFlashEnabled:true, capturing:false, contactPicker:false, contactQuery:'', matchPersonId:null, hq:'', hf:'all', cq:'', cf:'all', open:null, saving:false};
+const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', originalNames:{}, cameraOpen:false, cameraLoading:false, cameraError:'', cameraDenied:false, cameraLightMode:null, cameraFlashEnabled:true, capturing:false, contactPicker:false, contactQuery:'', matchPersonId:null, hq:'', hf:'all', cq:'', cf:'all', open:null, saving:false};
+const dismissedCameraDrafts = new WeakSet();
 let cameraSession = null;
 
 /* ---------- receipt text parser ----------
@@ -1270,7 +1289,7 @@ V.home = () => {
   </header>
   <p class="tag">Keep track of the bill with just <mark> one simple system.</mark></p>
   <button class="cta" data-act="start">${I('scan')}<span><b>Pay New Tab</b><small>Click here to split a new receipt!</small></span></button>
-  ${S.draft.items.length ? '<button class="link" data-act="resume">Resume current split</button>' : ''}
+  ${S.draft.items.length ? `<button class="btn small resume-split" data-act="resume">${I('history')}Resume current split</button>` : ''}
   <h2 class="eyebrow" id="unpaid-heading">Unpaid bills</h2>
   <section class="board" aria-labelledby="unpaid-heading">
     ${unpaid.map(({s, people, amount}) => {
@@ -1406,19 +1425,32 @@ V.scan = () => {
   ${ui.cameraDenied ? `<div class="camera-banner"><span role="alert">Camera access is blocked. Change this site's camera permission in your browser settings, then try again.</span>
     <button class="link" data-act="snap">Try again</button></div>` : ''}
   <header class="camera-heading"><h1 class="h">Add your receipt</h1>
-    ${ui.cameraOpen ? '<button class="link" data-act="closeCamera">Close camera</button>' : S.draft.items.length ? '<button class="link" data-act="resume">Resume split</button>' : ''}</header>
+    <button id="camera-toggle" class="btn ghost small camera-toggle" data-act="${ui.cameraOpen ? 'closeCamera' : 'openCamera'}">
+      ${I(ui.cameraOpen ? 'x' : 'scan')}${ui.cameraOpen ? 'Close camera' : 'Open camera'}
+    </button></header>
   ${ui.scanError ? `<div class="alert bad" role="alert"><b>Couldn't scan this receipt.</b>${esc(ui.scanError)}</div>` : ''}
   ${ui.cameraError && !ui.cameraDenied ? `<div class="alert bad" role="alert">${esc(ui.cameraError)}</div>` : ''}
   ${ui.scanError && ui.scanText ? `<details><summary>Text read from receipt</summary><textarea readonly aria-label="Text read from scan" style="width:100%;min-height:160px">${esc(ui.scanText)}</textarea></details>` : ''}
   <div class="camera-stage"><div class="camera-preview">
     ${ui.cameraOpen ? '<video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>' : '<div class="camera-guide" aria-hidden="true"></div>'}
     ${ui.cameraLoading || ui.capturing ? `<p class="camera-status" role="status">${ui.capturing ? 'Taking photo…' : 'Opening camera…'}</p>` : ''}
-    ${ui.cameraOpen && ui.cameraLightMode ? `<button class="camera-flash" data-act="cameraLight" aria-label="Flash at capture" aria-pressed="${ui.cameraFlashEnabled}" ${ui.cameraLoading || ui.capturing ? 'disabled' : ''}>Flash: ${ui.cameraFlashEnabled ? 'On' : 'Off'}</button>` : ''}
+    <div class="camera-overlay">
+      ${S.draft.items.length && !dismissedCameraDrafts.has(S.draft) ? `<div class="camera-banner camera-resume">
+        <span>Resume your current split?</span>
+        <div class="camera-resume-actions">
+          <button class="btn small" data-act="resume">Resume split</button>
+          <button class="iconbtn" data-act="dismissCameraResume" aria-label="Dismiss resume split banner">${I('x')}</button>
+        </div></div>` : ''}
+      ${ui.cameraError || (ui.cameraOpen && ui.cameraLightMode) ? `<div class="camera-preview-controls">
+        ${ui.cameraError ? '<button class="camera-flash camera-native" data-act="nativeCamera">Phone camera</button>' : ''}
+        ${ui.cameraOpen && ui.cameraLightMode ? `<button class="camera-flash" data-act="cameraLight" aria-label="Flash at capture" aria-pressed="${ui.cameraFlashEnabled}" ${ui.cameraLoading || ui.capturing ? 'disabled' : ''}>Flash: ${ui.cameraFlashEnabled ? 'On' : 'Off'}</button>` : ''}
+      </div>` : ''}
+    </div>
   </div></div>
   <div class="camera-tools">
-    <button class="camera-action" data-act="upload" aria-label="Upload photo" title="Upload photo">${I('upload')}</button>
+    <button class="camera-action" data-act="upload" aria-label="Upload photo"><span class="camera-action-icon">${I('upload')}</span><span>Upload</span></button>
     ${ui.cameraOpen ? '<button id="capture-photo" class="shutter" data-act="capturePhoto" aria-label="Capture photo" disabled></button>' : '<button class="shutter" data-act="snap" aria-label="Take photo" title="Take photo"></button>'}
-    <button class="camera-action" data-act="manual" aria-label="Type receipt" title="Type receipt">${I('pencil')}</button>
+    <button class="camera-action" data-act="manual" aria-label="Type receipt"><span class="camera-action-icon">${I('pencil')}</span><span>Type</span></button>
   </div>
   <input type="file" id="file-in" accept="image/*" hidden>
   <input type="file" id="camera-in" accept="image/*" capture="environment" hidden>`;
@@ -1798,7 +1830,7 @@ async function saveSplitToHistory(){
   try {
     need(await sb.rpc('save_my_split', {p_split:splitForSaving(d)}));
     if (S.draft !== d) return;  // the user started something else meanwhile
-    stopCamera(); cancelScan(); clearPhoto(); ui.scanText = '';
+    stopCamera(); cancelScan(); clearPhoto();
     ui.savingSplit = false; S.draft = newDraft();
     go('history'); toast('Saved to History.');
     S.loading = true; render(); loadAll();
@@ -2959,21 +2991,23 @@ async function runScan(file){
   if (ui.capturePreviewUrl) clearCapturePreview();
   stopCamera();
   cancelScan();
-  ui.scanError = ''; ui.scanText = '';
+  ui.scanError = '';
   if (!file.type.startsWith('image/') || file.size > 20 * 1024 * 1024){
     ui.scanError = 'Choose an image smaller than 20 MB. JPG and PNG work best.'; S.view = 'scan'; render(); return;
   }
   clearPhoto(); ui.photo = URL.createObjectURL(file); ui.photoType = file.type;
   const job = {worker:null, timer:null}; scanJob = job;
   const active = () => scanJob === job && S.view === 'scanning';
-  const fail = message => {
+  const fail = () => {
     if (!active()) return;
-    cancelScan(); clearPhoto(); ui.scanError = message; S.view = 'scan'; render();
+    cancelScan(); clearPhoto();
+    ui.scanError = 'There was an error. Try to scan again, upload a photo, or type the items in.';
+    S.view = 'scan'; render();
   };
   ui.scanProgress = 0; ui.scanStatus = 'Preparing receipt reader…';
   // Don't change the previous draft (including its last step) until OCR succeeds.
   S.view = 'scanning'; render();
-  job.timer = setTimeout(() => fail('Reading took too long. Try a smaller, sharper photo, or type the items in.'), 120000);
+  job.timer = setTimeout(fail, 120000);
   try {
     const image = await receiptImage();
     if (!active()) return;
@@ -2986,14 +3020,13 @@ async function runScan(file){
         const status = m.status === 'recognizing text' ? `${job.retrying ? 'Trying another receipt layout' : 'Reading receipt text'}… ${progress}%` : 'Loading receipt reader…';
         if (progress !== ui.scanProgress || status !== ui.scanStatus){ ui.scanProgress = progress; ui.scanStatus = status; render(); }
       },
-      errorHandler: () => fail('The receipt reader stopped. Try again or type the items in.')
+      errorHandler: fail
     });
     if (!active()) { await worker.terminate(); return; }
     job.worker = worker;
     await worker.setParameters({preserve_interword_spaces:'1'});
     const {data} = await worker.recognize(image);
     if (!active()) return;
-    ui.scanText = String(data.text || '').slice(0, 16000);
     let parsed = parseReceiptText(data.text || '');
     if (!parsed.items.length || !parsed.printed || receiptGap(parsed) > 1){
       // Partial reads also need another attempt. Sauvola thresholding is more
@@ -3003,24 +3036,17 @@ async function runScan(file){
       if (!active()) return;
       const retry = await worker.recognize(image, {rotateAuto:true});
       if (!active()) return;
-      const retryText = String(retry.data.text || '');
-      const candidate = parseReceiptText(retryText);
-      const best = preferReceiptRead(parsed, candidate);
-      if (best === candidate || !ui.scanText.trim()) ui.scanText = retryText.slice(0, 16000);
-      parsed = best;
+      parsed = preferReceiptRead(parsed, parseReceiptText(retry.data.text || ''));
     }
-    if (!parsed.items.length) throw new Error(ui.scanText.trim()
-      ? 'Some text was read, but no priced items were found. Open “Text read from receipt” to check it, try a closer photo, or type the items in.'
-      : 'No readable text was found. Move closer so the receipt fills the photo, keep it upright and in focus, then try again or type the items in.');
+    if (!parsed.items.length) return fail();
     const d = newDraft();
     Object.assign(d, parsed, {items:parsed.items.map(it => ({id:uid('i'), ...it})), fromScan:true, scanWarnings:parsed.warnings, at:'review'});
     delete d.warnings;
     S.draft = d;
     ui.originalNames = {}; shortenDraftNames();
-    ui.scanText = ''; // Raw receipt text is diagnostic only, never part of the saved draft.
     cancelScan(); go('review');
-  } catch(e) {
-    fail(e.message || 'The receipt could not be read. Try another image or type the items in.');
+  } catch {
+    fail();
   }
 }
 /* ---------- actions ---------- */
@@ -3070,8 +3096,8 @@ const A = {
   },
   restoreName: ds => { const it = S.draft.items.find(it => it.id === ds.id); if (it && ui.originalNames[it.id]){ it.name = ui.originalNames[it.id]; delete ui.originalNames[it.id]; render(); } },
   upload: () => usePhotoPicker('file-in'),
-  cancelScan: () => { cancelScan(); clearPhoto(); ui.scanText = ''; S.view = 'scan'; render(); },
-  manual: () => { stopCamera(); cancelScan(); clearPhoto(); ui.scanText = ''; const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = ''; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
+  cancelScan: () => { cancelScan(); clearPhoto(); S.view = 'scan'; render(); },
+  manual: () => { stopCamera(); cancelScan(); clearPhoto(); const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = ''; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
   additem: () => { const it = {id:uid('i'), name:'', price:0}; S.draft.items.push(it); render(); document.getElementById('n-' + it.id)?.focus(); },
   delitem: ds => { const d = S.draft; d.items = d.items.filter(it => it.id !== ds.id); delete d.assign[ds.id]; render(); },
   tip: ds => { Object.assign(S.draft, {tipMode:'percent', tipPct:+ds.p, tipInput:''}); refresh(true); save(); },
@@ -3253,7 +3279,7 @@ const A = {
   send: () => prepareSplitRequests(),
   previewHistory: () => { if (CFG.preview) finishPreviewSplit(); },
   saveSplit: () => saveSplitToHistory(),
-  done: () => { stopCamera(); cancelScan(); clearPhoto(); ui.scanText = ''; go('home'); toast('Split kept in this browser. Use Resume current split to return.'); }
+  done: () => { stopCamera(); cancelScan(); clearPhoto(); go('home'); toast('Split kept in this browser. Use Resume current split to return.'); }
 };
 // Profile: save_my_profile updates the users row and the "You" contact together (supabase/profile.sql).
 // Each check returns the exact message shown in red under that field, or '' when it's fine.
