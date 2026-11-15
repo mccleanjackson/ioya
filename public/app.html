@@ -128,9 +128,6 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .cta .ic{width:34px;height:34px}
 .cta b{display:block;font-family:var(--f-display);font-size:20px;letter-spacing:-.01em}
 .cta small{font-size:13px;opacity:.85}
-.chips{display:flex;gap:8px;flex-wrap:wrap}
-.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;box-shadow:inset 0 0 0 1.5px var(--ink);font-weight:600;font-size:14px}
-.chip .ic{width:16px;height:16px}
 
 .board{background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line);overflow:hidden}
 .home-bill + .home-bill{border-top:1px solid var(--line)}
@@ -1267,10 +1264,6 @@ V.home = () => {
   <p class="tag">Keep track of the bill with just <mark> one simple system.</mark></p>
   <button class="cta" data-act="start">${I('scan')}<span><b>Pay New Tab</b><small>Click here to split a new receipt!</small></span></button>
   ${S.draft.items.length ? '<button class="link" data-act="resume">Resume current split</button>' : ''}
-  <div class="chips">
-    <button class="chip" data-act="go" data-v="history">${I('history')}History</button>
-    <button class="chip" data-act="go" data-v="contacts">${I('contacts')}Contacts</button>
-  </div>
   <h2 class="eyebrow" id="unpaid-heading">Unpaid bills</h2>
   <section class="board" aria-labelledby="unpaid-heading">
     ${unpaid.map(({s, people, amount}) => {
