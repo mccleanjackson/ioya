@@ -250,19 +250,14 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .frow .money-in{width:120px}
 .frow .money-in input{padding:7px 10px}
 .frow.strong{font-weight:700}
-.tip{display:flex;flex-direction:column;gap:8px}
-.tip-h{display:flex;justify-content:space-between;font-weight:700}
 .seg{display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border-radius:12px;box-shadow:inset 0 0 0 1.5px var(--line);padding:3px}
 .seg button{padding:8px 0;border-radius:9px;font-weight:600;font-family:var(--f-mono);font-size:14px}
 .seg button.on{background:var(--ink);color:var(--paper)}
-.tip-seg{position:relative;overflow:hidden}
-.tip-glider{position:absolute;z-index:0;top:3px;bottom:3px;left:3px;width:0;border-radius:9px;background:var(--ink);opacity:0;pointer-events:none}
-.tip-glider.ready{transition:left .4s cubic-bezier(.2,1.12,.3,1),width .3s cubic-bezier(.2,.8,.2,1),opacity .15s ease}
-.tip-glider.squash{animation:history-filter-squash .4s cubic-bezier(.2,.8,.2,1)}
-.tip-seg button{position:relative;z-index:1;transition:color .18s ease,background-color .18s ease}
-.tip-seg button.on{background:transparent;color:var(--paper)}
 .grand{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px;border-radius:12px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);font-weight:700}
 .grand .mono{font-size:20px}
+.grand .money-in{width:135px;max-width:48%;font-size:20px}
+.grand input{padding:5px 8px;font-size:inherit}
+.receipt-fees summary{color:var(--muted);font-size:13px;cursor:pointer}
 
 /* shared search */
 .search{display:flex;align-items:center;gap:8px;background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:0 14px}
@@ -731,6 +726,10 @@ function normalizeTipDraft(d){
   // Older drafts cannot distinguish an automatic 18% from a deliberate choice.
   // Keep the receipt and assignments, and let the user choose under the new UI.
   if (!Object.prototype.hasOwnProperty.call(d, 'tipMode')) Object.assign(d, {tipMode:null, tipPct:null, tipInput:''});
+  if (d.tipMode === 'percent' && Array.isArray(d.items)){
+    const tip = tipState(d);
+    Object.assign(d, {tipMode:tip.valid ? 'amount' : null, tipPct:null, tipInput:tip.valid ? cIn(tip.cents) : ''});
+  }
   // Discard old prototype delivery claims; they never represented real requests.
   if (d.results?.some(r => r.handoffVersion !== 1)) { d.results = null; if (d.at === 'sent') d.at = 'summary'; }
   if (d.people) d.people = d.people.filter(p => p.me || p.name.trim());
@@ -1470,7 +1469,7 @@ V.review = () => {
   const d = S.draft;
   return `
   ${flowHead(0, 'scan')}
-  <h1 class="h">Check the items</h1>
+  <h1 class="h">${d.manualEntry ? 'Type receipt items' : 'Check the items'}</h1>
   ${d.fromScan ? `<div class="alert warn"><b>Check every item and amount against your receipt.</b>Scans can miss or misread lines. Check the printed total, tax, fees and tip before continuing.${(d.scanWarnings || []).map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
   ${d.fromScan && ui.photo ? `<details><summary>Compare with receipt photo</summary><img src="${esc(ui.photo)}" alt="Receipt used for this scan" style="max-width:100%;height:auto"></details>` : ''}
   ${d.fromScan && ui.photo ? '<button class="link" data-act="saveReceiptPhoto">Save receipt photo to device</button>' : ''}
@@ -1480,7 +1479,7 @@ V.review = () => {
   <div class="items" id="items">
     ${d.items.map(it => `<div class="irow">
       <input id="n-${it.id}" data-in="iname" data-id="${it.id}" value="${esc(it.name)}" placeholder="Item name" aria-label="Item name">
-      <span class="money-in">$<input id="p-${it.id}" data-in="iprice" data-id="${it.id}" inputmode="decimal" value="${it.price ? cIn(it.price) : ''}" placeholder="0.00" aria-label="Price of ${esc(it.name || 'item')}"></span>
+      <span class="money-in">$<input id="p-${it.id}" data-in="iprice" data-id="${it.id}" inputmode="decimal" enterkeyhint="done" value="${it.price ? cIn(it.price) : ''}" placeholder="0.00" aria-label="Price of ${esc(it.name || 'item')}"></span>
       <button class="iconbtn sm" data-act="delitem" data-id="${it.id}" aria-label="Delete ${esc(it.name || 'item')}">${I('x')}</button>
       ${ui.originalNames[it.id] ? `<details class="original-name"><summary>Original receipt label</summary><p>${esc(ui.originalNames[it.id])}</p><button class="link" data-act="restoreName" data-id="${it.id}">Use original name</button></details>` : ''}
     </div>`).join('') || '<div class="empty">No items yet. Add each line from the receipt.</div>'}
@@ -1488,19 +1487,15 @@ V.review = () => {
   <button class="addrow" data-act="additem">${I('plus')} Add item</button>
   <div class="fees">
     <div class="frow"><span>Subtotal</span><span class="mono" data-live="subtotal"></span></div>
-    <label class="frow"><span>Tax</span><span class="money-in">$<input id="tax" data-in="tax" inputmode="decimal" value="${cIn(d.tax)}"></span></label>
-    <label class="frow"><span>Service fees</span><span class="money-in">$<input id="fees" data-in="fees" inputmode="decimal" value="${cIn(d.fees)}"></span></label>
-    <label class="frow strong"><span>Total on receipt</span><span class="money-in">$<input id="printed" data-in="printed" inputmode="decimal" value="${d.printed ? cIn(d.printed) : ''}" placeholder="0.00"></span></label>
-  </div>
-  <div data-live="match"></div>
-  <div class="tip">
-    <div class="tip-h"><span>Tip <small>(optional)</small></span><span class="mono" data-live="tipamt"></span></div>
-    <div class="seg tip-seg" role="group" aria-label="Tip percentage" data-live="tipchoices"></div>
-    <label class="frow" for="tip-amount"><span>Custom tip amount</span><span class="money-in">$<input id="tip-amount" data-in="tipamount" inputmode="decimal" maxlength="20" value="${esc(d.tipInput || '')}" placeholder="0.00" aria-describedby="tip-note"></span></label>
+    <label class="frow"><span>Tax</span><span class="money-in">$<input id="tax" data-in="tax" inputmode="decimal" enterkeyhint="done" value="${cIn(d.tax)}"></span></label>
+    <label class="frow" for="tip-amount"><span>Tip amount <small>(optional)</small></span><span class="money-in">$<input id="tip-amount" data-in="tipamount" inputmode="decimal" enterkeyhint="done" maxlength="20" value="${esc(d.tipInput || '')}" placeholder="0.00" aria-describedby="tip-note"></span></label>
     <div id="tip-note" data-live="tipnotice"></div>
-    <p class="fine">Percentage tips use the pre-tax subtotal. All tips are shared in proportion to each person's items.</p>
+    <details class="receipt-fees" ${d.fees ? 'open' : ''}><summary>Service fees</summary>
+      <label class="frow"><span>Fee amount</span><span class="money-in">$<input id="fees" data-in="fees" inputmode="decimal" enterkeyhint="done" value="${cIn(d.fees)}"></span></label>
+    </details>
   </div>
-  <div class="grand"><span>Total to split</span><span class="mono" data-live="grand"></span></div>
+  <label class="grand"><span>Total on receipt</span><span class="money-in">$<input id="printed" data-in="printed" inputmode="decimal" enterkeyhint="done" value="${d.printed ? cIn(d.printed) : ''}" placeholder="0.00"></span></label>
+  <div data-live="match"></div>
   <div class="next" data-live="revnext"></div>`;
 };
 
@@ -1848,15 +1843,7 @@ const LIVE = {
   hlist: () => historyList(),
   clist: () => contactList(),
   subtotal: () => money(calc(S.draft).subtotal),
-  tipamt: () => { const t = tipState(S.draft); return t.chosen && t.valid ? money(t.cents) : '—'; },
-  tipchoices: () => '<span class="tip-glider" aria-hidden="true"></span>' + [0,15,18,20,22].map(p => {
-    const selected = S.draft.tipMode === 'percent' && S.draft.tipPct === p;
-    return `<button class="${selected ? 'on' : ''}" data-act="tip" data-p="${p}" aria-pressed="${selected}">${p ? p + '%' : 'No tip'}</button>`;
-  }).join(''),
-  tipnotice: () => { const t = tipState(S.draft); return t.valid
-    ? `<p class="fine">${t.chosen ? '' : 'No tip is added until you choose one.'}</p>`
-    : `<p class="warn-line" role="alert">${t.error}</p>`; },
-  grand: () => money(calc(S.draft).grand),
+  tipnotice: () => { const t = tipState(S.draft); return t.valid ? '' : `<p class="warn-line" role="alert">${t.error}</p>`; },
   match: () => {
     const d = S.draft, c = calc(d);
     if (!d.printed) return `<div class="alert warn"><b>Enter the total printed on the receipt.</b>We use it to check that every item was read correctly.</div>`;
@@ -2006,39 +1993,11 @@ function preparedRequests(){
     return {pid:p.id,name:p.name,...routing,amount:c.totals[p.id],...note,handoffVersion:1};
   });
 }
-function syncTipGlider(animate=false){
-  const wrap = document.querySelector?.('.tip-seg'), glider = wrap?.querySelector('.tip-glider');
-  if (!wrap || !glider) return;
-  const selected = wrap.querySelector('button.on');
-  if (!selected){ glider.style.left = '3px'; glider.style.width = '0px'; glider.style.opacity = '0'; glider.classList.remove('squash'); return; }
-  const canSlide = animate && glider.classList.contains('ready');
-  if (!canSlide) glider.classList.remove('ready','squash');
-  glider.style.left = `${selected.offsetLeft}px`;
-  glider.style.width = `${selected.offsetWidth}px`;
-  glider.style.opacity = '1';
-  if (!canSlide){ void glider.offsetWidth; glider.classList.add('ready'); }
-  else {
-    glider.classList.remove('squash');
-    void glider.offsetWidth;
-    glider.classList.add('squash');
-    glider.addEventListener('animationend', () => glider.classList.remove('squash'), {once:true});
-  }
-}
-function refresh(animateTip=false){
-  let tipSelectionChanged = false;
+function refresh(){
   document.querySelectorAll('[data-live]').forEach(el => {
-    const f = LIVE[el.dataset.live]; if (!f) return;
-    if (el.dataset.live === 'tipchoices' && el.querySelector('.tip-glider')){
-      const previous = el.querySelector('button.on')?.dataset.p || null;
-      const next = S.draft.tipMode === 'percent' ? String(S.draft.tipPct) : null;
-      tipSelectionChanged = previous !== next;
-      el.querySelectorAll('button[data-p]').forEach(button => {
-        const selected = S.draft.tipMode === 'percent' && S.draft.tipPct === Number(button.dataset.p);
-        button.classList.toggle('on', selected); button.setAttribute('aria-pressed', String(selected));
-      });
-    } else el.innerHTML = f(el);
+    const f = LIVE[el.dataset.live];
+    if (f) el.innerHTML = f(el);
   });
-  syncTipGlider(animateTip && tipSelectionChanged);
   document.getElementById('tip-amount')?.setAttribute('aria-invalid', String(!tipState(S.draft).valid));
 }
 
@@ -3097,10 +3056,16 @@ const A = {
   restoreName: ds => { const it = S.draft.items.find(it => it.id === ds.id); if (it && ui.originalNames[it.id]){ it.name = ui.originalNames[it.id]; delete ui.originalNames[it.id]; render(); } },
   upload: () => usePhotoPicker('file-in'),
   cancelScan: () => { cancelScan(); clearPhoto(); S.view = 'scan'; render(); },
-  manual: () => { stopCamera(); cancelScan(); clearPhoto(); const d = newDraft(); d.items = [{id:uid('i'), name:'', price:0}]; S.draft = d; ui.scanError = ''; go('review'); setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus(), 30); },
+  manual: () => {
+    stopCamera(); cancelScan(); clearPhoto();
+    const d = newDraft();
+    d.manualEntry = true;
+    d.items = [{id:uid('i'), name:'', price:0}];
+    S.draft = d; ui.scanError = ''; go('review');
+    setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus({preventScroll:true}), 30);
+  },
   additem: () => { const it = {id:uid('i'), name:'', price:0}; S.draft.items.push(it); render(); document.getElementById('n-' + it.id)?.focus(); },
   delitem: ds => { const d = S.draft; d.items = d.items.filter(it => it.id !== ds.id); delete d.assign[ds.id]; render(); },
-  tip: ds => { Object.assign(S.draft, {tipMode:'percent', tipPct:+ds.p, tipInput:''}); refresh(true); save(); },
   openPicker: () => setContactPicker(true),
   closePicker: () => setContactPicker(false),
   matchPerson: ds => {
@@ -3855,8 +3820,30 @@ document.addEventListener('keydown', e => {
   if (ui.sheet) A.close();
   else if (ui.contactPicker) A.closePicker();
 });
-// Enter in a profile field presses that step's main button.
-document.addEventListener('keydown', e => { const act = e.target.dataset && e.target.dataset.enter; if (e.key === 'Enter' && act && !ui.saving){ e.preventDefault(); A[act]({}); } });
+function formatReviewAmount(el){
+  const field = el.dataset?.in;
+  if (S.view !== 'review' || !['iprice','tax','tipamount','fees','printed'].includes(field)) return false;
+  if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(el.value.trim())) return true;
+  const d = S.draft;
+  if (field === 'tipamount'){
+    const tip = tipState(d);
+    if (tip.chosen && tip.valid){
+      el.value = d.tipInput = cIn(tip.cents);
+      save();
+    }
+    return true;
+  }
+  const cents = field === 'iprice' ? d.items.find(it => it.id === el.dataset.id)?.price : d[field];
+  if (Number.isSafeInteger(cents)) el.value = cIn(cents);
+  return true;
+}
+document.addEventListener('focusout', e => formatReviewAmount(e.target));
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.isComposing || ui.saving) return;
+  const act = e.target.dataset?.enter;
+  if (act){ e.preventDefault(); A[act]({}); return; }
+  if (formatReviewAmount(e.target)) e.preventDefault();
+});
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && cameraSession && (ui.cameraOpen || cameraSession.requesting)){ stopCamera(); if (S.view === 'scan') render(); }
 });
