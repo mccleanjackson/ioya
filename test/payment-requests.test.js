@@ -135,8 +135,8 @@ test('prepare snapshots each share and message without sending, timers or status
   assert.ok(!page.includes('QR code'));assert.ok(!page.includes('ioya.app'));
 });
 test('direct prepare is guarded by split validity and bad contacts are excluded',()=>{
-  const api=app(),d=split(api);d.printed=900;api.A.send();assert.equal(d.results,null);
-  d.printed=1000;d.people[1].venmo='@one,@two';assert.equal(api.sendPlan().ready.length,0);api.A.send();assert.equal(d.results,null);
+  const api=app(),d=split(api);d.assign.a=[];api.A.send();assert.equal(d.results,null);
+  d.assign.a=['me','p'];d.people[1].venmo='@one,@two';assert.equal(api.sendPlan().ready.length,0);api.A.send();assert.equal(d.results,null);
 });
 test('editing a prepared split hides old handoffs until requests are prepared again',()=>{
   const api=app(),d=split(api);api.A.send();

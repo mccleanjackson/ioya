@@ -43,12 +43,26 @@ test('the split is sent with each person\'s exact share, as contacts, and nothin
   assert.equal(p.merchant,'Sakura Ramen');
   assert.match(p.name,/^Split on [A-Z][a-z]{2} \d{1,2}$/);
   assert.match(p.date,/^\d{4}-\d{2}-\d{2}$/);
-  assert.equal(p.tax_cents,300);assert.equal(p.total_cents,3300);assert.equal(p.tip_percent,20);
+  assert.equal(p.tax_cents,300);assert.equal(p.total_cents,3301);assert.equal(p.tip_percent,20);
   assert.equal(p.tip_cents,api.calc(d).tip);
   assert.deepEqual(plain(p.items),[
     {description:'Ramen',price_cents:2000,shares:[{contact_id:2,share_cents:2000}]},
     {description:'Gyoza',price_cents:1001,shares:[{contact_id:1,share_cents:334},{contact_id:2,share_cents:334},{contact_id:3,share_cents:333}]},
     {description:'Water',price_cents:0,shares:[]}]);
+});
+
+test('the combined amount preserves a known fee in History without charging it twice',()=>{
+  const api=app(),d=split(api);
+  Object.assign(d,{tipMode:'amount',tipInput:'3.00',knownFees:100});
+  let payload=api.splitForSaving(d);
+  assert.equal(payload.fees_cents,100);
+  assert.equal(payload.tip_cents,200);
+  assert.equal(payload.total_cents+payload.tip_cents,api.calc(d).grand);
+  d.tipInput='0.30';
+  payload=api.splitForSaving(d);
+  assert.equal(payload.fees_cents,30);
+  assert.equal(payload.tip_cents,0);
+  assert.equal(payload.total_cents,api.calc(d).grand);
 });
 
 test('Save to History saves once, clears the draft, opens History and reloads it', async()=>{

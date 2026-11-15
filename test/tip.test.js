@@ -7,9 +7,11 @@ const html=fs.readFileSync(path.join(__dirname,'../public/app.html'),'utf8');
 const script=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][0][1];
 
 function app(saved){
-  const context={window:{},document:{getElementById:()=>({setAttribute(){}}),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:()=>saved?JSON.stringify(saved):null,setItem(){}},console};
-  vm.runInNewContext(script.replace("if (!V[S.view]","render=()=>{};globalThis.api={newDraft,normalizeTipDraft,tipState,calc,S,A,sendPlan,LIVE};return;\nif (!V[S.view]"),context);
-  return context.api;
+  const listeners={};
+  const context={window:{},document:{getElementById:()=>({setAttribute(){}}),querySelectorAll:()=>[],
+    addEventListener:(type,handler)=>(listeners[type] ||= []).push(handler)},localStorage:{getItem:()=>saved?JSON.stringify(saved):null,setItem(){}},console};
+  vm.runInNewContext(script.replace("if (!V[S.view]","render=()=>{};globalThis.api={newDraft,normalizeTipDraft,tipState,calc,S,A,sendPlan,LIVE,V,sheetHTML};return;\nif (!V[S.view]"),context);
+  return {...context.api,dispatch:(type,event)=>listeners[type].forEach(handler=>handler(event))};
 }
 function receipt(api){
   const d=api.newDraft();
@@ -42,15 +44,49 @@ test('a one-cent custom tip split three ways is not lost or duplicated',()=>{
   assert.equal(c.totals.a,2);assert.equal(c.totals.b,1);assert.equal(c.totals.c,1);
 });
 
-test('percentage and No tip replace a custom amount instead of adding to it',()=>{
+test('a saved percentage tip becomes an equivalent fixed dollar amount',()=>{
   const api=app(),d=receipt(api);
-  Object.assign(d,{tipMode:'amount',tipInput:'5.00'});
-  api.A.tip({p:'18'});
-  assert.equal(d.tipInput,'');assert.equal(api.calc(d).tip,180);
-  d.items[0].price=1050;
-  assert.equal(api.calc(d).tip,270);
-  api.A.tip({p:'0'});
-  assert.equal(api.tipState(d).chosen,true);assert.equal(api.calc(d).tip,0);
+  Object.assign(d,{tipMode:'percent',tipPct:18,fees:0});
+  const restored=app({view:'review',draft:d});
+  assert.equal(restored.S.draft.tipInput,'1.80');
+  restored.S.draft.items[0].price=1050;
+  assert.equal(restored.calc(restored.S.draft).tip,180);
+});
+
+test('Enter formats review amounts and leaves an invalid tip visible',()=>{
+  const api=app(),d=receipt(api);
+  api.S.view='review';
+  for (const [field,value,formatted] of [['iprice','5','5.00'],['tax','.8','0.80'],['tipamount','2','2.00'],['tipamount','1.234','1.234']]){
+    const target={dataset:{in:field,id:'a'},value};
+    api.dispatch('input',{target});
+    api.dispatch('keydown',{key:'Enter',target,preventDefault(){}});
+    assert.equal(target.value,formatted);
+  }
+  assert.equal(d.items[0].price,500);
+  assert.equal(api.tipState(d).valid,false);
+});
+
+test('Next confirms the calculated split total before opening item matching',()=>{
+  const api=app(),d=receipt(api);
+  api.S.view='review';
+  Object.assign(d,{printed:0,tipMode:'amount',tipInput:'2.50'});
+  assert.match(api.LIVE.revnext(),/>Next</);
+  assert.doesNotMatch(api.LIVE.revnext(),/disabled/);
+  assert.doesNotMatch(api.V.review(),/data-in="printed"/);
+  assert.equal(api.LIVE.reviewTotal(),'$13.50');
+  api.A.reviewNext();
+  assert.equal(api.S.view,'review');
+  assert.match(api.sheetHTML(),/\$13\.50/);
+  assert.match(api.sheetHTML(),/Yes, continue/);
+  assert.match(api.sheetHTML(),/No, edit split/);
+  api.A.close();
+  assert.equal(api.S.view,'review');
+  assert.equal(api.sheetHTML(),'');
+  d.tax=100;
+  api.A.reviewNext();
+  assert.match(api.sheetHTML(),/\$13\.70/);
+  api.A.confirmTotal();
+  assert.equal(api.S.view,'assign');
 });
 
 test('custom dollar tips stay fixed when item prices change',()=>{
@@ -78,7 +114,7 @@ test('zero and normal decimal entry forms are valid custom amounts',()=>{
 });
 
 test('older unsubmitted drafts keep receipt work while resetting the old default tip',()=>{
-  const first=app(),old=receipt(first);delete old.tipMode;delete old.tipInput;old.tipPct=18;
+  const first=app(),old=receipt(first);delete old.tipMode;delete old.tipInput;old.tipPct=18;old.fees=0;
   const restored=app({view:'review',draft:old}).S.draft;
   assert.equal(restored.tipMode,null);assert.equal(restored.tipPct,null);
   assert.equal(JSON.stringify(restored.items),JSON.stringify(old.items));
@@ -86,7 +122,19 @@ test('older unsubmitted drafts keep receipt work while resetting the old default
 });
 
 test('an explicit custom tip survives a draft refresh',()=>{
-  const first=app(),d=receipt(first);Object.assign(d,{tipMode:'amount',tipInput:'3.25'});
+  const first=app(),d=receipt(first);Object.assign(d,{tipMode:'amount',tipInput:'3.25',fees:0});
   const restored=app({view:'review',draft:d});
   assert.equal(restored.tipState(restored.S.draft).cents,325);
+});
+
+test('a restored draft combines the tip and service fee, and editing the field replaces the combined amount',()=>{
+  const first=app(),d=receipt(first);
+  Object.assign(d,{tipMode:'amount',tipInput:'1.23'});
+  const api=app({view:'review',draft:d});
+  assert.match(api.V.review(),/Tip and fees/);
+  assert.doesNotMatch(api.V.review(),/data-in="fees"/);
+  assert.equal(api.S.draft.tipInput,'1.43');
+  assert.equal(api.calc(api.S.draft).grand,1223);
+  api.dispatch('input',{target:{dataset:{in:'tipamount'},value:'0.10'}});
+  assert.equal(api.calc(api.S.draft).grand,1090);
 });
