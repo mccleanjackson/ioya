@@ -194,9 +194,7 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .camera-off-icon{display:grid;place-items:center;width:40px;height:40px;border:1px solid rgba(255,255,255,.24);border-radius:12px;background:rgba(255,255,255,.08)}
 .camera-off-icon .ic{width:22px;height:22px}
 .camera-status{position:absolute;bottom:10px;left:10px;right:10px;margin:0;padding:8px 10px;border-radius:10px;background:var(--card);color:var(--ink);font-size:13px;text-align:center}
-.camera-preview-controls{display:flex;justify-content:flex-end;gap:8px;margin:10px}
-.camera-flash{min-height:44px;padding:0 10px;border-radius:22px;background:var(--card);color:var(--ink);font-size:12px;font-weight:700}
-.camera-native{margin-right:auto}
+.camera-flash{position:absolute;top:10px;right:10px;min-height:44px;padding:0 10px;border-radius:22px;background:var(--card);color:var(--ink);font-size:12px;font-weight:700}
 .camera-tools{margin-top:auto;display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;justify-items:center}
 .camera-tools .camera-action{display:grid;justify-items:center;gap:4px;color:var(--ink);font-size:12px;font-weight:600}
 .camera-action-icon{width:48px;height:48px;border-radius:50%;background:var(--card);display:grid;place-items:center}
@@ -218,6 +216,8 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .scanning{display:flex;flex-direction:column;gap:20px;align-items:center;text-align:center;padding-top:10px}
 .rthumb{position:relative;width:190px;max-width:100%;border-radius:4px;overflow:hidden;box-shadow:0 14px 30px -14px rgba(0,0,0,.4)}
 .rthumb img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover}
+.capture-review-image{display:block;width:100%;max-height:min(56vh,640px);object-fit:contain;border-radius:14px;background:#17191d}
+.capture-brightness{width:100%;accent-color:var(--accent)}
 .mock{background:#FBFAF6;color:#2A2A2A;font:11px/1.5 var(--f-mono);padding:14px 12px 18px;text-align:left}
 .mock .mh{text-align:center;font-weight:600;font-size:12px;margin-bottom:6px}
 .mock div{display:flex;justify-content:space-between;gap:8px}
@@ -310,13 +310,15 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .hstatus-bar{display:flex;height:10px;overflow:hidden;border-radius:999px;background:var(--line);gap:3px}
 .hstatus-bar i{display:block;height:100%;min-width:0}
 .hstatus-bar .paid{background:var(--history-paid)}
+.hstatus-bar .part{background:var(--history-part)}
 .hstatus-bar .unpaid{background:var(--history-unpaid)}
 .hstatus-empty{width:100%;background:var(--line)}
-.hstatus-counts{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:12px}
+.hstatus-counts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
 .hstatus-count{display:flex;flex-direction:column;gap:2px;min-width:0}
 .hstatus-count span{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;white-space:nowrap}
 .hstatus-count span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
 .hstatus-count.paid span::before{background:var(--history-paid)}
+.hstatus-count.part span::before{background:var(--history-part);box-shadow:inset 0 0 0 1px rgba(21,23,28,.18)}
 .hstatus-count.unpaid span::before{background:var(--history-unpaid)}
 .hstatus-count strong{font:600 22px/1 var(--f-mono)}
 .hstatus-count:not(:last-child){border-right:1px solid var(--line)}
@@ -334,6 +336,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-filter-glider.ready{transition:left .4s cubic-bezier(.2,1.12,.3,1),width .3s cubic-bezier(.2,.8,.2,1),background-color .18s ease}
 .history-filter-glider[data-f="all"]{background:var(--accent)}
 .history-filter-glider[data-f="unpaid"]{background:var(--history-unpaid)}
+.history-filter-glider[data-f="part"]{background:var(--history-part)}
 .history-filter-glider[data-f="paid"]{background:var(--history-paid)}
 .history-filter-glider.squash{animation:history-filter-squash .4s cubic-bezier(.2,.8,.2,1)}
 @keyframes history-filter-squash{0%,100%{transform:scaleX(1)}34%{transform:scaleX(1.1)}66%{transform:scaleX(.96)}}
@@ -377,6 +380,8 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-fchips .fchip[data-f="all"].on{background:var(--accent);color:var(--ink);box-shadow:none}
 .history-fchips .fchip[data-f="paid"]{background:var(--history-paid-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-paid)}
 .history-fchips .fchip[data-f="paid"].on{background:var(--history-paid);color:var(--ink);box-shadow:none}
+.history-fchips .fchip[data-f="part"]{background:var(--history-part-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-part)}
+.history-fchips .fchip[data-f="part"].on{background:var(--history-part);color:var(--ink);box-shadow:none}
 .history-fchips .fchip[data-f="unpaid"]{background:var(--history-unpaid-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-unpaid)}
 .history-fchips .fchip[data-f="unpaid"].on{background:var(--history-unpaid);color:var(--ink);box-shadow:none}
 .history-fchips .fchip{position:relative;z-index:1;transition:color .18s ease,background-color .18s ease,box-shadow .18s ease}
@@ -1201,18 +1206,19 @@ function receiptSplitDetail(s){
     ${s.receipts.map(receiptCard).join('')}`;
 }
 function historyStatusSummary(){
-  const counts = {paid:0, unpaid:0};
-  S.history.forEach(s => counts[s.requests.some(isUnpaid) ? 'unpaid' : 'paid']++);
+  const counts = {paid:0, part:0, unpaid:0};
+  S.history.forEach(s => counts[splitStatus(s)[0]]++);
   const total = S.history.length;
   const width = cls => total ? `${counts[cls] / total * 100}%` : '0%';
   const bar = total
-    ? ['paid','unpaid'].map(cls => counts[cls] ? `<i class="${cls}" style="width:${width(cls)}" aria-hidden="true"></i>` : '').join('')
+    ? ['paid','part','unpaid'].map(cls => counts[cls] ? `<i class="${cls}" style="width:${width(cls)}" aria-hidden="true"></i>` : '').join('')
     : '<i class="hstatus-empty" aria-hidden="true"></i>';
   return `<section class="hstatus" aria-label="Split status overview">
     <div class="hstatus-title"><b>Payment status</b><small>${total} split${total === 1 ? '' : 's'}</small></div>
-    <div class="hstatus-bar" role="img" aria-label="${counts.paid} paid, ${counts.unpaid} unpaid">${bar}</div>
+    <div class="hstatus-bar" role="img" aria-label="${counts.paid} paid, ${counts.part} partly paid, ${counts.unpaid} unpaid">${bar}</div>
     <div class="hstatus-counts">
       <div class="hstatus-count paid"><span>Paid</span><strong>${counts.paid}</strong></div>
+      <div class="hstatus-count part"><span>Partly paid</span><strong>${counts.part}</strong></div>
       <div class="hstatus-count unpaid"><span>Unpaid</span><strong>${counts.unpaid}</strong></div>
     </div>
   </section>`;
@@ -1311,7 +1317,7 @@ function findBar(k, placeholder, label, filters, filterLabel){
       `<button class="fchip${ui[k + 'f'] === f ? ' on' : ''}" data-act="filter" data-k="${k}" data-f="${f}" aria-pressed="${ui[k + 'f'] === f}">${icon ? I(icon) : ''}${esc(name)}</button>`).join('')}</div>
   </div>`;
 }
-const HFILTERS = [['all','All'],['unpaid','Unpaid'],['paid','Paid']];
+const HFILTERS = [['all','All'],['paid','Paid'],['part','Partly paid'],['unpaid','Unpaid']];
 // Everything a split can be found by, with a label for the parts that aren't already visible on its card.
 function historySearchFields(s){
   return [[s.merchant], [s.eventName], [fmtDate(s.date)], [money(s.you + s.requests.reduce((a, r) => a + r.amount, 0))],
@@ -1328,7 +1334,7 @@ function historyMatch(s, q){
 function historyList(){
   const q = ui.hq.trim();
   const shown = S.history.map(s => ({s, hits:q ? historyMatch(s, q) : []}))
-    .filter(x => x.hits && (ui.hf === 'all' || x.s.requests.some(isUnpaid) === (ui.hf === 'unpaid')));
+    .filter(x => x.hits && (ui.hf === 'all' || splitStatus(x.s)[0] === ui.hf));
   const filtering = q || ui.hf !== 'all';
   const status = HFILTERS.find(([k]) => k === ui.hf)[1].toLowerCase();
   if (!S.history.length) return '<p class="fine">No splits yet. Scan a receipt to start one.</p>';
@@ -1404,17 +1410,29 @@ V.contacts = () => `
   <button class="btn ghost" data-act="importcontacts">${I('contacts')} Import device contacts</button>
   <p class="fine">Your contacts and groups are saved to your account. Pick a group when adding people to a split.</p>`;
 
-V.scan = () => `
-  ${ui.cameraDenied ? `<div class="camera-banner"><span role="alert">Camera access is blocked.</span>
-    <button class="link" data-act="snap">Allow camera</button></div>` : ''}
+V.scan = () => {
+  if (ui.capturePreviewUrl) return `
+  <header class="camera-heading"><h1 class="h">Review photo</h1></header>
+  <img class="capture-review-image" style="filter:brightness(${ui.captureBrightness || 1})" src="${esc(ui.capturePreviewUrl)}" alt="Receipt photo just taken">
+  <p class="fine">Check that the receipt is clear before scanning it.</p>
+  <label class="field"><span>Brightness <output id="capture-brightness-value">${Math.round((ui.captureBrightness || 1) * 100)}%</output></span>
+    <input class="capture-brightness" type="range" min="75" max="200" step="5" value="${Math.round((ui.captureBrightness || 1) * 100)}" data-in="captureBrightness" aria-label="Photo brightness"></label>
+  ${ui.captureError ? `<p class="ferr" role="alert">${esc(ui.captureError)}</p>` : ''}
+  <div class="next"><button class="btn" data-act="useCapture">Use photo</button>
+    <button class="btn ghost" data-act="saveCapture">Save photo to device</button>
+    <button class="btn ghost" data-act="redoCapture">Retake photo</button></div>`;
+  return `
+  ${ui.cameraDenied ? `<div class="camera-banner"><span role="alert">Camera access is blocked. Change this site's camera permission in your browser settings, then try again.</span>
+    <button class="link" data-act="snap">Try again</button></div>` : ''}
   <header class="camera-heading"><h1 class="h">Add your receipt</h1>
     <button id="camera-toggle" class="btn ghost small camera-toggle" data-act="${ui.cameraOpen ? 'closeCamera' : 'openCamera'}">
       ${I(ui.cameraOpen ? 'x' : 'scan')}${ui.cameraOpen ? 'Close camera' : 'Open camera'}
     </button></header>
   ${ui.scanError ? `<div class="alert bad" role="alert"><b>Couldn't scan this receipt.</b>${esc(ui.scanError)}</div>` : ''}
   ${ui.cameraError && !ui.cameraDenied ? `<div class="alert bad" role="alert">${esc(ui.cameraError)}</div>` : ''}
-  <div class="camera-stage"><div class="camera-preview"${ui.cameraOpen ? '' : ' data-camera-off'}>
-    ${ui.cameraOpen ? '<video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>' : `<div class="camera-off"><span class="camera-off-icon">${I('cameraOff')}</span><span>Camera Turned Off</span></div>`}
+  ${ui.scanError && ui.scanText ? `<details><summary>Text read from receipt</summary><textarea readonly aria-label="Text read from scan" style="width:100%;min-height:160px">${esc(ui.scanText)}</textarea></details>` : ''}
+  <div class="camera-stage"><div class="camera-preview">
+    ${ui.cameraOpen ? '<video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>' : '<div class="camera-guide" aria-hidden="true"></div>'}
     ${ui.cameraLoading || ui.capturing ? `<p class="camera-status" role="status">${ui.capturing ? 'Taking photo…' : 'Opening camera…'}</p>` : ''}
     <div class="camera-overlay">
       ${S.draft.items.length && !dismissedCameraDrafts.has(S.draft) ? `<div class="camera-banner camera-resume">
@@ -1436,6 +1454,7 @@ V.scan = () => `
   </div>
   <input type="file" id="file-in" accept="image/*" hidden>
   <input type="file" id="camera-in" accept="image/*" capture="environment" hidden>`;
+};
 V.scanning = () => {
   return `
   <div class="scanning">
@@ -1454,6 +1473,7 @@ V.review = () => {
   <h1 class="h">Check the items</h1>
   ${d.fromScan ? `<div class="alert warn"><b>Check every item and amount against your receipt.</b>Scans can miss or misread lines. Check the printed total, tax, fees and tip before continuing.${(d.scanWarnings || []).map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
   ${d.fromScan && ui.photo ? `<details><summary>Compare with receipt photo</summary><img src="${esc(ui.photo)}" alt="Receipt used for this scan" style="max-width:100%;height:auto"></details>` : ''}
+  ${d.fromScan && ui.photo ? '<button class="link" data-act="saveReceiptPhoto">Save receipt photo to device</button>' : ''}
   <label class="field"><span>Where did you eat?</span><input id="merchant" data-in="merchant" value="${esc(d.merchant)}" placeholder="Restaurant name"></label>
   ${d.fromScan && d.items.some(it => shortReceiptName(it.name) !== it.name) ? '<button class="link" data-act="shortenNames">Shorten item names</button>' : ''}
   ${d.items.some(it => ui.originalNames[it.id]) ? '<p class="fine">Names were shortened. Check them; original labels are available below until you refresh.</p>' : ''}
@@ -2598,6 +2618,7 @@ function render(){
   save();
 }
 function go(v){
+  if (v !== 'scan' && ui.capturePreviewUrl) clearCapturePreview();
   if (v !== 'profile' && S.view === 'profile') { ui.profile = {}; ui.returnToReview = false; }
   if (v === 'people') v = 'assign'; // Older drafts and bookmarks used a separate people step.
   if (v !== 'summary') ui.sendError = '';
@@ -2702,7 +2723,7 @@ function addMatchContacts(ids){
 }
 /* ---------- live receipt camera ---------- */
 function cameraAvailable(){ return !!(window.isSecureContext && window.navigator?.mediaDevices?.getUserMedia); }
-function cameraActive(session){ return cameraSession === session && ui.cameraOpen && S.view === 'scan'; }
+function cameraActive(session){ return cameraSession === session && (ui.cameraOpen || session.requesting) && S.view === 'scan'; }
 function stopCamera(){
   const session = cameraSession; cameraSession = null;
   if (session?.stream){
@@ -2719,7 +2740,12 @@ function cameraOperation(promise, timeout = 5000){
 }
 function failCamera(session, message, denied = false){
   if (!cameraActive(session)) return;
-  stopCamera(); ui.cameraError = message; ui.cameraDenied = denied; render();
+  const alreadyDenied = denied && ui.cameraDenied;
+  stopCamera(); ui.cameraError = message; ui.cameraDenied = denied;
+  if (alreadyDenied){
+    const retry = document.querySelector('.camera-banner [data-act="snap"]');
+    if (retry){ retry.disabled = false; retry.textContent = 'Try again'; }
+  } else render();
 }
 function attachCameraPreview(){
   const session = cameraSession, video = document.getElementById('receipt-camera');
@@ -2732,29 +2758,34 @@ function attachCameraPreview(){
   };
   video.addEventListener('loadeddata', ready, {once:true}); ready();
   video.play().then(ready).catch(() => {
-    if (document.getElementById('receipt-camera') === video) failCamera(session, 'The camera preview could not start. Use the phone camera or upload a photo instead.');
+    if (document.getElementById('receipt-camera') === video) failCamera(session, 'The camera preview could not start. Upload a photo instead.');
   });
 }
 function usePhotoPicker(id){
   stopCamera(); ui.cameraError = ''; ui.cameraDenied = false; render(); document.getElementById(id)?.click();
 }
-async function openCamera({nativeFallback = true} = {}){
-  if (!cameraAvailable()){
-    if (nativeFallback) return usePhotoPicker('camera-in');
-    ui.cameraError = 'Live camera is unavailable here. Use the phone camera or upload a photo.';
-    render();
-    return;
+async function openCamera(){
+  if (!cameraAvailable()) return usePhotoPicker('camera-in');
+  const retryingDenied = ui.cameraDenied;
+  stopCamera(); ui.cameraError = ''; ui.scanError = ''; ui.scanText = '';
+  const session = {stream:null, imageCapture:null, flashModes:[], requesting:true}; cameraSession = session;
+  S.view = 'scan';
+  if (retryingDenied){
+    // Keep the blocked state visible while the browser checks its saved permission.
+    ui.cameraDenied = true;
+    const retry = document.querySelector('.camera-banner [data-act="snap"]');
+    if (retry){ retry.disabled = true; retry.textContent = 'Checking…'; }
+  } else {
+    ui.cameraDenied = false; ui.cameraOpen = true; ui.cameraLoading = true; render();
   }
-  stopCamera(); ui.cameraError = ''; ui.cameraDenied = false; ui.scanError = '';
-  const session = {stream:null, imageCapture:null, flashModes:[]}; cameraSession = session;
-  ui.cameraOpen = true; ui.cameraLoading = true; S.view = 'scan'; render();
   try {
     const stream = await window.navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:2560}, aspectRatio:{ideal:3/4}}});
     if (!cameraActive(session)){ stream.getTracks().forEach(track => track.stop()); return; }
-    session.stream = stream;
+    session.requesting = false; session.stream = stream;
+    ui.cameraDenied = false; ui.cameraOpen = true; ui.cameraLoading = true; render();
     const track = stream.getVideoTracks()[0];
     if (!track) throw new Error('No video track');
-    track.addEventListener('ended', () => failCamera(session, 'The camera stopped. Open it again or use the phone camera.'));
+    track.addEventListener('ended', () => failCamera(session, 'The camera stopped. Open it again or upload a photo.'));
     render();
     // Prefer a full-resolution still when the browser exposes ImageCapture.
     if (window.ImageCapture){
@@ -2777,7 +2808,7 @@ async function openCamera({nativeFallback = true} = {}){
     ui.cameraLoading = false; render();
   } catch(e) {
     const denied = e.name === 'NotAllowedError' || e.name === 'SecurityError';
-    failCamera(session, denied ? 'Camera access was not allowed. You can use the phone camera or upload a photo instead.' : 'The camera could not open. Try the phone camera or upload a photo instead.', denied);
+    failCamera(session, denied ? 'Camera access was not allowed. Upload a photo instead.' : 'The camera could not open. Upload a photo instead.', denied);
   }
 }
 async function toggleCameraLight(){
@@ -2807,6 +2838,19 @@ async function cameraFrameBlob(source, sourceWidth, sourceHeight, frame){
   canvas.getContext('2d').drawImage(source, crop.x, crop.y, crop.width, crop.height, 0, 0, canvas.width, canvas.height);
   return new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('The camera photo could not be captured.')), 'image/jpeg', 0.95));
 }
+async function photoLuminance(blob){
+  const url=URL.createObjectURL(blob);
+  try {
+    const image=new Image(); image.src=url; await image.decode();
+    const canvas=document.createElement('canvas'); canvas.width=32; canvas.height=32;
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});
+    if(!ctx)throw new Error('Could not inspect camera exposure.');
+    ctx.drawImage(image,0,0,32,32);
+    const data=ctx.getImageData(0,0,32,32).data; let total=0;
+    for(let i=0;i<data.length;i+=4)total+=.2126*data[i]+.7152*data[i+1]+.0722*data[i+2];
+    return total/(data.length/4);
+  } finally { URL.revokeObjectURL(url); }
+}
 async function captureCameraPhoto(){
   const session = cameraSession;
   if (!cameraActive(session) || ui.cameraLoading || ui.capturing) return;
@@ -2828,16 +2872,19 @@ async function captureCameraPhoto(){
         if (track.getSettings?.().torch === false) throw new Error('Light unavailable');
         // Allow the video exposure to settle before capturing the lit frame.
         await new Promise(resolve => setTimeout(resolve, 250));
-      } catch(e) { throw new Error('Flash capture did not work. Use the phone camera, turn flash off, or try brighter lighting.'); }
+      } catch(e) { throw new Error('Flash capture did not work. Turn flash off, try brighter lighting, or upload a photo.'); }
       if (!cameraActive(session)) return;
     }
-    let blob;
+    let blob, previewBlob;
     if (session.imageCapture?.takePhoto){
+      // Preserve the shutter-time preview as a fallback for cameras whose
+      // separate still-photo exposure is dramatically darker than the preview.
+      previewBlob=await cameraFrameBlob(video,frame.videoWidth,frame.videoHeight,frame);
       try {
         const settings = session.flashModes.includes('off') || ui.cameraLightMode === 'flash' ? {fillLightMode:ui.cameraLightMode === 'flash' && ui.cameraFlashEnabled ? 'flash' : 'off'} : undefined;
         blob = await cameraOperation(session.imageCapture.takePhoto(settings), 10000);
       } catch(e) {
-        if (ui.cameraLightMode === 'flash' && ui.cameraFlashEnabled) throw new Error('Flash capture did not work. Use the phone camera to take a photo with flash.');
+        if (ui.cameraLightMode === 'flash' && ui.cameraFlashEnabled) throw new Error('Flash capture did not work. Turn flash off or upload a photo.');
       }
     }
     if (!cameraActive(session)) return;
@@ -2846,31 +2893,37 @@ async function captureCameraPhoto(){
       try {
         const image = new Image(); image.src = photoUrl; await cameraOperation(image.decode());
         if (!cameraActive(session)) return;
-        blob = await cameraFrameBlob(image, image.naturalWidth, image.naturalHeight, frame);
+        const stillBlob=await cameraFrameBlob(image,image.naturalWidth,image.naturalHeight,frame);
+        if(previewBlob){
+          const [stillLight,previewLight]=await Promise.all([photoLuminance(stillBlob),photoLuminance(previewBlob)]);
+          blob=previewLight>=35 && stillLight<Math.max(14,previewLight*.45) ? previewBlob : stillBlob;
+        } else blob=stillBlob;
       } finally { URL.revokeObjectURL(photoUrl); }
     } else {
       if (video.videoWidth !== frame.videoWidth || video.videoHeight !== frame.videoHeight) throw new Error('The camera orientation changed. Hold steady and take the photo again.');
-      blob = await cameraFrameBlob(video, frame.videoWidth, frame.videoHeight, frame);
+      blob = previewBlob || await cameraFrameBlob(video, frame.videoWidth, frame.videoHeight, frame);
     }
     if (!cameraActive(session)) return;
     if (pulsed){
       try { await cameraOperation(track.applyConstraints({advanced:[{torch:false}]})); }
-      catch(e) { failCamera(session, 'The camera light could not turn off. Reopen the camera or use the phone camera.'); return; }
+      catch(e) { failCamera(session, 'The camera light could not turn off. Reopen the camera or upload a photo.'); return; }
       pulsed = false;
     }
     if (!cameraActive(session)) return;
     const file = new File([blob], 'receipt.jpg', {type:blob.type || 'image/jpeg'});
-    stopCamera(); await runScan(file);
+    stopCamera();
+    ui.captureFile = file; ui.capturePreviewUrl = URL.createObjectURL(file); ui.captureBrightness = 1; ui.captureError = ''; ui.cameraError = '';
+    S.view = 'scan'; render();
   } catch(e) {
     if (pulsed){
       try { await cameraOperation(track.applyConstraints({advanced:[{torch:false}]})); pulsed = false; }
-      catch(offError) { failCamera(session, 'The camera stopped to turn the light off. Reopen it or use the phone camera.'); return; }
+      catch(offError) { failCamera(session, 'The camera stopped to turn the light off. Reopen it or upload a photo.'); return; }
     }
-    if (cameraActive(session)){ ui.capturing = false; ui.cameraError = e.message || 'The photo could not be captured. Try again or use the phone camera.'; render(); }
+    if (cameraActive(session)){ ui.capturing = false; ui.cameraError = e.message || 'The photo could not be captured. Try again or upload a photo.'; render(); }
   } finally {
     if (pulsed){
       try { await cameraOperation(track.applyConstraints({advanced:[{torch:false}]})); }
-      catch(e) { failCamera(session, 'The camera stopped to turn the light off. Reopen it or use the phone camera.'); }
+      catch(e) { failCamera(session, 'The camera stopped to turn the light off. Reopen it or upload a photo.'); }
     }
   }
 }
@@ -2878,7 +2931,25 @@ async function captureCameraPhoto(){
 let scanJob = null, ocrLoader = null;
 function clearPhoto(){
   if (ui.photo) URL.revokeObjectURL(ui.photo);
-  ui.photo = null;
+  ui.photo = null; ui.photoType = null;
+}
+function clearCapturePreview(){
+  if (ui.capturePreviewUrl) URL.revokeObjectURL(ui.capturePreviewUrl);
+  ui.capturePreviewUrl = null; ui.captureFile = null; ui.captureBrightness = null; ui.captureError = '';
+}
+async function adjustedCaptureFile(){
+  const file=ui.captureFile, brightness=Number(ui.captureBrightness || 1);
+  if (!file) return null;
+  if (Math.abs(brightness - 1) < 0.005) return file;
+  if (!window.createImageBitmap) throw new Error('Photo adjustment is unavailable in this browser. Set brightness to 100% and try again.');
+  const bitmap=await createImageBitmap(file);
+  try {
+    const canvas=document.createElement('canvas'); canvas.width=bitmap.width; canvas.height=bitmap.height;
+    const ctx=canvas.getContext('2d'); if (!ctx) throw new Error('The photo could not be adjusted.');
+    ctx.filter=`brightness(${brightness})`; ctx.drawImage(bitmap,0,0);
+    const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('The adjusted photo could not be created.')),'image/jpeg',0.95));
+    return new File([blob], 'receipt.jpg', {type:'image/jpeg'});
+  } finally { bitmap.close?.(); }
 }
 function cancelScan(){
   const job = scanJob;
@@ -2917,13 +2988,14 @@ async function receiptImage(){
 }
 async function runScan(file){
   if (!file) return;
+  if (ui.capturePreviewUrl) clearCapturePreview();
   stopCamera();
   cancelScan();
   ui.scanError = '';
   if (!file.type.startsWith('image/') || file.size > 20 * 1024 * 1024){
     ui.scanError = 'Choose an image smaller than 20 MB. JPG and PNG work best.'; S.view = 'scan'; render(); return;
   }
-  clearPhoto(); ui.photo = URL.createObjectURL(file);
+  clearPhoto(); ui.photo = URL.createObjectURL(file); ui.photoType = file.type;
   const job = {worker:null, timer:null}; scanJob = job;
   const active = () => scanJob === job && S.view === 'scanning';
   const fail = () => {
@@ -2995,25 +3067,33 @@ const A = {
   },
   go: ds => { ui.sheet = null; go(ds.v); },
   jump: ds => { ui.sheet = null; go(ds.v); },
-  start: () => { ui.sheet = null; ui.contactPicker = false; ui.contactQuery = ''; if (S.view === 'scanning') cancelScan(); S.view = 'scan'; render(); return openCamera(); },
-  resume: () => {
-    dismissedCameraDrafts.delete(S.draft);
-    ui.sheet = null;
-    const at = S.draft.at && S.draft.at !== 'scanning' && S.draft.at !== 'scan' ? S.draft.at : 'review';
-    go(at);
-  },
-  dismissCameraResume: (_ds, button) => {
-    dismissedCameraDrafts.add(S.draft);
-    button.closest('.camera-resume')?.remove();
-    document.getElementById('camera-toggle')?.focus();
-  },
+  start: () => { clearCapturePreview(); ui.sheet = null; ui.contactPicker = false; ui.contactQuery = ''; if (S.view === 'scanning') cancelScan(); S.view = 'scan'; render(); return openCamera(); },
+  resume: () => { ui.sheet = null; const at = S.draft.at && S.draft.at !== 'scanning' && S.draft.at !== 'scan' ? S.draft.at : 'review'; go(at); },
   snap: () => openCamera(),
-  openCamera: () => openCamera({nativeFallback:false}),
-  nativeCamera: () => usePhotoPicker('camera-in'),
+  useCapture: async () => {
+    if (!ui.captureFile) return;
+    try { const file=await adjustedCaptureFile(); clearCapturePreview(); runScan(file); }
+    catch(e) { ui.captureError=e.message || 'The photo could not be adjusted.'; render(); }
+  },
+  saveCapture: async () => {
+    if (!ui.captureFile) return;
+    try {
+      const file=await adjustedCaptureFile(), url=URL.createObjectURL(file);
+      const link=document.createElement('a'); link.href=url; link.download=file.name || 'receipt.jpg';
+      document.body.append(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+    } catch(e) { ui.captureError=e.message || 'The photo could not be adjusted.'; render(); }
+  },
+  redoCapture: () => { clearCapturePreview(); openCamera(); },
   capturePhoto: () => captureCameraPhoto(),
   cameraLight: () => toggleCameraLight(),
   closeCamera: () => { stopCamera(); ui.cameraError = ''; render(); },
   shortenNames: () => { shortenDraftNames(); render(); },
+  saveReceiptPhoto: () => {
+    if (!ui.photo) return;
+    const ext = ui.photoType === 'image/png' ? 'png' : ui.photoType === 'image/webp' ? 'webp' : 'jpg';
+    const link = document.createElement('a'); link.href = ui.photo; link.download = `receipt.${ext}`;
+    document.body.append(link); link.click(); link.remove();
+  },
   restoreName: ds => { const it = S.draft.items.find(it => it.id === ds.id); if (it && ui.originalNames[it.id]){ it.name = ui.originalNames[it.id]; delete ui.originalNames[it.id]; render(); } },
   upload: () => usePhotoPicker('file-in'),
   cancelScan: () => { cancelScan(); clearPhoto(); S.view = 'scan'; render(); },
@@ -3681,6 +3761,12 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => {
   const el = e.target, k = el.dataset.in; if (!k || ui.preparing) return;
+  if (k === 'captureBrightness' && ui.capturePreviewUrl){
+    ui.captureBrightness=Number(el.value)/100; ui.captureError='';
+    const image=document.querySelector('.capture-review-image'); if(image) image.style.filter=`brightness(${ui.captureBrightness})`;
+    const value=document.getElementById('capture-brightness-value'); if(value) value.textContent=`${el.value}%`;
+    return;
+  }
   if (k === 'cropzoom') { const c = profileState().crop; if (c) { zoomCrop(c, +el.value); applyCrop(); } return; }
   if (S.view === 'summary') ui.sendError = '';
   if (k === 'pmsg' || k === 'requestNote') sizeRequestNote(el);
@@ -3772,9 +3858,9 @@ document.addEventListener('keydown', e => {
 // Enter in a profile field presses that step's main button.
 document.addEventListener('keydown', e => { const act = e.target.dataset && e.target.dataset.enter; if (e.key === 'Enter' && act && !ui.saving){ e.preventDefault(); A[act]({}); } });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && ui.cameraOpen){ stopCamera(); if (S.view === 'scan') render(); }
+  if (document.hidden && cameraSession && (ui.cameraOpen || cameraSession.requesting)){ stopCamera(); if (S.view === 'scan') render(); }
 });
-window.addEventListener?.('pagehide', () => stopCamera());
+window.addEventListener?.('pagehide', () => { stopCamera(); clearCapturePreview(); clearPhoto(); });
 window.addEventListener?.('resize', () => {sizeRequestNotes();syncTabIndicator();syncHistoryFilterGlider();syncContactsFilterGlider();});
 // Photo adjuster: one finger or the mouse drags; two fingers pinch to zoom.
 const cropPointers = new Map();
