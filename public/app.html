@@ -173,20 +173,23 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .screen.camera-screen{min-height:0;padding:10px 12px 12px;gap:8px;overflow-y:auto}
 .camera-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .camera-heading .h{margin:0;font-size:21px}
-.camera-heading .camera-toggle{flex:none;min-height:44px;padding:0 10px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.camera-heading .camera-toggle{flex:none;min-height:40px;padding:0 10px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
 .camera-heading .camera-toggle:hover,.camera-heading .camera-toggle:focus-visible{background:var(--accent-soft)}
 .camera-toggle .ic{width:16px;height:16px}
 .camera-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:10px;background:var(--bad-soft);font-size:13px}
 .camera-banner button{flex:none;min-height:44px}
-.camera-resume{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.camera-overlay{position:absolute;inset:0 0 auto;pointer-events:none}
+.camera-overlay button{pointer-events:auto}
+.camera-resume{border-radius:0 0 12px 12px;background:var(--accent-soft);box-shadow:inset 0 -1px 0 var(--accent)}
 .camera-resume .btn{width:auto}
 .camera-stage{flex:1 1 0;min-height:160px;display:flex;overflow:hidden}
 .camera-preview{width:100%;border-radius:16px;background:var(--finder);overflow:hidden;position:relative;display:grid;place-items:center}
 .camera-preview video{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center}
 .camera-guide{width:68%;height:66%;max-width:360px;border:1px solid rgba(255,255,255,.45);border-radius:12px;pointer-events:none}
 .camera-status{position:absolute;bottom:10px;left:10px;right:10px;margin:0;padding:8px 10px;border-radius:10px;background:var(--card);color:var(--ink);font-size:13px;text-align:center}
-.camera-flash{position:absolute;top:10px;right:10px;min-height:44px;padding:0 10px;border-radius:22px;background:var(--card);color:var(--ink);font-size:12px;font-weight:700}
-.camera-native{left:10px;right:auto}
+.camera-preview-controls{display:flex;justify-content:flex-end;gap:8px;margin:10px}
+.camera-flash{min-height:44px;padding:0 10px;border-radius:22px;background:var(--card);color:var(--ink);font-size:12px;font-weight:700}
+.camera-native{margin-right:auto}
 .camera-tools{margin-top:auto;display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;justify-items:center}
 .camera-tools .camera-action{width:48px;height:48px;border-radius:50%;background:var(--card);display:grid;place-items:center}
 .camera-tools .camera-action .ic{width:22px;height:22px}
@@ -1392,8 +1395,6 @@ V.contacts = () => `
   <p class="fine">Your contacts and groups are saved to your account. Pick a group when adding people to a split.</p>`;
 
 V.scan = () => `
-  ${S.draft.items.length ? `<div class="camera-banner camera-resume">
-    <span>Resume your current split?</span><button class="btn small" data-act="resume">Resume split</button></div>` : ''}
   ${ui.cameraDenied ? `<div class="camera-banner"><span role="alert">Camera access is blocked.</span>
     <button class="link" data-act="snap">Allow camera</button></div>` : ''}
   <header class="camera-heading"><h1 class="h">Add your receipt</h1>
@@ -1405,9 +1406,15 @@ V.scan = () => `
   ${ui.scanError && ui.scanText ? `<details><summary>Text read from receipt</summary><textarea readonly aria-label="Text read from scan" style="width:100%;min-height:160px">${esc(ui.scanText)}</textarea></details>` : ''}
   <div class="camera-stage"><div class="camera-preview">
     ${ui.cameraOpen ? '<video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>' : '<div class="camera-guide" aria-hidden="true"></div>'}
-    ${ui.cameraError ? '<button class="camera-flash camera-native" data-act="nativeCamera">Phone camera</button>' : ''}
     ${ui.cameraLoading || ui.capturing ? `<p class="camera-status" role="status">${ui.capturing ? 'Taking photo…' : 'Opening camera…'}</p>` : ''}
-    ${ui.cameraOpen && ui.cameraLightMode ? `<button class="camera-flash" data-act="cameraLight" aria-label="Flash at capture" aria-pressed="${ui.cameraFlashEnabled}" ${ui.cameraLoading || ui.capturing ? 'disabled' : ''}>Flash: ${ui.cameraFlashEnabled ? 'On' : 'Off'}</button>` : ''}
+    <div class="camera-overlay">
+      ${S.draft.items.length ? `<div class="camera-banner camera-resume">
+        <span>Resume your current split?</span><button class="btn small" data-act="resume">Resume split</button></div>` : ''}
+      ${ui.cameraError || (ui.cameraOpen && ui.cameraLightMode) ? `<div class="camera-preview-controls">
+        ${ui.cameraError ? '<button class="camera-flash camera-native" data-act="nativeCamera">Phone camera</button>' : ''}
+        ${ui.cameraOpen && ui.cameraLightMode ? `<button class="camera-flash" data-act="cameraLight" aria-label="Flash at capture" aria-pressed="${ui.cameraFlashEnabled}" ${ui.cameraLoading || ui.capturing ? 'disabled' : ''}>Flash: ${ui.cameraFlashEnabled ? 'On' : 'Off'}</button>` : ''}
+      </div>` : ''}
+    </div>
   </div></div>
   <div class="camera-tools">
     <button class="camera-action" data-act="upload" aria-label="Upload photo" title="Upload photo">${I('upload')}</button>
