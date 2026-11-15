@@ -173,9 +173,13 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .screen.camera-screen{min-height:0;padding:10px 12px 12px;gap:8px;overflow-y:auto}
 .camera-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .camera-heading .h{margin:0;font-size:21px}
-.camera-heading .link{min-height:44px;font-size:12px}
+.camera-heading .camera-toggle{flex:none;min-height:44px;padding:0 10px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.camera-heading .camera-toggle:hover,.camera-heading .camera-toggle:focus-visible{background:var(--accent-soft)}
+.camera-toggle .ic{width:16px;height:16px}
 .camera-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:10px;background:var(--bad-soft);font-size:13px}
 .camera-banner button{flex:none;min-height:44px}
+.camera-resume{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.camera-resume .btn{width:auto}
 .camera-stage{flex:1 1 0;min-height:160px;display:flex;overflow:hidden}
 .camera-preview{width:100%;border-radius:16px;background:var(--finder);overflow:hidden;position:relative;display:grid;place-items:center}
 .camera-preview video{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center}
@@ -1388,10 +1392,14 @@ V.contacts = () => `
   <p class="fine">Your contacts and groups are saved to your account. Pick a group when adding people to a split.</p>`;
 
 V.scan = () => `
+  ${S.draft.items.length ? `<div class="camera-banner camera-resume">
+    <span>Resume your current split?</span><button class="btn small" data-act="resume">Resume split</button></div>` : ''}
   ${ui.cameraDenied ? `<div class="camera-banner"><span role="alert">Camera access is blocked.</span>
     <button class="link" data-act="snap">Allow camera</button></div>` : ''}
   <header class="camera-heading"><h1 class="h">Add your receipt</h1>
-    ${ui.cameraOpen ? '<button class="link" data-act="closeCamera">Close camera</button>' : S.draft.items.length ? '<button class="link" data-act="resume">Resume split</button>' : ''}</header>
+    <button class="btn ghost small camera-toggle" data-act="${ui.cameraOpen ? 'closeCamera' : 'openCamera'}">
+      ${I(ui.cameraOpen ? 'x' : 'scan')}${ui.cameraOpen ? 'Close camera' : 'Open camera'}
+    </button></header>
   ${ui.scanError ? `<div class="alert bad" role="alert"><b>Couldn't scan this receipt.</b>${esc(ui.scanError)}</div>` : ''}
   ${ui.cameraError && !ui.cameraDenied ? `<div class="alert bad" role="alert">${esc(ui.cameraError)}</div>` : ''}
   ${ui.scanError && ui.scanText ? `<details><summary>Text read from receipt</summary><textarea readonly aria-label="Text read from scan" style="width:100%;min-height:160px">${esc(ui.scanText)}</textarea></details>` : ''}
@@ -2710,8 +2718,13 @@ function attachCameraPreview(){
 function usePhotoPicker(id){
   stopCamera(); ui.cameraError = ''; ui.cameraDenied = false; render(); document.getElementById(id)?.click();
 }
-async function openCamera(){
-  if (!cameraAvailable()) return usePhotoPicker('camera-in');
+async function openCamera({nativeFallback = true} = {}){
+  if (!cameraAvailable()){
+    if (nativeFallback) return usePhotoPicker('camera-in');
+    ui.cameraError = 'Live camera is unavailable here. Use the phone camera or upload a photo.';
+    render();
+    return;
+  }
   stopCamera(); ui.cameraError = ''; ui.cameraDenied = false; ui.scanError = ''; ui.scanText = '';
   const session = {stream:null, imageCapture:null, flashModes:[]}; cameraSession = session;
   ui.cameraOpen = true; ui.cameraLoading = true; S.view = 'scan'; render();
@@ -2971,6 +2984,7 @@ const A = {
   start: () => { ui.sheet = null; ui.contactPicker = false; ui.contactQuery = ''; if (S.view === 'scanning') cancelScan(); S.view = 'scan'; render(); return openCamera(); },
   resume: () => { ui.sheet = null; const at = S.draft.at && S.draft.at !== 'scanning' && S.draft.at !== 'scan' ? S.draft.at : 'review'; go(at); },
   snap: () => openCamera(),
+  openCamera: () => openCamera({nativeFallback:false}),
   nativeCamera: () => usePhotoPicker('camera-in'),
   capturePhoto: () => captureCameraPhoto(),
   cameraLight: () => toggleCameraLight(),

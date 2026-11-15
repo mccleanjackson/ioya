@@ -65,6 +65,34 @@ test('insecure contexts retain the native photo picker without requesting a stre
   assert.equal(h.requests.length,0);assert.equal(h.elements['camera-in'].clicks,1);assert.equal(h.api.S.draft,draft);
 });
 
+test('the top camera button toggles the live camera and the draft resumes from its own banner',async()=>{
+  const h=harness();
+  const {A,S,V}=h.api;
+  assert.match(V.scan(), /data-act="openCamera">/);
+  assert.doesNotMatch(V.scan(), /data-act="resume"/);
+  S.draft.items.push({id:'item',name:'Lunch',price:1000});
+  S.draft.at='review';
+  assert.match(V.scan(), /camera-resume[\s\S]*data-act="resume"[\s\S]*data-act="openCamera"/);
+  await A.openCamera();
+  assert.match(V.scan(), /camera-resume[\s\S]*data-act="resume"[\s\S]*data-act="closeCamera"/);
+  A.closeCamera();
+  assert.equal(S.view,'scan');
+  assert.equal(h.t.stopped,1);
+  await A.openCamera();
+  A.resume();
+  assert.equal(S.view,'review');
+  assert.equal(h.t.stopped,2);
+  assert.equal(S.draft.items[0].name,'Lunch');
+});
+
+test('the top camera button leaves the native picker to the separate Phone camera action',async()=>{
+  const h=harness({secure:false});
+  await h.api.A.openCamera();
+  assert.equal(h.elements['camera-in'].clicks,0);
+  assert.match(h.api.V.scan(), /Live camera is unavailable here/);
+  assert.match(h.api.V.scan(), /data-act="nativeCamera">Phone camera/);
+});
+
 test('permission denial shows camera settings and preserves the draft',async()=>{
   const error=Object.assign(Error('denied'),{name:'NotAllowedError'});
   const h=harness({getUserMedia:async()=>{throw error;}}),draft=h.api.S.draft;
