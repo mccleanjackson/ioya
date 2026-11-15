@@ -128,6 +128,9 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .cta .ic{width:34px;height:34px}
 .cta b{display:block;font-family:var(--f-display);font-size:20px;letter-spacing:-.01em}
 .cta small{font-size:13px;opacity:.85}
+.btn.resume-split{background:var(--accent-soft);color:var(--ink);box-shadow:inset 0 0 0 1px var(--accent)}
+.btn.resume-split:hover{background:var(--card)}
+.resume-split .ic{width:16px;height:16px}
 
 .board{background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line);overflow:hidden}
 .home-bill + .home-bill{border-top:1px solid var(--line)}
@@ -1263,7 +1266,7 @@ V.home = () => {
   </header>
   <p class="tag">Keep track of the bill with just <mark> one simple system.</mark></p>
   <button class="cta" data-act="start">${I('scan')}<span><b>Pay New Tab</b><small>Click here to split a new receipt!</small></span></button>
-  ${S.draft.items.length ? '<button class="link" data-act="resume">Resume current split</button>' : ''}
+  ${S.draft.items.length ? `<button class="btn small resume-split" data-act="resume">${I('history')}Resume current split</button>` : ''}
   <h2 class="eyebrow" id="unpaid-heading">Unpaid bills</h2>
   <section class="board" aria-labelledby="unpaid-heading">
     ${unpaid.map(({s, people, amount}) => {
