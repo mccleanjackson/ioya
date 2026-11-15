@@ -90,13 +90,15 @@ test('cancel during recognition ignores a late result and preserves draft',async
   assert.equal(worker.terminated,1);
 });
 
+const scanFailureMessage = 'There was an error. Try to scan again, upload a photo, or type the items in.';
+
 test('unreadable photo and OCR failure preserve the draft and offer manual entry',async()=>{
   for(const mode of ['blank','failure']){
     const {api,worker}=harness(),draft=api.S.draft;
     worker.recognize=async()=>{if(mode==='failure')throw Error('Reader unavailable');return {data:{text:''}};};
     await api.runScan(photo);
     assert.equal(api.S.view,'scan'); assert.equal(api.S.draft,draft);
-    assert.match(api.ui.scanError,mode==='blank'?/No readable text/:/Reader unavailable/);
+    assert.ok(api.V.scan().includes(scanFailureMessage));
     assert.equal(api.ui.photo,null);
     api.A.manual(); assert.equal(api.S.view,'review');
     assert.equal(api.S.draft.items[0].name,'');
@@ -114,7 +116,7 @@ test('retries an alternate receipt layout when the first read finds no prices',a
   await api.runScan(photo);
   assert.equal(calls,2);assert.equal(params[1].tessedit_pageseg_mode,'4');
   assert.equal(api.S.view,'review');assert.equal(api.S.draft.printed,837);
-  assert.equal(api.ui.scanText,'');assert.equal(worker.terminated,1);
+  assert.equal(worker.terminated,1);
 });
 
 test('a partial reading gets a shadow-tolerant retry and can recover a missing item',async()=>{
@@ -150,26 +152,25 @@ test('finding some items without the printed total still triggers a second read'
   assert.equal(calls,2);assert.equal(api.S.draft.printed,200);
 });
 
-test('failed scan distinguishes parsed-text failure and safely displays temporary OCR text',async()=>{
+test('a failed scan displays recovery options without exposing OCR text',async()=>{
   const {api,worker}=harness(),draft=api.S.draft;
   const text='</textarea><img src=x onerror=alert(1)>\nTEA PRICE UNREADABLE';
   worker.recognize=async()=>({data:{text}});
   await api.runScan(photo);
-  assert.equal(api.S.draft,draft);assert.match(api.ui.scanError,/Some text was read/);
-  assert.equal(api.ui.scanText,text);
+  assert.equal(api.S.draft,draft);
   const output=api.V.scan();
-  assert.ok(output.includes('&lt;/textarea&gt;&lt;img'));
-  assert.ok(!output.includes(text));assert.ok(!JSON.stringify(api.S).includes(text));
-  api.A.manual();assert.equal(api.ui.scanText,'');
+  assert.ok(output.includes(scanFailureMessage));
+  assert.doesNotMatch(output,/Text read from receipt|TEA PRICE UNREADABLE/);
+  assert.ok(!JSON.stringify(api.S).includes(text));
 });
 
-test('cancelling the layout retry discards diagnostic text and ignores its late result',async()=>{
+test('cancelling the layout retry ignores its late result',async()=>{
   const result=deferred(),started=deferred(),{api,worker}=harness();let calls=0;
   worker.recognize=async()=>{if(++calls===1)return {data:{text:'TEA price unreadable'}};started.resolve();return result.promise;};
   const draft=api.S.draft,running=api.runScan(photo);await started.promise;
   assert.equal(calls,2);api.A.cancelScan();
   result.resolve({data:{text:fixtureText}});await running;
-  assert.equal(api.S.draft,draft);assert.equal(api.ui.scanText,'');
+  assert.equal(api.S.draft,draft);assert.equal(api.ui.scanError,'');
   assert.equal(api.S.view,'scan');assert.equal(worker.terminated,1);
 });
 
@@ -178,13 +179,13 @@ test('reader startup failure and scan timeout recover without replacing draft',a
   const original=unavailable.api.S.draft;
   await unavailable.api.runScan(photo);
   assert.equal(unavailable.api.S.draft,original);
-  assert.match(unavailable.api.ui.scanError,/Download failed/);
+  assert.equal(unavailable.api.ui.scanError,scanFailureMessage);
 
   const ready=deferred(), {api,worker,timers}=harness(()=>ready.promise);
   const draft=api.S.draft,running=api.runScan(photo);await flush();
   [...timers.values()][0]();ready.resolve(worker);await running;
   assert.equal(api.S.draft,draft);assert.equal(api.S.view,'scan');
-  assert.match(api.ui.scanError,/too long/);assert.equal(worker.terminated,1);
+  assert.equal(api.ui.scanError,scanFailureMessage);assert.equal(worker.terminated,1);
 });
 
 test('rejects unsupported or oversized files before loading OCR',async()=>{
