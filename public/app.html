@@ -183,11 +183,16 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .camera-resume{border-radius:0 0 12px 12px;background:var(--accent-soft);box-shadow:inset 0 -1px 0 var(--accent)}
 .camera-resume .btn{width:auto}
 .camera-resume-actions{display:flex;align-items:center;gap:4px}
-.camera-resume-actions .iconbtn{width:36px}
+.camera-resume-actions .iconbtn{width:32px}
+.camera-resume-actions .iconbtn .ic{width:16px;height:16px}
 .camera-stage{flex:1 1 0;min-height:160px;display:flex;overflow:hidden}
 .camera-preview{width:100%;border-radius:16px;background:var(--finder);overflow:hidden;position:relative;display:grid;place-items:center}
 .camera-preview video{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center}
-.camera-guide{width:68%;height:66%;max-width:360px;border:1px solid rgba(255,255,255,.45);border-radius:12px;pointer-events:none}
+.camera-preview[data-camera-off]{grid-template-rows:auto 1fr;background:color-mix(in srgb,var(--finder) 84%,white)}
+.camera-preview[data-camera-off] .camera-overlay{position:relative;inset:auto;grid-row:1;width:100%}
+.camera-off{grid-row:2;display:grid;justify-items:center;gap:7px;padding:12px;color:white;font-size:14px;font-weight:600;text-align:center}
+.camera-off-icon{display:grid;place-items:center;width:40px;height:40px;border:1px solid rgba(255,255,255,.24);border-radius:12px;background:rgba(255,255,255,.08)}
+.camera-off-icon .ic{width:22px;height:22px}
 .camera-status{position:absolute;bottom:10px;left:10px;right:10px;margin:0;padding:8px 10px;border-radius:10px;background:var(--card);color:var(--ink);font-size:13px;text-align:center}
 .camera-preview-controls{display:flex;justify-content:flex-end;gap:8px;margin:10px}
 .camera-flash{min-height:44px;padding:0 10px;border-radius:22px;background:var(--card);color:var(--ink);font-size:12px;font-weight:700}
@@ -689,6 +694,7 @@ const ICONS = {
   home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
   history:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
   scan:'<path d="M3 8h3.5l2-3h7l2 3H21v12H3z"/><circle cx="12" cy="13.5" r="3.8"/>',
+  cameraOff:'<path d="M3 8v12h16M21 16V8h-3.5l-2-3H8.5M3 3l18 18M9 13.5a3 3 0 0 0 3 3m3-3a3 3 0 0 0-3-3"/>',
   contacts:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14c2.7 0 4.5 1.9 4.5 4.6"/>',
   upload:'<path d="M12 15V4M7 9l5-5 5 5M4 15v5h16v-5"/>',
   pencil:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
@@ -1407,8 +1413,8 @@ V.scan = () => `
     </button></header>
   ${ui.scanError ? `<div class="alert bad" role="alert"><b>Couldn't scan this receipt.</b>${esc(ui.scanError)}</div>` : ''}
   ${ui.cameraError && !ui.cameraDenied ? `<div class="alert bad" role="alert">${esc(ui.cameraError)}</div>` : ''}
-  <div class="camera-stage"><div class="camera-preview">
-    ${ui.cameraOpen ? '<video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>' : '<div class="camera-guide" aria-hidden="true"></div>'}
+  <div class="camera-stage"><div class="camera-preview"${ui.cameraOpen ? '' : ' data-camera-off'}>
+    ${ui.cameraOpen ? '<video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>' : `<div class="camera-off"><span class="camera-off-icon">${I('cameraOff')}</span><span>Camera Turned Off</span></div>`}
     ${ui.cameraLoading || ui.capturing ? `<p class="camera-status" role="status">${ui.capturing ? 'Taking photo…' : 'Opening camera…'}</p>` : ''}
     <div class="camera-overlay">
       ${S.draft.items.length && !dismissedCameraDrafts.has(S.draft) ? `<div class="camera-banner camera-resume">
