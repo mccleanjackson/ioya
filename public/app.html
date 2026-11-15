@@ -255,8 +255,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .seg button.on{background:var(--ink);color:var(--paper)}
 .grand{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px;border-radius:12px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);font-weight:700}
 .grand .mono{font-size:20px}
-.grand .money-in{width:135px;max-width:48%;font-size:20px}
-.grand input{padding:5px 8px;font-size:inherit}
+.confirm-split-total{margin:0;text-align:center;font-size:clamp(32px,10vw,48px);font-weight:700;overflow-wrap:anywhere}
 .receipt-fees summary{color:var(--muted);font-size:13px;cursor:pointer}
 
 /* shared search */
@@ -975,7 +974,7 @@ function tipState(d, subtotal = d.items.reduce((sum, it) => sum + it.price, 0)){
     const raw = String(d.tipInput || '').trim();
     if (raw.length > 20 || !/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/.test(raw)) return invalid;
     const cents = Math.round(Number(raw) * 100);
-    if (!Number.isSafeInteger(cents) || !Number.isSafeInteger(cents + Math.max(subtotal, d.printed || 0) + d.tax + d.fees)) return invalid;
+    if (!Number.isSafeInteger(cents) || !Number.isSafeInteger(cents + subtotal + d.tax + d.fees)) return invalid;
     return {cents, valid:true, chosen:true, label:`${money(cents)} tip`};
   }
   return {cents:0, valid:true, chosen:false, label:'No tip added'};
@@ -1006,10 +1005,12 @@ function calc(d){
   const totals = {}; ids.forEach(id => totals[id] = pre[id] + alloc[id]);
   const sumTotals = ids.reduce((a, id) => a + totals[id], 0);
   const computed = subtotal + d.tax + d.fees;
-  const mismatch = Math.abs(computed - d.printed) > 1;
-  const grand = d.printed + tip;
-  return {pre, lines, alloc, totals, unassigned, subtotal, tip, tipValid:tipInfo.valid, extra, computed, mismatch, grand, sumTotals,
-    totalsOff: !unassigned.length && Math.abs(sumTotals - (computed + tip)) > 1};
+  const grand = computed + tip;
+  return {pre, lines, alloc, totals, unassigned, subtotal, tip, tipValid:tipInfo.valid, extra, computed, grand, sumTotals,
+    totalsOff: !unassigned.length && Math.abs(sumTotals - grand) > 1};
+}
+function canConfirmTotal(c){
+  return c.subtotal > 0 && c.tipValid && Number.isSafeInteger(c.grand);
 }
 
 /* ---------- payment app handoffs ----------
@@ -1185,8 +1186,8 @@ function receiptSplitDetail(s){
           ${line('Items subtotal', sub)}
           ${r.tax_cents ? line(`Tax <small>${sub ? pct(r.tax_cents / sub * 100) : ''}</small>`, r.tax_cents) : ''}
           ${r.fees_cents ? line('Fees', r.fees_cents) : ''}
-          <div class="rstrong">${line('Total printed on receipt', r.total_cents)}</div>
-          ${printed !== r.total_cents ? `<p class="rwarn">Items, tax and fees add up to ${money(printed)}, which doesn't match the printed total.</p>` : ''}
+          <div class="rstrong">${line('Total before tip', r.total_cents)}</div>
+          ${printed !== r.total_cents ? `<p class="rwarn">Items, tax and fees add up to ${money(printed)}, which doesn't match the saved total.</p>` : ''}
           ${r.tip_cents ? line(`Tip <small>${pct(r.tip_percent)} of items</small>`, r.tip_cents) : ''}
         </div>
       </div>
@@ -1470,7 +1471,7 @@ V.review = () => {
   return `
   ${flowHead(0, 'scan')}
   <h1 class="h">${d.manualEntry ? 'Type receipt items' : 'Check the items'}</h1>
-  ${d.fromScan ? `<div class="alert warn"><b>Check every item and amount against your receipt.</b>Scans can miss or misread lines. Check the printed total, tax, fees and tip before continuing.${(d.scanWarnings || []).map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
+  ${d.fromScan ? `<div class="alert warn"><b>Check every item and amount against your receipt.</b>Scans can miss or misread lines.${(d.scanWarnings || []).map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
   ${d.fromScan && ui.photo ? `<details><summary>Compare with receipt photo</summary><img src="${esc(ui.photo)}" alt="Receipt used for this scan" style="max-width:100%;height:auto"></details>` : ''}
   ${d.fromScan && ui.photo ? '<button class="link" data-act="saveReceiptPhoto">Save receipt photo to device</button>' : ''}
   <label class="field"><span>Where did you eat?</span><input id="merchant" data-in="merchant" value="${esc(d.merchant)}" placeholder="Restaurant name"></label>
@@ -1494,8 +1495,7 @@ V.review = () => {
       <label class="frow"><span>Fee amount</span><span class="money-in">$<input id="fees" data-in="fees" inputmode="decimal" enterkeyhint="done" value="${cIn(d.fees)}"></span></label>
     </details>
   </div>
-  <label class="grand"><span>Total on receipt</span><span class="money-in">$<input id="printed" data-in="printed" inputmode="decimal" enterkeyhint="done" value="${d.printed ? cIn(d.printed) : ''}" placeholder="0.00"></span></label>
-  <div data-live="match"></div>
+  <div class="grand"><span>Total to split</span><span class="mono" data-live="reviewTotal"></span></div>
   <div class="next" data-live="revnext"></div>`;
 };
 
@@ -1561,7 +1561,6 @@ V.summary = () => {
   const d = S.draft, c = calc(d);
   const blockers = [];
   if (c.unassigned.length) blockers.push(`<div class="alert bad" role="alert"><b>${c.unassigned.length} item${c.unassigned.length === 1 ? ' is' : 's are'} unassigned.</b>${c.unassigned.map(it => esc(it.name)).join(', ')}. <button class="link" data-act="go" data-v="assign">Assign items</button></div>`);
-  if (c.mismatch) blockers.push(`<div class="alert bad" role="alert"><b>Items don't match the receipt total.</b>Items, tax and fees add to ${money(c.computed)}, but the receipt says ${money(d.printed)}. <button class="link" data-act="go" data-v="review">Fix the items</button></div>`);
   if (!c.tipValid) blockers.push(`<div class="alert bad" role="alert"><b>Check the custom tip.</b><button class="link" data-act="go" data-v="review">Fix the tip amount</button></div>`);
   return `
   ${flowHead(2, 'assign')}
@@ -1813,7 +1812,7 @@ function splitForSaving(d){
   const today = new Date(), date = today.toLocaleDateString('en-CA');
   const tipPct = d.tipMode === 'percent' ? Number(d.tipPct) || 0 : c.subtotal ? Math.round(c.tip * 10000 / c.subtotal) / 100 : 0;
   return {client_key:d.saveKey, name:'Split on ' + today.toLocaleDateString('en-US', {month:'short', day:'numeric'}), merchant:(d.merchant || '').trim(), date,
-    tax_cents:d.tax, fees_cents:d.fees, tip_cents:c.tip, tip_percent:Math.min(tipPct, 999.99), total_cents:d.printed,
+    tax_cents:d.tax, fees_cents:d.fees, tip_cents:c.tip, tip_percent:Math.min(tipPct, 999.99), total_cents:c.computed,
     items:d.items.map(it => ({description:(it.name || '').trim(), price_cents:it.price, shares:shares[it.id] || []}))};
 }
 async function saveSplitToHistory(){
@@ -1844,18 +1843,8 @@ const LIVE = {
   clist: () => contactList(),
   subtotal: () => money(calc(S.draft).subtotal),
   tipnotice: () => { const t = tipState(S.draft); return t.valid ? '' : `<p class="warn-line" role="alert">${t.error}</p>`; },
-  match: () => {
-    const d = S.draft, c = calc(d);
-    if (!d.printed) return `<div class="alert warn"><b>Enter the total printed on the receipt.</b>We use it to check that every item was read correctly.</div>`;
-    return c.mismatch
-      ? `<div class="alert bad" role="alert"><b>Off by ${money(Math.abs(c.computed - d.printed))}.</b>Items, tax and fees add to ${money(c.computed)}, but the receipt says ${money(d.printed)}. Fix a price or the total to continue.</div>`
-      : `<div class="alert ok"><b>Matches the receipt total.</b></div>`;
-  },
-  revnext: () => {
-    const d = S.draft, c = calc(d);
-    const ok = d.items.some(it => it.price > 0) && d.printed && !c.mismatch && c.tipValid;
-    return `<button class="btn" data-act="go" data-v="assign" ${ok ? '' : 'disabled'}>Match items</button>`;
-  },
+  reviewTotal: () => money(calc(S.draft).grand),
+  revnext: () => `<button id="receipt-next" class="btn" data-act="reviewNext" ${canConfirmTotal(calc(S.draft)) ? '' : 'disabled'}>Next</button>`,
   requestSheet: () => ui.sheet?.type === 'payment' ? requestCard(ui.sheet.request, 'sheet') : '',
   sendbar: () => {
     const {ready, blocked, globalBlock} = sendPlan();
@@ -1972,7 +1961,7 @@ function requestItems(p,c){
 function sendPlan(){
   const d = S.draft, c = calc(d);
   const others = d.people.filter(p => !p.me && c.totals[p.id] > 0);
-  return {c, ready: others.filter(p => !requestIssue(p,c).error), blocked: others.filter(p => requestIssue(p,c).error), globalBlock: c.unassigned.length > 0 || c.mismatch || c.totalsOff || !c.tipValid};
+  return {c, ready: others.filter(p => !requestIssue(p,c).error), blocked: others.filter(p => requestIssue(p,c).error), globalBlock: c.unassigned.length > 0 || c.totalsOff || !canConfirmTotal(c)};
 }
 function requestIssue(p, c){
   const method = methodFor(p,c.totals[p.id]);
@@ -2387,6 +2376,15 @@ function sheetHTML(){
         <div class="next"><button class="btn ghost" data-act="close">Close</button></div>`
       : `<h2 id="sh-t">This split is no longer here</h2><p class="fine">It may have been removed. Close this and refresh the page.</p>
         <div class="next"><button class="btn ghost" data-act="close">Close</button></div>`;
+  }
+  if (s.type === 'confirmTotal'){
+    body = `<h2 id="sh-t">Does this match your receipt total?</h2>
+      <p class="mono confirm-split-total">${money(s.total)}</p>
+      ${s.tip ? '<p class="fine">This total includes the tip you entered.</p>' : ''}
+      <div class="next">
+        <button class="btn" data-act="confirmTotal">Yes, continue</button>
+        <button id="edit-receipt-total" class="btn ghost" data-act="close">No, edit split</button>
+      </div>`;
   }
   if (s.type === 'unmatched'){
     const {unassigned} = calc(S.draft);
@@ -3121,7 +3119,27 @@ const A = {
   },
   sheet: ds => { if (ds.s === 'group') return openGroup(ds.id); ui.sheet = {type:ds.s, id:ds.id || null};
     render(); },
-  close: () => { if (ui.saving) return; if (ui.sheet?.type === 'unmatched') return A.fixMatches(); ui.sheet = null; render(); },
+  reviewNext: () => {
+    const c = calc(S.draft);
+    if (S.view !== 'review' || !canConfirmTotal(c)) return;
+    ui.sheet = {type:'confirmTotal', total:c.grand, tip:c.tip};
+    render();
+    document.getElementById('edit-receipt-total')?.focus?.();
+  },
+  confirmTotal: () => {
+    if (S.view !== 'review' || ui.sheet?.type !== 'confirmTotal') return;
+    const c = calc(S.draft);
+    if (!canConfirmTotal(c) || c.grand !== ui.sheet.total) return A.close();
+    ui.sheet = null;
+    go('assign');
+  },
+  close: () => {
+    if (ui.saving) return;
+    if (ui.sheet?.type === 'unmatched') return A.fixMatches();
+    const restoreNext = ui.sheet?.type === 'confirmTotal';
+    ui.sheet = null; render();
+    if (restoreNext) document.getElementById('receipt-next')?.focus?.();
+  },
   savegroup: () => saveGroup(),
   askdeletegroup: () => { if (ui.sheet?.type === 'group' && ui.sheet.id && !ui.saving) { ui.sheet.confirmDelete = true; ui.sheet.error = ''; render(); } },
   keepgroup: () => { if (ui.sheet?.type === 'group' && !ui.saving) { ui.sheet.confirmDelete = false; ui.sheet.error = ''; render(); } },
@@ -3777,7 +3795,7 @@ document.addEventListener('input', e => {
     case 'merchant': d.merchant = val; break;
     case 'iname': item().name = val; break;
     case 'iprice': item().price = toC(val); break;
-    case 'tax': case 'fees': case 'printed': d[k] = toC(val); break;
+    case 'tax': case 'fees': d[k] = toC(val); break;
     case 'tipamount': d.tipInput = val; d.tipMode = val.trim() ? 'amount' : null; d.tipPct = null; break;
     case 'contact-query':
       ui.contactQuery = val;
@@ -3822,7 +3840,7 @@ document.addEventListener('keydown', e => {
 });
 function formatReviewAmount(el){
   const field = el.dataset?.in;
-  if (S.view !== 'review' || !['iprice','tax','tipamount','fees','printed'].includes(field)) return false;
+  if (S.view !== 'review' || !['iprice','tax','tipamount','fees'].includes(field)) return false;
   if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(el.value.trim())) return true;
   const d = S.draft;
   if (field === 'tipamount'){

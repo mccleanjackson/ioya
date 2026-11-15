@@ -43,7 +43,7 @@ test('the split is sent with each person\'s exact share, as contacts, and nothin
   assert.equal(p.merchant,'Sakura Ramen');
   assert.match(p.name,/^Split on [A-Z][a-z]{2} \d{1,2}$/);
   assert.match(p.date,/^\d{4}-\d{2}-\d{2}$/);
-  assert.equal(p.tax_cents,300);assert.equal(p.total_cents,3300);assert.equal(p.tip_percent,20);
+  assert.equal(p.tax_cents,300);assert.equal(p.total_cents,3301);assert.equal(p.tip_percent,20);
   assert.equal(p.tip_cents,api.calc(d).tip);
   assert.deepEqual(plain(p.items),[
     {description:'Ramen',price_cents:2000,shares:[{contact_id:2,share_cents:2000}]},

@@ -10,7 +10,7 @@ function app(saved){
   const listeners={};
   const context={window:{},document:{getElementById:()=>({setAttribute(){}}),querySelectorAll:()=>[],
     addEventListener:(type,handler)=>(listeners[type] ||= []).push(handler)},localStorage:{getItem:()=>saved?JSON.stringify(saved):null,setItem(){}},console};
-  vm.runInNewContext(script.replace("if (!V[S.view]","render=()=>{};globalThis.api={newDraft,normalizeTipDraft,tipState,calc,S,A,sendPlan,LIVE,V};return;\nif (!V[S.view]"),context);
+  vm.runInNewContext(script.replace("if (!V[S.view]","render=()=>{};globalThis.api={newDraft,normalizeTipDraft,tipState,calc,S,A,sendPlan,LIVE,V,sheetHTML};return;\nif (!V[S.view]"),context);
   return {...context.api,dispatch:(type,event)=>listeners[type].forEach(handler=>handler(event))};
 }
 function receipt(api){
@@ -56,15 +56,37 @@ test('a saved percentage tip becomes an equivalent fixed dollar amount',()=>{
 test('Enter formats review amounts and leaves an invalid tip visible',()=>{
   const api=app(),d=receipt(api);
   api.S.view='review';
-  for (const [field,value,formatted] of [['iprice','5','5.00'],['tax','.8','0.80'],['tipamount','2','2.00'],['fees','1.','1.00'],['printed','10','10.00'],['tipamount','1.234','1.234']]){
+  for (const [field,value,formatted] of [['iprice','5','5.00'],['tax','.8','0.80'],['tipamount','2','2.00'],['fees','1.','1.00'],['tipamount','1.234','1.234']]){
     const target={dataset:{in:field,id:'a'},value};
     api.dispatch('input',{target});
     api.dispatch('keydown',{key:'Enter',target,preventDefault(){}});
     assert.equal(target.value,formatted);
   }
   assert.equal(d.items[0].price,500);
-  assert.equal(d.printed,1000);
   assert.equal(api.tipState(d).valid,false);
+});
+
+test('Next confirms the calculated split total before opening item matching',()=>{
+  const api=app(),d=receipt(api);
+  api.S.view='review';
+  Object.assign(d,{printed:0,tipMode:'amount',tipInput:'2.50'});
+  assert.match(api.LIVE.revnext(),/>Next</);
+  assert.doesNotMatch(api.LIVE.revnext(),/disabled/);
+  assert.doesNotMatch(api.V.review(),/data-in="printed"/);
+  assert.equal(api.LIVE.reviewTotal(),'$13.50');
+  api.A.reviewNext();
+  assert.equal(api.S.view,'review');
+  assert.match(api.sheetHTML(),/\$13\.50/);
+  assert.match(api.sheetHTML(),/Yes, continue/);
+  assert.match(api.sheetHTML(),/No, edit split/);
+  api.A.close();
+  assert.equal(api.S.view,'review');
+  assert.equal(api.sheetHTML(),'');
+  d.tax=100;
+  api.A.reviewNext();
+  assert.match(api.sheetHTML(),/\$13\.70/);
+  api.A.confirmTotal();
+  assert.equal(api.S.view,'assign');
 });
 
 test('custom dollar tips stay fixed when item prices change',()=>{
