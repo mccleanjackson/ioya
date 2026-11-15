@@ -51,6 +51,20 @@ test('the split is sent with each person\'s exact share, as contacts, and nothin
     {description:'Water',price_cents:0,shares:[]}]);
 });
 
+test('the combined amount preserves a known fee in History without charging it twice',()=>{
+  const api=app(),d=split(api);
+  Object.assign(d,{tipMode:'amount',tipInput:'3.00',knownFees:100});
+  let payload=api.splitForSaving(d);
+  assert.equal(payload.fees_cents,100);
+  assert.equal(payload.tip_cents,200);
+  assert.equal(payload.total_cents+payload.tip_cents,api.calc(d).grand);
+  d.tipInput='0.30';
+  payload=api.splitForSaving(d);
+  assert.equal(payload.fees_cents,30);
+  assert.equal(payload.tip_cents,0);
+  assert.equal(payload.total_cents,api.calc(d).grand);
+});
+
 test('Save to History saves once, clears the draft, opens History and reloads it', async()=>{
   let release; const api=app({rpc:()=>new Promise(r=>release=()=>r({data:42,error:null}))}); const d=split(api);
   api.A.saveSplit(); api.A.saveSplit();  // a double tap

@@ -256,7 +256,6 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .grand{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px;border-radius:12px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);font-weight:700}
 .grand .mono{font-size:20px}
 .confirm-split-total{margin:0;text-align:center;font-size:clamp(32px,10vw,48px);font-weight:700;overflow-wrap:anywhere}
-.receipt-fees summary{color:var(--muted);font-size:13px;cursor:pointer}
 
 /* shared search */
 .search{display:flex;align-items:center;gap:8px;background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:0 14px}
@@ -729,6 +728,7 @@ function normalizeTipDraft(d){
     const tip = tipState(d);
     Object.assign(d, {tipMode:tip.valid ? 'amount' : null, tipPct:null, tipInput:tip.valid ? cIn(tip.cents) : ''});
   }
+  mergeDraftFees(d);
   // Discard old prototype delivery claims; they never represented real requests.
   if (d.results?.some(r => r.handoffVersion !== 1)) { d.results = null; if (d.at === 'sent') d.at = 'summary'; }
   if (d.people) d.people = d.people.filter(p => p.me || p.name.trim());
@@ -978,6 +978,17 @@ function tipState(d, subtotal = d.items.reduce((sum, it) => sum + it.price, 0)){
     return {cents, valid:true, chosen:true, label:`${money(cents)} tip`};
   }
   return {cents:0, valid:true, chosen:false, label:'No tip added'};
+}
+function mergeDraftFees(d){
+  if (!d.fees) return;
+  const tip = tipState(d);
+  // Keep the scanned or previously entered fee for the History breakdown.
+  d.knownFees = d.fees;
+  d.fees = 0;
+  if (tip.valid){
+    d.tipMode = 'amount';
+    d.tipInput = cIn(tip.cents + d.knownFees);
+  }
 }
 function calc(d){
   const ids = d.people.map(p => p.id);
@@ -1489,11 +1500,8 @@ V.review = () => {
   <div class="fees">
     <div class="frow"><span>Subtotal</span><span class="mono" data-live="subtotal"></span></div>
     <label class="frow"><span>Tax</span><span class="money-in">$<input id="tax" data-in="tax" inputmode="decimal" enterkeyhint="done" value="${cIn(d.tax)}"></span></label>
-    <label class="frow" for="tip-amount"><span>Tip amount <small>(optional)</small></span><span class="money-in">$<input id="tip-amount" data-in="tipamount" inputmode="decimal" enterkeyhint="done" maxlength="20" value="${esc(d.tipInput || '')}" placeholder="0.00" aria-describedby="tip-note"></span></label>
+    <label class="frow" for="tip-amount"><span>Tip and fees</span><span class="money-in">$<input id="tip-amount" data-in="tipamount" inputmode="decimal" enterkeyhint="done" maxlength="20" value="${esc(d.tipInput || '')}" placeholder="0.00" aria-describedby="tip-note"></span></label>
     <div id="tip-note" data-live="tipnotice"></div>
-    <details class="receipt-fees" ${d.fees ? 'open' : ''}><summary>Service fees</summary>
-      <label class="frow"><span>Fee amount</span><span class="money-in">$<input id="fees" data-in="fees" inputmode="decimal" enterkeyhint="done" value="${cIn(d.fees)}"></span></label>
-    </details>
   </div>
   <div class="grand"><span>Total to split</span><span class="mono" data-live="reviewTotal"></span></div>
   <div class="next" data-live="revnext"></div>`;
@@ -1561,7 +1569,7 @@ V.summary = () => {
   const d = S.draft, c = calc(d);
   const blockers = [];
   if (c.unassigned.length) blockers.push(`<div class="alert bad" role="alert"><b>${c.unassigned.length} item${c.unassigned.length === 1 ? ' is' : 's are'} unassigned.</b>${c.unassigned.map(it => esc(it.name)).join(', ')}. <button class="link" data-act="go" data-v="assign">Assign items</button></div>`);
-  if (!c.tipValid) blockers.push(`<div class="alert bad" role="alert"><b>Check the custom tip.</b><button class="link" data-act="go" data-v="review">Fix the tip amount</button></div>`);
+  if (!c.tipValid) blockers.push(`<div class="alert bad" role="alert"><b>Check the tip and fees.</b><button class="link" data-act="go" data-v="review">Fix the amount</button></div>`);
   return `
   ${flowHead(2, 'assign')}
   <h1 class="h">Review & send</h1>
@@ -1810,9 +1818,12 @@ function splitForSaving(d){
     c.lines[p.id].forEach(l => (shares[l.itemId] ||= []).push({contact_id:Number(contactId), share_cents:l.share}));
   });
   const today = new Date(), date = today.toLocaleDateString('en-CA');
-  const tipPct = d.tipMode === 'percent' ? Number(d.tipPct) || 0 : c.subtotal ? Math.round(c.tip * 10000 / c.subtotal) / 100 : 0;
+  // The user can lower the combined amount below the original fee.
+  const knownFees = Math.min(d.knownFees || 0, c.tip);
+  const tip = c.tip - knownFees;
+  const tipPct = d.tipMode === 'percent' ? Number(d.tipPct) || 0 : c.subtotal ? Math.round(tip * 10000 / c.subtotal) / 100 : 0;
   return {client_key:d.saveKey, name:'Split on ' + today.toLocaleDateString('en-US', {month:'short', day:'numeric'}), merchant:(d.merchant || '').trim(), date,
-    tax_cents:d.tax, fees_cents:d.fees, tip_cents:c.tip, tip_percent:Math.min(tipPct, 999.99), total_cents:c.computed,
+    tax_cents:d.tax, fees_cents:d.fees + knownFees, tip_cents:tip, tip_percent:Math.min(tipPct, 999.99), total_cents:c.computed + knownFees,
     items:d.items.map(it => ({description:(it.name || '').trim(), price_cents:it.price, shares:shares[it.id] || []}))};
 }
 async function saveSplitToHistory(){
@@ -2380,7 +2391,7 @@ function sheetHTML(){
   if (s.type === 'confirmTotal'){
     body = `<h2 id="sh-t">Does this match your receipt total?</h2>
       <p class="mono confirm-split-total">${money(s.total)}</p>
-      ${s.tip ? '<p class="fine">This total includes the tip you entered.</p>' : ''}
+      ${s.tip ? '<p class="fine">This total includes tip and fees.</p>' : ''}
       <div class="next">
         <button class="btn" data-act="confirmTotal">Yes, continue</button>
         <button id="edit-receipt-total" class="btn ghost" data-act="close">No, edit split</button>
@@ -2998,6 +3009,7 @@ async function runScan(file){
     if (!parsed.items.length) return fail();
     const d = newDraft();
     Object.assign(d, parsed, {items:parsed.items.map(it => ({id:uid('i'), ...it})), fromScan:true, scanWarnings:parsed.warnings, at:'review'});
+    mergeDraftFees(d);
     delete d.warnings;
     S.draft = d;
     ui.originalNames = {}; shortenDraftNames();
@@ -3795,7 +3807,7 @@ document.addEventListener('input', e => {
     case 'merchant': d.merchant = val; break;
     case 'iname': item().name = val; break;
     case 'iprice': item().price = toC(val); break;
-    case 'tax': case 'fees': d[k] = toC(val); break;
+    case 'tax': d.tax = toC(val); break;
     case 'tipamount': d.tipInput = val; d.tipMode = val.trim() ? 'amount' : null; d.tipPct = null; break;
     case 'contact-query':
       ui.contactQuery = val;
@@ -3840,7 +3852,7 @@ document.addEventListener('keydown', e => {
 });
 function formatReviewAmount(el){
   const field = el.dataset?.in;
-  if (S.view !== 'review' || !['iprice','tax','tipamount','fees'].includes(field)) return false;
+  if (S.view !== 'review' || !['iprice','tax','tipamount'].includes(field)) return false;
   if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(el.value.trim())) return true;
   const d = S.draft;
   if (field === 'tipamount'){
