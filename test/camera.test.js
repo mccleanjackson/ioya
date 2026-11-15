@@ -18,7 +18,7 @@ function stream(t){return {getTracks:()=>[t],getVideoTracks:()=>[t]};}
 function harness(options={}){
   const t=options.track||track(),requests=[],scans=[],events={},draws=[],revoked=[],timers=new Map();let tid=0;
   const video={srcObject:null,videoWidth:900,videoHeight:1000,readyState:4,paused:0,getBoundingClientRect:()=>({width:300,height:400}),addEventListener(){},play:async()=>{},pause(){this.paused++;}};
-  const elements={'receipt-camera':video,'capture-photo':{disabled:true},'camera-in':{clicks:0,click(){this.clicks++;}},'file-in':{click(){}}};
+  const elements={'receipt-camera':video,'capture-photo':{disabled:true},'camera-in':{clicks:0,click(){this.clicks++;}},'file-in':{click(){}},'camera-toggle':{focus(){this.focused=true;}}};
   const document={hidden:false,getElementById:id=>elements[id]||{},addEventListener:(n,f)=>events[n]=f,
     createElement:()=>({getContext:()=>({drawImage(...args){draws.push(args);if(options.onFrame)options.onFrame(t);}}),toBlob:cb=>{if(options.frameError)throw Error('Frame failed');cb({type:'image/jpeg',size:345});}})};
   const window={isSecureContext:options.secure!==false,addEventListener:(n,f)=>events[n]=f,
@@ -29,7 +29,7 @@ function harness(options={}){
       async takePhoto(settings){options.photoSettings=settings;if(options.photo) return options.photo(settings);return {type:'image/jpeg',size:123};}
     };
   }
-  const context={window,document,console,localStorage:{getItem:()=>null,setItem(){}},
+  const context={window,document,console,localStorage:{getItem:()=>options.savedDraft || null,setItem(){}},
     URL:{createObjectURL:()=> 'blob:camera-test',revokeObjectURL:url=>revoked.push(url)},
     Image:class {naturalWidth=options.stillWidth||1800;naturalHeight=options.stillHeight||2000;async decode(){if(options.imageDecode)await options.imageDecode();}},
     File:class {constructor(parts,name,opts){this.name=name;this.type=opts.type;this.size=parts[0].size;}},
@@ -91,6 +91,32 @@ test('the top camera button leaves the native picker to the separate Phone camer
   assert.equal(h.elements['camera-in'].clicks,0);
   assert.match(h.api.V.scan(), /Live camera is unavailable here/);
   assert.match(h.api.V.scan(), /data-act="nativeCamera">Phone camera/);
+});
+
+test('dismissing the camera banner hides only that draft until reload, resume, or replacement',async()=>{
+  const h=harness();
+  const {A,S,V}=h.api;
+  S.draft.items.push({id:'item',name:'Lunch',price:1000});
+  S.draft.at='review';
+  const draft=S.draft;
+  let removed=false;
+  const dismiss=()=>A.dismissCameraResume({}, {closest:()=>({remove(){removed=true;}})});
+  dismiss();
+  assert.equal(removed,true);
+  assert.equal(h.elements['camera-toggle'].focused,true);
+  assert.equal(S.draft,draft);
+  await A.openCamera();
+  assert.doesNotMatch(V.scan(), /data-act="dismissCameraResume"/);
+  assert.match(V.home(), /Resume current split/);
+  const reloaded=harness({savedDraft:JSON.stringify({view:'scan',draft})});
+  assert.match(reloaded.api.V.scan(), /data-act="dismissCameraResume"/);
+  A.resume();
+  assert.equal(S.view,'review');
+  assert.match(V.scan(), /data-act="dismissCameraResume"/);
+  dismiss();
+  A.manual();
+  assert.notEqual(S.draft,draft);
+  assert.match(V.scan(), /data-act="dismissCameraResume"/);
 });
 
 test('permission denial shows camera settings and preserves the draft',async()=>{

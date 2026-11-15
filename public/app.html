@@ -182,6 +182,8 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .camera-overlay button{pointer-events:auto}
 .camera-resume{border-radius:0 0 12px 12px;background:var(--accent-soft);box-shadow:inset 0 -1px 0 var(--accent)}
 .camera-resume .btn{width:auto}
+.camera-resume-actions{display:flex;align-items:center;gap:4px}
+.camera-resume-actions .iconbtn{width:36px}
 .camera-stage{flex:1 1 0;min-height:160px;display:flex;overflow:hidden}
 .camera-preview{width:100%;border-radius:16px;background:var(--finder);overflow:hidden;position:relative;display:grid;place-items:center}
 .camera-preview video{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center}
@@ -876,6 +878,7 @@ function groupFromRow(g){
   return {id:String(g.group_id), name:g.group_name, members:(g.group_members || []).map(m => String(m.contact_id)).filter(id => ids.has(id))};
 }
 const ui = {sheet:null, toast:null, photo:null, scanProgress:0, scanStatus:'', scanError:'', originalNames:{}, cameraOpen:false, cameraLoading:false, cameraError:'', cameraDenied:false, cameraLightMode:null, cameraFlashEnabled:true, capturing:false, contactPicker:false, contactQuery:'', matchPersonId:null, hq:'', hf:'all', cq:'', cf:'all', open:null, saving:false};
+const dismissedCameraDrafts = new WeakSet();
 let cameraSession = null;
 
 /* ---------- receipt text parser ----------
@@ -1399,7 +1402,7 @@ V.scan = () => `
   ${ui.cameraDenied ? `<div class="camera-banner"><span role="alert">Camera access is blocked.</span>
     <button class="link" data-act="snap">Allow camera</button></div>` : ''}
   <header class="camera-heading"><h1 class="h">Add your receipt</h1>
-    <button class="btn ghost small camera-toggle" data-act="${ui.cameraOpen ? 'closeCamera' : 'openCamera'}">
+    <button id="camera-toggle" class="btn ghost small camera-toggle" data-act="${ui.cameraOpen ? 'closeCamera' : 'openCamera'}">
       ${I(ui.cameraOpen ? 'x' : 'scan')}${ui.cameraOpen ? 'Close camera' : 'Open camera'}
     </button></header>
   ${ui.scanError ? `<div class="alert bad" role="alert"><b>Couldn't scan this receipt.</b>${esc(ui.scanError)}</div>` : ''}
@@ -1408,8 +1411,12 @@ V.scan = () => `
     ${ui.cameraOpen ? '<video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>' : '<div class="camera-guide" aria-hidden="true"></div>'}
     ${ui.cameraLoading || ui.capturing ? `<p class="camera-status" role="status">${ui.capturing ? 'Taking photo…' : 'Opening camera…'}</p>` : ''}
     <div class="camera-overlay">
-      ${S.draft.items.length ? `<div class="camera-banner camera-resume">
-        <span>Resume your current split?</span><button class="btn small" data-act="resume">Resume split</button></div>` : ''}
+      ${S.draft.items.length && !dismissedCameraDrafts.has(S.draft) ? `<div class="camera-banner camera-resume">
+        <span>Resume your current split?</span>
+        <div class="camera-resume-actions">
+          <button class="btn small" data-act="resume">Resume split</button>
+          <button class="iconbtn" data-act="dismissCameraResume" aria-label="Dismiss resume split banner">${I('x')}</button>
+        </div></div>` : ''}
       ${ui.cameraError || (ui.cameraOpen && ui.cameraLightMode) ? `<div class="camera-preview-controls">
         ${ui.cameraError ? '<button class="camera-flash camera-native" data-act="nativeCamera">Phone camera</button>' : ''}
         ${ui.cameraOpen && ui.cameraLightMode ? `<button class="camera-flash" data-act="cameraLight" aria-label="Flash at capture" aria-pressed="${ui.cameraFlashEnabled}" ${ui.cameraLoading || ui.capturing ? 'disabled' : ''}>Flash: ${ui.cameraFlashEnabled ? 'On' : 'Off'}</button>` : ''}
@@ -2983,7 +2990,17 @@ const A = {
   go: ds => { ui.sheet = null; go(ds.v); },
   jump: ds => { ui.sheet = null; go(ds.v); },
   start: () => { ui.sheet = null; ui.contactPicker = false; ui.contactQuery = ''; if (S.view === 'scanning') cancelScan(); S.view = 'scan'; render(); return openCamera(); },
-  resume: () => { ui.sheet = null; const at = S.draft.at && S.draft.at !== 'scanning' && S.draft.at !== 'scan' ? S.draft.at : 'review'; go(at); },
+  resume: () => {
+    dismissedCameraDrafts.delete(S.draft);
+    ui.sheet = null;
+    const at = S.draft.at && S.draft.at !== 'scanning' && S.draft.at !== 'scan' ? S.draft.at : 'review';
+    go(at);
+  },
+  dismissCameraResume: (_ds, button) => {
+    dismissedCameraDrafts.add(S.draft);
+    button.closest('.camera-resume')?.remove();
+    document.getElementById('camera-toggle')?.focus();
+  },
   snap: () => openCamera(),
   openCamera: () => openCamera({nativeFallback:false}),
   nativeCamera: () => usePhotoPicker('camera-in'),
