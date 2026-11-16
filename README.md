@@ -84,7 +84,7 @@ The two data stores are tables in Supabase: **D1 Contacts** (`contacts`, `contac
 
 ### Landing page, login and accounts
 
-- **Landing page (`/`).** Pictures of the app, a short "How it works", and **Log in** (email and password). **Try IOYA** opens the app at `/app` without an account. **Log out** ends the login and deletes the login cookies ([`public/session.js`](public/session.js) keeps the login in cookies shared by every page).
+- **Landing page (`/`).** Pictures of the app, a short "How it works", and **Log in** (email and password). **Try IOYA** opens the app at `/app` without an account. On laptops, a **Scan to open IOYA on your phone** QR code (made by the server at `/qr.png` with the site's public address) lets people open the site from a screen or projector. **Log out** ends the login and deletes the login cookies ([`public/session.js`](public/session.js) keeps the login in cookies shared by every page).
 - **Guests.** The first time a browser opens the app, it signs in to Supabase anonymously, and `ensure_my_user` creates that person's `users` row and their "You" contact. The same browser keeps the same account. Clearing the browser's data or using a private window starts a new, empty account.
 - **Profiles.** A guest can **create a profile** on the Profile tab: name, then email, then a 6-digit code that Supabase emails to confirm it, then a password. The same account (same data) becomes permanent. On another device, **Log in** with the email and password; **Forgot password?** emails a code to choose a new one. A guest's data is not merged into a profile they log in to. Passwords and emails are kept by Supabase Auth, not in our tables.
 - **Profile tab.** Shows your name, phone, email, number of splits and contacts, and how much you're owed. The pencil edits your name, phone and **profile picture** (saved profiles only): drag and zoom to frame it, and it's saved as a small JPEG in a public Storage bucket with a random file name ([`supabase/avatars.sql`](supabase/avatars.sql)).
@@ -283,6 +283,7 @@ These are steps for checking the software, not test results. Students do and rec
 server.js                 Serves public/ and /config.js (Supabase URL + anon key from .env); mounts the routes below
 manual-payment-requests.js  /api/manual-requests: payment links and shared QR codes for the /pay page
 profile-share.js          /u/<code> shared profile pages, their details and QR codes
+site-qr.js                /qr.png: the landing page's "Scan to open IOYA" QR code
 sms-delivery.js           Optional text-message delivery for payment links (not used by the live app)
 public/index.html         The landing page (/): How it works, Log in, admin Maintain buttons, Log out
 public/app.html           The app (/app): all screens, styles and Supabase calls
