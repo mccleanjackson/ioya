@@ -4,6 +4,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
+// The admin page builds its dialog in a <template> and swaps it in with replaceChildren (and makes the
+// toast with createElement); these stand-ins keep the dialog's HTML readable from the fake #overlay.
+function fakeElement(){
+  const node = {className:'', textContent:'', dataset:{}, setAttribute(){}, classList:{add(){}, remove(){}, contains:() => false}};
+  node.content = {get firstElementChild(){ return {outerHTML:node.html, firstElementChild:{dataset:{}}}; }};
+  Object.defineProperty(node, 'innerHTML', {set(v){ node.html = v; }, get(){ return node.html; }});
+  return node;
+}
+
 const html = fs.readFileSync(path.join(__dirname, '../public/admin.html'), 'utf8');
 const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
 const plain = x => JSON.parse(JSON.stringify(x));
@@ -20,7 +29,8 @@ const USERS = [
 // Runs the admin page against a fake page and a fake database. `fail` makes one RPC return an error.
 async function admin({isAdmin = true, fail = {}} = {}){
   const calls = [], els = {}, handlers = {}, form = [];
-  const el = id => els[id] ||= {id, innerHTML:'', value:'', focus(){}, setSelectionRange(){}, classList:{remove(){}}, removeAttribute(){}};
+  const el = id => els[id] ||= {id, innerHTML:'', value:'', focus(){}, setSelectionRange(){}, classList:{remove(){}}, removeAttribute(){},
+    querySelector:() => null, replaceChildren(...nodes){ this.innerHTML = nodes.map(n => n.outerHTML).join(''); }};
   const client = {
     auth:{getSession:async () => ({data:{session:{user:{email:'jackson@example.com', is_anonymous:false}}}}), signOut:async () => ({})},
     rpc:async (name, args) => {
@@ -35,8 +45,8 @@ async function admin({isAdmin = true, fail = {}} = {}){
   };
   const context = {
     window:{supabase:{createClient:() => client}, IOYA_CONFIG:{supabaseUrl:'https://x.test', supabaseAnonKey:'k'}, addEventListener(){}},
-    document:{getElementById:el, addEventListener:(t, f) => handlers[t] = f, querySelector:() => null,
-      querySelectorAll:sel => sel.startsWith('#dlg-form') ? form : [], activeElement:null, body:{insertAdjacentHTML(){}}},
+    document:{getElementById:el, createElement:fakeElement, addEventListener:(t, f) => handlers[t] = f, querySelector:() => null,
+      querySelectorAll:sel => sel.startsWith('#dlg-form') ? form : [], activeElement:null, body:{insertAdjacentHTML(){}, append(){}}},
     location:{hash:'#users'}, setTimeout, clearTimeout, console
   };
   vm.runInNewContext(script, context);

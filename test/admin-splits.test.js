@@ -4,6 +4,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
+// The admin page builds its dialog in a <template> and swaps it in with replaceChildren (and makes the
+// toast with createElement); these stand-ins keep the dialog's HTML readable from the fake #overlay.
+function fakeElement(){
+  const node = {className:'', textContent:'', dataset:{}, setAttribute(){}, classList:{add(){}, remove(){}, contains:() => false}};
+  node.content = {get firstElementChild(){ return {outerHTML:node.html, firstElementChild:{dataset:{}}}; }};
+  Object.defineProperty(node, 'innerHTML', {set(v){ node.html = v; }, get(){ return node.html; }});
+  return node;
+}
+
 // Maintain Splits (public/admin.html + supabase/admin-splits.sql).
 const html = fs.readFileSync(path.join(__dirname, '../public/admin.html'), 'utf8');
 const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
@@ -31,7 +40,8 @@ const SPLITS = [
 
 async function admin(hash, {fail = {}} = {}){
   const calls = [], els = {}, form = [];
-  const el = id => els[id] ||= {id, innerHTML:'', value:'', focus(){}, setSelectionRange(){}, classList:{remove(){}}, removeAttribute(){}};
+  const el = id => els[id] ||= {id, innerHTML:'', value:'', focus(){}, setSelectionRange(){}, classList:{remove(){}}, removeAttribute(){},
+    querySelector:() => null, replaceChildren(...nodes){ this.innerHTML = nodes.map(n => n.outerHTML).join(''); }};
   const data = {admin_list_users:USERS, admin_list_contacts:CONTACTS, admin_list_splits:SPLITS, admin_list_payment_methods:METHODS};
   const client = {
     auth:{getSession:async () => ({data:{session:{user:{email:'jackson@example.com', is_anonymous:false}}}}), signOut:async () => ({})},
@@ -48,9 +58,9 @@ async function admin(hash, {fail = {}} = {}){
   const pick = attr => sel => sel.includes(`[data-${attr}]`) ? form.filter(x => x.dataset[attr] !== undefined) : null;
   const context = {
     window:{supabase:{createClient:() => client}, IOYA_CONFIG:{supabaseUrl:'https://x.test', supabaseAnonKey:'k'}, addEventListener(){}},
-    document:{getElementById:el, addEventListener(){}, querySelector:() => null,
+    document:{getElementById:el, createElement:fakeElement, addEventListener(){}, querySelector:() => null,
       querySelectorAll:sel => pick('item')(sel) || pick('paid')(sel) || pick('list')(sel) || pick('f')(sel) || [],
-      activeElement:null, body:{insertAdjacentHTML(){}}},
+      activeElement:null, body:{insertAdjacentHTML(){}, append(){}}},
     location:{hash}, setTimeout, clearTimeout, console
   };
   vm.runInNewContext(script, context);

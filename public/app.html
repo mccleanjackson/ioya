@@ -6,12 +6,16 @@
 <title>IOYA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&family=Finlandica:wght@400;500;600;700&display=swap">
 <style>
 /* Responsive app: full-width on phones, spacious workspace on laptops. */
 :root{
   --desk:#E8EBF0; --paper:#FAFBFC; --card:#FFFFFF; --ink:#15171C; --muted:#5C6371; --line:#D9DEE6;
   --accent:#CC6FCC; --accent-ink:#FFFFFF; --accent-soft:#F6E5F6;
+  --brand-yellow:#FEEB00; --brand-yellow-soft:#FFF9C2;
+  --brand-blue:#5258E5; --brand-blue-soft:#E3E4FF;
+  --brand-purple:#CC6FCC; --brand-purple-soft:#F6E5F6;
+  --brand-red:#FE4B6B; --brand-red-soft:#FFE2E8;
   --history-paid:#5258E5; --history-paid-soft:#E3E4FF;
   --history-part:#FEEB00; --history-part-soft:#FFF9C2;
   --history-unpaid:#FE4B6B; --history-unpaid-soft:#FFE2E8;
@@ -33,7 +37,7 @@
   --f-logo:"Bungee", "Arial Black", system-ui, sans-serif;
   --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --f-body:"Figtree", -apple-system, "Segoe UI", system-ui, sans-serif;
-  --f-mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --f-mono:"Finlandica", ui-monospace, "SF Mono", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --desk:#0A0C10; --paper:#12151C; --card:#1A1E27; --ink:#ECEEF2; --muted:#9AA2B1; --line:#2B313D;
@@ -41,6 +45,8 @@
   --history-paid:#5258E5; --history-paid-soft:#292B5F;
   --history-part:#FEEB00; --history-part-soft:#3F3914;
   --history-unpaid:#FE4B6B; --history-unpaid-soft:#4B202B;
+  --brand-yellow-soft:#3A3208; --brand-blue-soft:#292B5F;
+  --brand-purple-soft:#3B253C; --brand-red-soft:#4B202B;
   --method-venmo-soft:#12395A; --method-paypal-soft:#263B66; --method-zelle-soft:#342354;
   --palette-cashapp-soft:#164527; --palette-applecash-soft:#303030; --palette-brown-soft:#493426;
   --palette-applecash:#FEFEFE; --palette-applecash-soft:#E2E2E2;
@@ -56,6 +62,8 @@
   --history-paid:#5258E5; --history-paid-soft:#292B5F;
   --history-part:#FEEB00; --history-part-soft:#3F3914;
   --history-unpaid:#FE4B6B; --history-unpaid-soft:#4B202B;
+  --brand-yellow-soft:#3A3208; --brand-blue-soft:#292B5F;
+  --brand-purple-soft:#3B253C; --brand-red-soft:#4B202B;
   --method-venmo-soft:#12395A; --method-paypal-soft:#263B66; --method-zelle-soft:#342354;
   --palette-cashapp-soft:#164527; --palette-applecash-soft:#303030; --palette-brown-soft:#493426;
   --palette-applecash:#FEFEFE; --palette-applecash-soft:#E2E2E2;
@@ -82,6 +90,27 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .screen{overflow-y:auto;overflow-x:hidden;padding:22px 18px 28px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth}
 /* Keep every block at its full height so long lists scroll instead of being squeezed and clipped. */
 .screen > *{flex-shrink:0}
+/* Screen changes (render() adds one of these classes only when the screen changes). "backwards" fill,
+   so nothing stays transformed afterwards. Turned off by the reduced-motion rule below. */
+.screen.view-in > :not(.match-picker):not(.sheet-bg):not(.sheet){animation:view-in .2s ease-out backwards}
+.screen.view-fwd > :not(.match-picker):not(.sheet-bg):not(.sheet){animation:view-fwd .22s ease-out backwards}
+.screen.view-back > :not(.match-picker):not(.sheet-bg):not(.sheet){animation:view-back .22s ease-out backwards}
+@keyframes view-in{from{opacity:0;transform:translateY(8px)}}
+@keyframes view-fwd{from{opacity:0;transform:translateX(18px)}}
+@keyframes view-back{from{opacity:0;transform:translateX(-18px)}}
+.app-loading{flex:1;min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}
+.app-loading-logo{width:200px;height:94px;object-fit:cover;animation:loading-pulse 1.6s ease-in-out infinite}
+.app-loading-dots{display:flex;gap:6px}
+.app-loading-dots i{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:loading-dot 1.2s ease-in-out infinite}
+.app-loading-dots i:nth-child(1){background:var(--brand-yellow)}
+.app-loading-dots i:nth-child(2){background:var(--brand-blue)}
+.app-loading-dots i:nth-child(3){background:var(--brand-purple)}
+.app-loading-dots i:nth-child(4){background:var(--brand-red)}
+.app-loading-dots i:nth-child(2){animation-delay:.15s}
+.app-loading-dots i:nth-child(3){animation-delay:.3s}
+.app-loading-dots i:nth-child(4){animation-delay:.45s}
+@keyframes loading-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.96);opacity:.75}}
+@keyframes loading-dot{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-6px);opacity:1}}
 
 /* tab bar */
 .tabbar{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--card);padding:6px 6px calc(8px + env(safe-area-inset-bottom,0px));position:relative}
@@ -124,14 +153,21 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .logo img{display:block;width:170px;height:80px;object-fit:cover;object-position:center; transform: translate(-20px, -10px)}
 .tag{font-family:var(--f-display);font-weight:700;font-size:21px;margin:-27px 0 0;line-height:1.2}
 .tag em{font-style:normal;text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:4px}
-mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
+mark{background:var(--hi);color:var(--ink);padding:0 5px;border-radius:4px}
 .cta{display:flex;align-items:center;gap:14px;text-align:left;background:var(--accent);color:var(--accent-ink);border-radius:18px;padding:16px 18px}
 .cta .ic{width:34px;height:34px}
 .cta b{display:block;font-family:var(--f-display);font-size:20px;letter-spacing:-.01em}
 .cta small{font-size:13px;opacity:.85}
-.btn.resume-split{background:var(--accent-soft);color:var(--ink);box-shadow:inset 0 0 0 1px var(--accent)}
-.btn.resume-split:hover{background:var(--card)}
+.btn.resume-split{background:var(--history-paid-soft);color:var(--ink);box-shadow:inset 0 0 0 1px var(--history-paid)}
 .resume-split .ic{width:16px;height:16px}
+.resume-row{display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.resume-row .btn{flex:1;min-width:0}
+.resume-row .btn.danger{background:var(--history-unpaid-soft);color:var(--ink);box-shadow:inset 0 0 0 1px var(--history-unpaid)}
+.btn.flow-discard{flex:none;width:auto;margin:0;gap:6px;color:var(--bad)}
+.flow-discard .ic{width:16px;height:16px}
+.danger-link{color:var(--bad)}
+.btn.danger{background:var(--bad);color:#fff;box-shadow:none}
+@media(max-width:420px){.flow-discard span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
 
 .board{background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line);overflow:hidden}
 .home-bill + .home-bill{border-top:1px solid var(--line)}
@@ -310,13 +346,16 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .hstatus-bar{display:flex;height:10px;overflow:hidden;border-radius:999px;background:var(--line);gap:3px}
 .hstatus-bar i{display:block;height:100%;min-width:0}
 .hstatus-bar .paid{background:var(--history-paid)}
+.hstatus-bar .part{background:var(--history-part)}
+.hstatus-bar .part{background:var(--history-part)}
 .hstatus-bar .unpaid{background:var(--history-unpaid)}
 .hstatus-empty{width:100%;background:var(--line)}
-.hstatus-counts{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:12px}
+.hstatus-counts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
 .hstatus-count{display:flex;flex-direction:column;gap:2px;min-width:0}
 .hstatus-count span{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;white-space:nowrap}
 .hstatus-count span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
 .hstatus-count.paid span::before{background:var(--history-paid)}
+.hstatus-count.part span::before{background:var(--history-part);box-shadow:inset 0 0 0 1px rgba(21,23,28,.18)}
 .hstatus-count.unpaid span::before{background:var(--history-unpaid)}
 .hstatus-count strong{font:600 22px/1 var(--f-mono)}
 .hstatus-count:not(:last-child){border-right:1px solid var(--line)}
@@ -333,6 +372,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-filter-glider{position:absolute;z-index:0;top:2px;bottom:2px;left:0;width:0;border-radius:999px;pointer-events:none}
 .history-filter-glider.ready{transition:left .4s cubic-bezier(.2,1.12,.3,1),width .3s cubic-bezier(.2,.8,.2,1),background-color .18s ease}
 .history-filter-glider[data-f="all"]{background:var(--accent)}
+.history-filter-glider[data-f="part"]{background:var(--history-part)}
 .history-filter-glider[data-f="unpaid"]{background:var(--history-unpaid)}
 .history-filter-glider[data-f="paid"]{background:var(--history-paid)}
 .history-filter-glider.squash{animation:history-filter-squash .4s cubic-bezier(.2,.8,.2,1)}
@@ -377,8 +417,12 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-fchips .fchip[data-f="all"].on{background:var(--accent);color:var(--ink);box-shadow:none}
 .history-fchips .fchip[data-f="paid"]{background:var(--history-paid-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-paid)}
 .history-fchips .fchip[data-f="paid"].on{background:var(--history-paid);color:var(--ink);box-shadow:none}
+.history-fchips .fchip[data-f="part"]{background:var(--history-part-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-part)}
+.history-fchips .fchip[data-f="part"].on{background:var(--history-part);color:var(--ink);box-shadow:none}
 .history-fchips .fchip[data-f="unpaid"]{background:var(--history-unpaid-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-unpaid)}
 .history-fchips .fchip[data-f="unpaid"].on{background:var(--history-unpaid);color:var(--ink);box-shadow:none}
+.history-fchips .fchip[data-f="part"]{background:var(--history-part-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-part)}
+.history-fchips .fchip[data-f="part"].on{background:var(--history-part);color:var(--ink);box-shadow:none}
 .history-fchips .fchip{position:relative;z-index:1;transition:color .18s ease,background-color .18s ease,box-shadow .18s ease}
 .history-fchips .fchip.on{background:transparent!important;color:var(--ink);box-shadow:none!important}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .history-fchips .fchip.on{color:#15171C!important}}
@@ -452,8 +496,10 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .grp{max-width:110px;flex-shrink:0;overflow-wrap:anywhere}
 .grp small{color:var(--muted);font-weight:500;font-family:var(--f-mono);font-size:11px;margin-top:-4px}
 .gc{width:58px;height:58px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:18px;background:var(--card)}
-.grp:nth-child(3n+1) .gc{background:var(--accent);color:var(--on-hi)}
-.grp:nth-child(3n+2) .gc{background:var(--accent-soft);color:var(--on-hi)}
+.grp:nth-child(4n+1) .gc{background:var(--brand-yellow-soft);color:var(--ink);box-shadow:inset 0 0 0 2px var(--brand-yellow)}
+.grp:nth-child(4n+2) .gc{background:var(--brand-blue-soft);color:var(--ink);box-shadow:inset 0 0 0 2px var(--brand-blue)}
+.grp:nth-child(4n+3) .gc{background:var(--brand-purple-soft);color:var(--ink);box-shadow:inset 0 0 0 2px var(--brand-purple)}
+.grp:nth-child(4n+4) .gc{background:var(--brand-red-soft);color:var(--ink);box-shadow:inset 0 0 0 2px var(--brand-red)}
 .grp.add .gc{background:transparent;box-shadow:inset 0 0 0 2px var(--line);border:0;color:var(--muted)}
 .ctable{background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line);overflow:hidden}
 .ctable .chead,.ctable .crow{display:grid;grid-template-columns:1fr auto;gap:10px;padding:11px 14px;text-align:left;width:100%;align-items:center}
@@ -709,6 +755,7 @@ const ICONS = {
   cash:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9h.01M18 15h.01"/>',
   none:'<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
   star:'<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
   qr:'<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/>'
 };
 const I = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
@@ -822,7 +869,7 @@ async function loadAll(){
       sb.from('payment_methods').select('pay_method_id, pay_method_name').order('pay_method_id').then(need),
       sb.from('contacts').select(CONTACT_SELECT)
         .eq('user_id', S.userId).order('contact_id').then(need),
-      sb.from('friend_groups').select('group_id, group_name, group_members(contact_id)').order('group_id').then(need),
+      sb.from('friend_groups').select('*, group_members(contact_id)').order('group_id').then(need),
       sb.from('events').select(`*,
           participants(contact_id, paid_method_id),
           receipts(receipt_id, payer_user_id, merchant_name, receipt_date, tax_cents, fees_cents, tip_percent, tip_cents, total_cents,
@@ -842,7 +889,8 @@ async function loadAll(){
     const byId = Object.fromEntries(S.contacts.map(c => [c.id, c]));
     // The database returns only this user's own groups, including empty ones. Members are limited
     // to contacts on the list (this drops the user's own "You" contact if a group includes it).
-    S.groups = groups.map(groupFromRow);
+    // Saved order first (friend_groups.position, group-order.sql), then groups not placed yet, oldest first.
+    S.groups = groups.slice().sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity) || a.group_id - b.group_id).map(groupFromRow);
     S.history = events.filter(e => e.receipts.some(r => r.payer_user_id === S.userId)).map(e => {
       const owed = {};
       const balanceCents = e.client_key?.startsWith(BALANCED_SPLIT_KEY);
@@ -1159,7 +1207,8 @@ function flowHead(i, back){
     const initial = flowStartWidths?.[k] ?? (previous >= k ? 100 : 0);
     return `<i><span style="width:${initial}%"></span></i>`;
   }).join('')}</div>
-  <span class="step-l">${i+1}/${STEPS.length}</span></div>`;
+  <span class="step-l">${i+1}/${STEPS.length}</span>
+  <button class="btn small ghost flow-discard" data-act="askDiscard" title="Discard this split">${I('trash')}<span>Discard split</span></button></div>`;
 }
 
 function isUnpaid(r){
@@ -1261,22 +1310,24 @@ function receiptSplitDetail(s){
     </section>`).join('')}
     ${s.receipts.map(receiptCard).join('')}`;
 }
+// 'paid' (everyone paid), 'part' (some paid, some still owe) or 'unpaid' (nobody has paid yet).
 function historyPaymentStatus(split){
-  return split.requests.some(isUnpaid) ? 'unpaid' : 'paid';
+  return splitStatus(split)[0];
 }
 function historyStatusSummary(){
-  const counts = {paid:0, unpaid:0};
+  const counts = {paid:0, part:0, unpaid:0};
   S.history.forEach(s => counts[historyPaymentStatus(s)]++);
   const total = S.history.length;
   const width = cls => total ? `${counts[cls] / total * 100}%` : '0%';
   const bar = total
-    ? ['paid','unpaid'].map(cls => counts[cls] ? `<i class="${cls}" style="width:${width(cls)}" aria-hidden="true"></i>` : '').join('')
+    ? ['paid','part','unpaid'].map(cls => counts[cls] ? `<i class="${cls}" style="width:${width(cls)}" aria-hidden="true"></i>` : '').join('')
     : '<i class="hstatus-empty" aria-hidden="true"></i>';
   return `<section class="hstatus" aria-label="Split status overview">
     <div class="hstatus-title"><b>Payment status</b><small>${total} split${total === 1 ? '' : 's'}</small></div>
-    <div class="hstatus-bar" role="img" aria-label="${counts.paid} paid, ${counts.unpaid} unpaid">${bar}</div>
+    <div class="hstatus-bar" role="img" aria-label="${counts.paid} paid, ${counts.part} partly paid, ${counts.unpaid} unpaid">${bar}</div>
     <div class="hstatus-counts">
       <div class="hstatus-count paid"><span>Paid</span><strong>${counts.paid}</strong></div>
+      <div class="hstatus-count part"><span>Partly paid</span><strong>${counts.part}</strong></div>
       <div class="hstatus-count unpaid"><span>Unpaid</span><strong>${counts.unpaid}</strong></div>
     </div>
   </section>`;
@@ -1347,7 +1398,8 @@ V.home = () => {
   </header>
   <p class="tag">Keep track of the bill with just <mark> one simple system.</mark></p>
   <button class="cta" data-act="start">${I('scan')}<span><b>Pay New Tab</b><small>Click here to split a new receipt!</small></span></button>
-  ${S.draft.items.length ? `<button class="btn small resume-split" data-act="resume">${I('history')}Resume current split</button>` : ''}
+  ${S.draft.items.length ? `<div class="resume-row"><button class="btn small resume-split" data-act="resume">${I('history')}Resume current split</button>
+    <button class="btn small danger" data-act="askDiscard">${I('x')}Discard</button></div>` : ''}
   <h2 class="eyebrow" id="unpaid-heading">Unpaid bills</h2>
   <section class="board" aria-labelledby="unpaid-heading">
     ${unpaid.map(({s, people, amount}) => {
@@ -1375,7 +1427,7 @@ function findBar(k, placeholder, label, filters, filterLabel){
       `<button class="fchip${ui[k + 'f'] === f ? ' on' : ''}" data-act="filter" data-k="${k}" data-f="${f}" aria-pressed="${ui[k + 'f'] === f}">${icon ? I(icon) : ''}${esc(name)}</button>`).join('')}</div>
   </div>`;
 }
-const HFILTERS = [['all','All'],['unpaid','Unpaid'],['paid','Paid']];
+const HFILTERS = [['all','All'],['paid','Paid'],['part','Partly paid'],['unpaid','Unpaid']];
 // Everything a split can be found by, with a label for the parts that aren't already visible on its card.
 function historySearchFields(s){
   return [[s.merchant], [s.eventName], [fmtDate(s.date)], [money(s.you + s.requests.reduce((a, r) => a + r.amount, 0))],
@@ -1460,7 +1512,7 @@ function contactList(){
 V.contacts = () => `
   <header class="top"><h1 class="h">Your Contacts</h1></header>
   <div class="ghead"><h2 class="eyebrow">Groups</h2><button class="btn small ghost" data-act="sheet" data-s="group">${I('plus')} New group</button></div>
-  ${S.groups.length ? `<div class="groups">${S.groups.map(g => `<button class="grp" data-act="sheet" data-s="group" data-id="${esc(g.id)}" aria-label="Edit group ${esc(g.name)}, ${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}"><span class="gc">${esc(ini(g.name))}</span><span>${esc(g.name)}</span><small>${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}</small></button>`).join('')}</div>` : '<p class="fine gempty">No groups yet. Keep your frequent split partners together in a group.</p>'}
+  ${S.groups.length ? `<div class="groups" id="group-row">${S.groups.map(g => `<button class="grp" data-act="sheet" data-s="group" data-id="${esc(g.id)}" data-tone="${Number(g.id) % 3}" ${S.groups.length > 1 ? 'aria-describedby="group-order-hint"' : ''} aria-label="Edit group ${esc(g.name)}, ${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}"><span class="gc">${esc(ini(g.name))}</span><span>${esc(g.name)}</span><small>${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}</small></button>`).join('')}</div>${S.groups.length > 1 ? '<p class="fine ghint" id="group-order-hint">Drag a group to reorder (hold, then drag on a phone). Keyboard: Alt + ← / →.</p>' : ''}` : '<p class="fine gempty">No groups yet. Keep your frequent split partners together in a group.</p>'}
   <h2 class="eyebrow">Contacts</h2>
   ${findBar('c', 'Search names or payment methods', 'Search contacts by first and last name or payment method', contactFilters(), 'Filter by payment method')}
   <div class="clist" data-live="clist">${contactList()}</div>
@@ -1500,6 +1552,7 @@ V.scan = () => {
         <span>Resume your current split?</span>
         <div class="camera-resume-actions">
           <button class="btn small" data-act="resume">Resume split</button>
+          <button class="btn small ghost" data-act="askDiscard">Discard</button>
           <button class="iconbtn" data-act="dismissCameraResume" aria-label="Dismiss resume split banner">${I('x')}</button>
         </div></div>` : ''}
       ${ui.cameraError || (ui.cameraOpen && ui.cameraLightMode) ? `<div class="camera-preview-controls">
@@ -1596,7 +1649,7 @@ function pickerResults(){
   const limit = S.draft.people.length >= 12;
   const order = (a, b) => a.name.localeCompare(b.name);
   const matches = entry => entry.name.toLocaleLowerCase().includes(q);
-  const groups = S.groups.filter(matches).sort(order).map(g => ({...g, available:g.members.filter(id => !selected.has(id)).length})).filter(g => g.available);
+  const groups = S.groups.filter(matches).map(g => ({...g, available:g.members.filter(id => !selected.has(id)).length})).filter(g => g.available);
   const contacts = S.contacts.filter(c => !selected.has(c.id) && matches(c)).sort(order);
   function row(entry, action, detail, avatar){
     return `<li><button class="match-pick-row" data-act="${action}" data-id="${esc(entry.id)}" ${limit ? 'disabled' : ''}><span class="match-face" aria-hidden="true">${avatar}</span><span class="pick-name">${esc(entry.name)}${detail ? `<small>${detail}</small>` : ''}</span>${I('plus')}</button></li>`;
@@ -1835,7 +1888,8 @@ V.sent = () => {
     <div class="next two"><button class="btn ghost" data-act="go" data-v="summary" ${ui.savingSplit ? 'disabled' : ''}>Edit split</button>${CFG.preview
       ? '<button class="btn" data-act="previewHistory">View preview history</button>'
       : `<button class="btn" data-act="saveSplit" ${ui.savingSplit ? 'disabled' : ''}>${ui.savingSplit ? 'Saving…' : ui.saveSplitError ? 'Try again' : 'Save to History'}</button>`}</div>
-    ${CFG.preview ? '' : `<p class="fine" style="text-align:center"><button class="link" data-act="done" ${ui.savingSplit ? 'disabled' : ''}>Not now, keep it in this browser</button></p>`}`;
+    ${CFG.preview ? '' : `<p class="fine" style="text-align:center"><button class="link" data-act="done" ${ui.savingSplit ? 'disabled' : ''}>Not now, keep it in this browser</button></p>`}
+    <p class="fine" style="text-align:center"><button class="link danger-link" data-act="askDiscard" ${ui.savingSplit ? 'disabled' : ''}>Discard split</button></p>`;
 };
 
 /* ---------- saving a finished split to History (supabase/save-splits.sql) ----------
@@ -2365,7 +2419,7 @@ function sheetHTML(){
         <label class="field"><span>First Name:</span><input id="f-first" value="${esc(c.first)}" autocomplete="off"></label>
         <label class="field"><span>Last Name: <small>(optional)</small></span><input id="f-last" value="${esc(c.last)}" autocomplete="off"></label>
       </div>
-      <label class="field"><span>Phone Number:</span><input id="f-phone" inputmode="tel" value="${esc(c.phone)}" placeholder="(555) 000-0000" autocomplete="off"></label>
+      <label class="field"><span>Phone Number: <small>(optional)</small></span><input id="f-phone" inputmode="tel" value="${esc(c.phone)}" placeholder="(555) 000-0000" autocomplete="off"></label>
       <p class="eyebrow">Payment Methods</p>
       ${methods.map(m => `<div class="frow" style="gap:10px">
         <label class="field" style="flex:1"><span>${esc(m.name)}:</span><input id="f-m-${m.id}" value="${esc(has(m.id)?.username || '')}" placeholder="${esc(PROFILE_HINTS[METHOD_KEY[m.name]] || 'Account details')}" autocomplete="off"></label>
@@ -2417,6 +2471,12 @@ function sheetHTML(){
       : `<h2 id="sh-t">This split is no longer here</h2><p class="fine">It may have been removed. Close this and refresh the page.</p>
         <div class="next"><button class="btn ghost" data-act="close">Close</button></div>`;
   }
+  if (s.type === 'discardSplit'){
+    body = `<h2 id="sh-t">Discard this split?</h2>
+      <p class="fine">The receipt, items and who had what will be deleted from this browser. You can't undo this. Splits already saved to History aren't affected.</p>
+      <div class="next two"><button class="btn ghost" data-act="close">Keep split</button>
+        <button class="btn danger" data-act="discardSplit">Discard split</button></div>`;
+  }
   if (s.type === 'confirmTotal'){
     body = `<h2 id="sh-t">Does this match your receipt total?</h2>
       <p class="mono confirm-split-total">${money(s.total)}</p>
@@ -2438,7 +2498,7 @@ function sheetHTML(){
 
 /* ---------- render ---------- */
 const scr = document.getElementById('screen');
-let lastView = null;
+let lastView = null, lastWasLoading = false;
 let lastActiveTabIndex = null;
 let tabSquashTimer = null;
 let lastFlowStep = null;
@@ -2562,6 +2622,14 @@ function syncTabIndicator(){
   bar.style.setProperty('--tab-indicator-left', `${active.offsetLeft + active.offsetWidth * .3}px`);
   bar.style.setProperty('--tab-indicator-width', `${active.offsetWidth * .4}px`);
 }
+// Shown while the account and data load (and while Render wakes the server up): the logo, gently pulsing.
+function loadingScreen(){
+  return `<div class="app-loading" role="status" aria-live="polite">
+    <img class="app-loading-logo" src="/ioya_logo.png" alt="" width="200" height="94">
+    <div class="app-loading-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <p class="fine">${S.userId == null ? 'Setting up your account…' : 'Loading your splits…'}</p>
+  </div>`;
+}
 function render(){
   const v = S.view;
   const stripScroll = v === lastView ? document.getElementById('match-strip')?.scrollLeft : 0;
@@ -2577,7 +2645,15 @@ function render(){
   }) : null;
   if (flowProgressFrame !== null){ cancelAnimationFrame(flowProgressFrame); flowProgressFrame = null; }
   const needsData = !FLOW.includes(v) || ['assign','summary','sent'].includes(v);
-  scr.innerHTML = needsData && S.loading ? `<p class="fine" role="status">${S.userId == null ? 'Setting up your account…' : 'Loading your splits…'}</p>`
+  const loading = needsData && S.loading;
+  // Screen changes fade and slide in (only when the screen changes, never on a re-render of the same
+  // screen, so typing doesn't flicker). Split steps slide sideways: forward from the right, Back from the left.
+  const from = FLOW.indexOf(lastView), to = FLOW.indexOf(v);
+  const enter = lastView === null || loading ? '' : v !== lastView ? (from > 1 && to > 1 ? (to > from ? 'view-fwd' : 'view-back') : 'view-in') : lastWasLoading ? 'view-in' : '';
+  scr.classList.remove('view-in', 'view-fwd', 'view-back');
+  if (enter) { void scr.offsetWidth; scr.classList.add(enter); }
+  lastWasLoading = loading;
+  scr.innerHTML = loading ? loadingScreen()
     : needsData && S.loadError ? `<div class="alert bad" role="alert"><b>Couldn't load your data.</b>${esc(S.loadError)}<button class="link" data-act="reload">Try again</button></div>`
     : V[v]();
   syncFlowProgress(v);
@@ -2613,6 +2689,114 @@ function render(){
   if (v === 'scan' && ui.cameraOpen) attachCameraPreview();
   sizeRequestNotes();
   save();
+}
+// ---------- reorder groups (Contacts tab; supabase/group-order.sql) ----------
+// Drag with a mouse (starts after moving 6px), or hold ~0.45s on a touch screen and then drag; a plain
+// click/tap still opens the group. Alt + ←/→ moves the focused group. The new order shows right away and is
+// saved with save_group_order(); if saving fails, the previous order comes back.
+let groupDrag = null, groupOrderVersion = 0, groupClickBlockedUntil = 0;
+function moveGroup(id, to){
+  const from = S.groups.findIndex(g => g.id === id);
+  if (from < 0 || to < 0 || to >= S.groups.length || to === from) return false;
+  const before = S.groups.slice();
+  const [g] = S.groups.splice(from, 1); S.groups.splice(to, 0, g);
+  render();
+  saveGroupOrder(before);
+  return true;
+}
+async function saveGroupOrder(before){
+  const version = ++groupOrderVersion;
+  if (CFG.preview) return;
+  try { need(await sb.rpc('save_group_order', {p_group_ids:S.groups.map(g => Number(g.id))})); }
+  catch(e) {
+    if (version !== groupOrderVersion) return;  // a newer order is already being saved
+    S.groups = before.filter(g => S.groups.some(x => x.id === g.id)).concat(S.groups.filter(g => !before.some(x => x.id === g.id)));
+    render();
+    toast(/save_group_order|position/i.test(e?.message || '') ? 'Saving the group order needs a database update: run supabase/group-order.sql.'
+      : 'Couldn\'t save the new group order. Check your connection and try again.');
+  }
+}
+function groupDragSlots(row){
+  return [...row.querySelectorAll('.grp')].map(el => ({id:el.dataset.id, el, mid:el.offsetLeft + el.offsetWidth / 2, width:el.offsetWidth}));
+}
+function startGroupDrag(){
+  const d = groupDrag; if (!d || d.started || !d.el.isConnected) return;
+  d.started = true; d.slots = groupDragSlots(d.row);
+  d.from = d.slots.findIndex(x => x.id === d.id); d.to = d.from;
+  d.gap = d.slots.length > 1 ? Math.abs(d.slots[1].el.offsetLeft - d.slots[0].el.offsetLeft) - d.slots[0].width : 14;
+  d.el.classList.add('dragging'); d.row.classList.add('drag-on');
+  navigator.vibrate?.(15);
+}
+function moveGroupDrag(x){
+  const d = groupDrag, rowBox = d.row.getBoundingClientRect();
+  // Scroll the row when dragging near its edges.
+  if (x < rowBox.left + 36) d.row.scrollLeft -= 10; else if (x > rowBox.right - 36) d.row.scrollLeft += 10;
+  const dx = x - d.startX + (d.row.scrollLeft - d.startScroll);
+  d.el.style.transform = `translateX(${dx}px)`;
+  const center = d.slots[d.from].mid + dx, shift = d.slots[d.from].width + d.gap;
+  let to = d.from;
+  d.slots.forEach((s, i) => { if (i < d.from && center < s.mid) to = Math.min(to, i); if (i > d.from && center > s.mid) to = Math.max(to, i); });
+  d.to = to;
+  d.slots.forEach((s, i) => {
+    if (i === d.from) return;
+    const off = d.from < i && i <= to ? -shift : to <= i && i < d.from ? shift : 0;
+    s.el.style.transform = off ? `translateX(${off}px)` : '';
+  });
+}
+function endGroupDrag(commit){
+  const d = groupDrag; groupDrag = null; if (!d) return;
+  clearTimeout(d.timer);
+  if (!d.started) return;
+  groupClickBlockedUntil = Date.now() + 400;  // the click that ends a drag doesn't open the group
+  d.row.classList.remove('drag-on');
+  d.slots.forEach(s => { s.el.style.transform = ''; s.el.classList.remove('dragging'); });
+  if (commit && d.to !== d.from && moveGroup(d.id, d.to)) {
+    document.querySelector(`#group-row .grp[data-id="${CSS.escape(d.id)}"]`)?.focus({preventScroll:true});
+  }
+}
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest?.('#group-row .grp'); if (!el || e.button > 0 || S.groups.length < 2 || groupDrag) return;
+  const row = el.parentElement;
+  groupDrag = {id:el.dataset.id, el, row, pointerId:e.pointerId, startX:e.clientX, startY:e.clientY, startScroll:row.scrollLeft, started:false,
+    touch:e.pointerType !== 'mouse'};
+  if (groupDrag.touch) groupDrag.timer = setTimeout(startGroupDrag, 450);
+});
+document.addEventListener('pointermove', e => {
+  const d = groupDrag; if (!d || e.pointerId !== d.pointerId) return;
+  if (!d.el.isConnected) return endGroupDrag(false);
+  const moved = Math.hypot(e.clientX - d.startX, e.clientY - d.startY);
+  if (!d.started){
+    if (d.touch) { if (moved > 8) endGroupDrag(false); return; }  // moved before the hold finished: it's a scroll
+    if (moved < 6) return;
+    startGroupDrag();
+  }
+  e.preventDefault();
+  moveGroupDrag(e.clientX);
+});
+document.addEventListener('pointerup', e => { if (groupDrag && e.pointerId === groupDrag.pointerId) endGroupDrag(true); });
+document.addEventListener('pointercancel', e => { if (groupDrag && e.pointerId === groupDrag.pointerId) endGroupDrag(false); });
+// Once a hold-to-drag has started, stop the row (and page) from scrolling under the finger.
+document.addEventListener('touchmove', e => { if (groupDrag?.started) e.preventDefault(); }, {passive:false});
+document.addEventListener('contextmenu', e => { if (groupDrag || e.target.closest?.('#group-row .grp')) e.preventDefault(); });
+document.addEventListener('keydown', e => {
+  const el = e.target.closest?.('#group-row .grp');
+  if (!el || !e.altKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+  e.preventDefault();
+  const id = el.dataset.id, from = S.groups.findIndex(g => g.id === id), to = from + (e.key === 'ArrowLeft' ? -1 : 1);
+  if (moveGroup(id, to)) {
+    document.querySelector(`#group-row .grp[data-id="${CSS.escape(id)}"]`)?.focus();
+    toast(`Moved ${S.groups[to].name} to position ${to + 1} of ${S.groups.length}.`);
+  }
+});
+// Discard split (Home, the camera's resume banner, every split screen): throws away the unfinished
+// split kept in this browser. Nothing is in the database until Save to History, so nothing to delete there.
+function discardSplit(){
+  if (ui.savingSplit) return;
+  stopCamera(); cancelScan(); clearPhoto(); clearCapturePreview();
+  ui.sheet = null; ui.saveSplitError = ''; ui.sendError = '';
+  S.draft = newDraft();
+  go('home');  // render() saves the empty draft, so Resume current split stays gone after a refresh
+  toast('Split discarded.');
 }
 function go(v){
   if (v !== 'scan' && ui.capturePreviewUrl) clearCapturePreview();
@@ -3334,6 +3518,8 @@ const A = {
   send: () => prepareSplitRequests(),
   previewHistory: () => { if (CFG.preview) finishPreviewSplit(); },
   saveSplit: () => saveSplitToHistory(),
+  askDiscard: () => { if (ui.savingSplit) return; ui.sheet = {type:'discardSplit'}; render(); },
+  discardSplit: () => discardSplit(),
   done: () => { stopCamera(); cancelScan(); clearPhoto(); go('home'); toast('Split kept in this browser. Use Resume current split to return.'); }
 };
 // Profile: save_my_profile updates the users row and the "You" contact together (supabase/profile.sql).
@@ -3812,6 +3998,7 @@ async function setPaid(methodId){
 }
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el || el.disabled || ui.preparing) return;
+  if (Date.now() < groupClickBlockedUntil && el.closest('#group-row')) { e.preventDefault(); return; }
   const f = A[el.dataset.act]; if (f){ e.preventDefault(); f(el.dataset, el); }
 });
 document.addEventListener('input', e => {
