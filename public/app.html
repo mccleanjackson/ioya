@@ -611,17 +611,12 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .match-item:disabled{opacity:.7}
 .match-items .next{flex:none}
 @media (prefers-reduced-motion:reduce){.match-picker{animation:none}}
-.review-request{display:grid;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
-.review-request .eyebrow,.review-request p{margin:0}
 .request-note{width:100%;box-sizing:border-box;resize:none;overflow-y:hidden}
-.request-account{display:flex;justify-content:space-between;gap:8px;overflow-wrap:anywhere}
 .receiving-setup[open] summary{margin-bottom:10px}
 .profile-payments .lines li span:last-child{text-align:right;overflow-wrap:anywhere;min-width:0}
 .shared-qr{display:grid;justify-items:center;gap:12px;text-align:center}
 .shared-qr .qr{width:min(100%,290px);height:auto;aspect-ratio:1}
 .shared-qr .fine{margin:0}
-.request-status{font:700 18px/1.2 var(--f-display);margin:0}
-.request-finish{display:grid;gap:8px}
 .contact-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .import-list{display:grid;gap:6px;max-height:40vh;overflow-y:auto;list-style:none;padding:0;margin:0}
 .import-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:12px}
@@ -722,7 +717,7 @@ const I = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n
 const BALANCED_SPLIT_KEY = 's-balanced-';
 function newDraft(){
   return {at:'scan', date:today(), merchant:'', items:[], tax:0, fees:0, printed:0, tipMode:null, tipPct:null, tipInput:'', balanceCents:true,
-    people:[{id:'me', name:'You', me:true}], assign:{}, msgs:{}, results:null};
+    people:[{id:'me', name:'You', me:true}], assign:{}, results:null};
 }
 function normalizeTipDraft(d){
   d.date ||= today();
@@ -1627,7 +1622,7 @@ V.assign = () => `
   </section>`;
 
 V.summary = () => {
-  const d = S.draft, c = calc(d);
+  const d = S.draft, {c, ready} = sendPlan();
   const blockers = [];
   if (c.unassigned.length) blockers.push(`<div class="alert bad" role="alert"><b>${c.unassigned.length} item${c.unassigned.length === 1 ? ' is' : 's are'} unassigned.</b>${c.unassigned.map(it => esc(it.name)).join(', ')}. <button class="link" data-act="go" data-v="assign">Assign items</button></div>`);
   if (!c.tipValid) blockers.push(`<div class="alert bad" role="alert"><b>Check the tip and fees.</b><button class="link" data-act="go" data-v="review">Fix the amount</button></div>`);
@@ -1641,30 +1636,20 @@ V.summary = () => {
       <header><div><b>${esc(nm)}</b>${p.me ? '<span class="meta">Paid the bill</span>' : ''}</div><span class="ptotal mono">${money(c.totals[p.id])}</span></header>
       <ul class="lines">${c.lines[p.id].map(l => `<li><span>${esc(l.name)}${l.quantity > 1 ? ` <small>x ${l.quantity}</small>` : ''}${l.of > 1 ? ` <small>÷${l.of}</small>` : ''}</span><span class="mono">${money(l.share)}</span></li>`).join('') || '<li><span class="fine">Nothing assigned yet</span></li>'}
         <li class="alloc"><span>Tax, tip & fees</span><span class="mono">${money(c.alloc[p.id])}</span></li></ul>
-      ${p.me || !c.totals[p.id] ? '' : reviewRequest(p,c)}
     </article>`;
   }).join('')}
   ${!c.unassigned.length ? `<p class="check-line">${c.totalsOff ? I('alert') + ' Totals are off by ' + money(c.sumTotals - c.computed - c.tip) : I('check') + ` Everyone's shares add up to <span class="mono">${money(c.sumTotals)}</span>`}</p>` : ''}
-  ${d.people.some(p => needsManual(p,c.totals[p.id]) && c.totals[p.id] > 0) && !CFG.preview ? receivingForm(d,c) : ''}
-  ${CFG.preview ? '<p class="fine">Preview only. No requests will be sent.</p>' : ''}
+  ${ready.length && !CFG.preview ? receivingForm(d,c,ready) : ''}
   <div class="next" data-live="sendbar"></div>`;
 };
 
-function reviewRequest(p,c){
-  const method = methodFor(p,c.totals[p.id]);
-  if (method === 'manual') return '';
-  return `<section class="review-request" aria-label="Request for ${esc(p.name)}"><h2 class="eyebrow">Request</h2>
-    <p class="request-account"><span>${esc(METHODS[method]?.label || 'Payment method')}</span><b>${esc(method === 'cash' ? 'In person' : recipientHandle(method,p) || '')}</b></p>
-    ${acceptsNote(method) ? `<label class="field"><span>Note</span><textarea class="request-note" data-in="pmsg" data-id="${esc(p.id)}" maxlength="160" rows="1">${esc(draftNote(p,c))}</textarea></label>` : ''}
-  </section>`;
-}
-function receivingForm(d,c){
+function receivingForm(d,c,recipients){
   const hasReceiving = Object.keys(receivingFor({}).methods).length > 0;
   return `<details class="pcard receiving-setup" ${hasReceiving && myName() ? '' : 'open'}>
     <summary>Where friends can pay you</summary>
-    <p class="fine">${hasReceiving ? 'Manual links use the receiving accounts in your profile.' : 'Add a receiving account in Profile or provide an Apple Pay checkout for each manual link.'}</p>
+    <p class="fine">${hasReceiving ? 'The payment page uses the receiving accounts in your profile.' : 'Add a receiving account in Profile or provide an Apple Pay checkout link for each person.'}</p>
     <button class="link" data-act="reviewProfile">Open Profile</button>
-    ${d.people.filter(p => needsManual(p,c.totals[p.id]) && c.totals[p.id] > 0).map(p => `<label class="field"><span>Apple Pay checkout for ${esc(p.name)} · ${money(c.totals[p.id])} <small>optional</small></span><input type="url" data-in="receiveCheckout" data-id="${esc(p.id)}" maxlength="1000" value="${esc(d.checkouts?.[p.id]?.amount === c.totals[p.id] ? d.checkouts[p.id].url : '')}" placeholder="Stripe checkout URL"></label>`).join('')}
+    ${recipients.map(p => `<label class="field"><span>Apple Pay checkout for ${esc(p.name)} · ${money(c.totals[p.id])} <small>optional</small></span><input type="url" data-in="receiveCheckout" data-id="${esc(p.id)}" maxlength="1000" value="${esc(d.checkouts?.[p.id]?.amount === c.totals[p.id] ? d.checkouts[p.id].url : '')}" placeholder="Stripe checkout URL"></label>`).join('')}
   </details>`;
 }
 function receivingFor(r){
@@ -1694,22 +1679,8 @@ function manualCard(r){
       <button class="btn small ghost" data-act="checkconsent" data-id="${esc(r.pid)}" ${state.busy ? 'disabled' : ''}>Check for shared payment details</button></details>`}
     ${state.message ? `<p class="fine" role="status">${esc(state.message)}</p>` : ''}</article>`;
 }
-function linkedStatus(r,i){
-  const info = paymentRequest(r);
-  const confirmed = S.draft.confirmedRequests?.[r.pid] === JSON.stringify(r);
-  const label = METHODS[r.method]?.label || 'Payment app';
-  return `<article class="pcard"><header><div><b>${esc(r.name)}</b><span class="meta">${esc(r.handle)}</span></div><span class="ptotal mono">${money(r.amount)}</span></header>
-    ${confirmed ? `<p class="request-status">Requested using ${esc(label)}</p>`
-      : CFG.preview ? `<p class="request-status">Payment app · ${esc(label)}</p>`
-      : r.method === 'cash' ? '<p class="request-status">Collect in person</p>'
-      : `<div class="request-finish"><p class="request-status">Finish in ${esc(label)}</p>
-        ${info.href ? `<a class="btn small ghost" href="${esc(info.href)}" target="_blank" rel="noopener noreferrer">${esc(info.label)}</a>` : ''}
-        <button class="btn small ghost" data-act="confirmLinked" data-index="${i}">I sent the request</button>
-        <details><summary>Request instructions</summary>${requestCard(r,i,{showLink:false})}</details></div>`}
-  </article>`;
-}
 function currentManual(pid){
-  const request = preparedRequests().find(r => r.pid === pid && r.method === 'manual');
+  const request = preparedRequests().find(r => r.pid === pid);
   if (S.view === 'sent' && request && S.draft.results?.some(r => JSON.stringify(r) === JSON.stringify(request))) return request;
 }
 async function manualApi(path, body){
@@ -1807,19 +1778,11 @@ function previewHistory(){
     <ul class="lines">${entry.people.map(p => `<li><span>${esc(p.name)}</span><span class="mono">${money(p.total)}</span></li>`).join('')}</ul>
   </details>`).join('')}`;
 }
-function prepareSplitRequests(){
-  const {ready,blocked,globalBlock} = sendPlan();
-  if (ui.preparing || globalBlock || blocked.length || !ready.length) return;
+async function prepareSplitRequests(){
+  if (ui.preparing) return;
   const draft = S.draft, requests = preparedRequests();
-  const manual = requests.filter(r => r.method === 'manual');
-  const finish = () => {
-    ui.sendError = ''; ui.sheet = null;
-    draft.results = requests;
-    if (CFG.preview && !manual.length) finishPreviewSplit();
-    else go('sent');
-  };
-  if (!manual.length) return finish();
-  if (manual.some(r => {
+  if (!requests.length) return;
+  if (requests.some(r => {
     const {payeeName,methods} = receivingFor(r);
     return !payeeName || !Object.keys(methods).length;
   })) {
@@ -1827,34 +1790,34 @@ function prepareSplitRequests(){
     refresh(); return;
   }
   ui.preparing = true; ui.sendError = ''; refresh();
-  return (async () => {
-    try {
-      const recipients = [];
-      for (const r of manual) {
-        const link = await createManualRequest(r, draft);
-        recipients.push({id:link.id,name:r.name.trim().slice(0,80)});
-      }
-      const key = JSON.stringify(recipients);
-      if (draft.sharedQr?.key !== key) {
-        const group = await manualApi('/group',{recipients});
-        draft.sharedQr = {key,...group};
-      }
-      ui.preparing = false; finish();
-    } catch(e) {
-      ui.preparing = false;
-      ui.sendError = e.message;
-      refresh();
+  try {
+    const recipients = [];
+    for (const r of requests) {
+      const link = await createManualRequest(r, draft);
+      recipients.push({id:link.id,name:r.name.trim().slice(0,80)});
     }
-  })();
+    const key = JSON.stringify(recipients);
+    if (draft.sharedQr?.key !== key) {
+      const group = await manualApi('/group',{recipients});
+      draft.sharedQr = {key,...group};
+    }
+    draft.results = requests;
+    ui.sheet = null;
+    go('sent');
+  } catch(e) {
+    ui.sendError = e.message;
+  } finally {
+    ui.preparing = false;
+    refresh();
+  }
 }
 
 V.sent = () => {
   const d = S.draft, results = d.results || [];
   if (JSON.stringify(results) !== JSON.stringify(preparedRequests())) return `<h1 class="h">Your split changed</h1>
     <div class="next"><button class="btn" data-act="go" data-v="summary">Review updated split</button></div>`;
-  const manual = results.filter(r => r.method === 'manual'), qr = manual.length && d.sharedQr;
-  const linked = results.map((r, i) => r.method === 'manual' ? '' : linkedStatus(r,i)).join('');
-  const expired = manual.some(r => !manualLink(r));
+  const qr = d.sharedQr;
+  const expired = results.some(r => !manualLink(r));
   return `${qr && !expired ? '' : `<header class="top"><button class="iconbtn" data-act="go" data-v="summary" aria-label="Back to review">${I('back')}</button>
     <h1 class="h">Payment requests</h1></header>`}
     ${qr && !expired ? `<section class="shared-qr pcard">
@@ -1863,11 +1826,11 @@ V.sent = () => {
       <a class="btn small ghost" href="${esc(qr.url)}" target="_blank" rel="noopener noreferrer">Open shared payment page</a>
     </section>` : ''}
     ${expired ? '<p class="alert warn">A payment link expired. Return to review to prepare new links.</p>' : ''}
-    ${linked || manual.length ? `<details class="pcard" ${qr ? '' : 'open'}>
+    ${results.length ? `<details class="pcard" ${qr ? '' : 'open'}>
       <summary>Request details</summary>
-      ${linked}${manual.map(manualCard).join('')}
+      ${results.map(manualCard).join('')}
     </details>` : ''}
-    ${CFG.preview ? '<p class="fine">Preview only. No requests were sent.</p>' : linked ? '<p class="fine">Finish any pending requests in their payment apps.</p>' : ''}
+    ${CFG.preview ? '<p class="fine">Preview only. No requests were sent.</p>' : ''}
     ${!CFG.preview && ui.saveSplitError ? `<p class="alert bad" role="alert">${esc(ui.saveSplitError)}</p>` : ''}
     <div class="next two"><button class="btn ghost" data-act="go" data-v="summary" ${ui.savingSplit ? 'disabled' : ''}>Edit split</button>${CFG.preview
       ? '<button class="btn" data-act="previewHistory">View preview history</button>'
@@ -1949,22 +1912,12 @@ const LIVE = {
   revnext: () => `<button id="receipt-next" class="btn" data-act="reviewNext" ${S.draft.items.some(it => it.name?.trim() || it.price || it.priceEntered) ? '' : 'disabled'}>Next</button>`,
   requestSheet: () => ui.sheet?.type === 'payment' ? requestCard(ui.sheet.request, 'sheet') : '',
   sendbar: () => {
-    const {c, ready, blocked, globalBlock} = sendPlan();
-    const hasAppRequests = ready.some(p => !['manual','cash'].includes(methodFor(p,c.totals[p.id])));
-    return `${blocked.length ? `<p class="warn-line">Check the request details for ${blocked.map(p => esc(p.name)).join(', ')}.</p>` : ''}
+    const {ready, blocked, globalBlock} = sendPlan();
+    return `${blocked.length ? `<p class="warn-line">Add these people from Contacts to share the payment page: ${blocked.map(p => esc(p.name)).join(', ')}.</p>` : ''}
       ${ui.sendError ? `<p class="alert bad" role="alert">${esc(ui.sendError)}</p>` : ''}
-      ${hasAppRequests ? '<p class="fine">Finish direct requests in the payment app.</p>' : ''}
-      <button class="btn" data-act="send" ${ui.preparing || globalBlock || blocked.length || !ready.length ? 'disabled' : ''}>${ui.preparing ? 'Preparing…' : CFG.preview ? 'Send requests (preview)' : 'Send requests'}</button>`;
+      <button class="btn" data-act="send" ${ui.preparing || globalBlock || blocked.length || !ready.length ? 'disabled' : ''}>${ui.preparing ? 'Preparing…' : 'Create payment QR code'}</button>`;
   }
 };
-function autoMessage(p, c){
-  const billName = S.draft.merchant?.trim() || 'Dinner';
-  const items = c.lines[p.id].map(line => {
-    const name = line.name?.trim() || 'Receipt item';
-    return line.quantity > 1 ? `${name} x ${line.quantity}` : name;
-  });
-  return `${billName} on ${shortDate(S.draft.date || today())}: ${items.join(', ')}`;
-}
 function payerAccountValid(method,value){
   if (!value || value.length > 100) return false;
   const email = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(value);
@@ -2050,9 +2003,7 @@ function methodFor(p,amount){
   return candidates.find(method =>
     (method !== 'cashapp' || !p.contactId || amount == null || amount >= 100) && sharedMethod(method,p)) || 'manual';
 }
-function needsManual(p,amount){ return !!p.contactId && methodFor(p,amount) === 'manual'; }
 function acceptsNote(method){ return !['manual','sms','cash'].includes(method); }
-function draftNote(p,c){ return S.draft.msgs?.[p.id] ?? autoMessage(p,c).slice(0,160); }
 function requestItems(p,c){
   const items = c.lines[p.id].map(line => ({name:(line.name || 'Receipt item').trim().slice(0,120) || 'Receipt item',amountCents:line.share}));
   if (c.alloc[p.id]) items.push({name:'Tax, tip & fees',amountCents:c.alloc[p.id]});
@@ -2063,26 +2014,13 @@ function requestItems(p,c){
 function sendPlan(){
   const d = S.draft, c = calc(d);
   const others = d.people.filter(p => !p.me && c.totals[p.id] > 0);
-  return {c, ready: others.filter(p => !requestIssue(p,c).error), blocked: others.filter(p => requestIssue(p,c).error), globalBlock: c.unassigned.length > 0 || c.totalsOff || !canConfirmTotal(c)};
-}
-function requestIssue(p, c){
-  const method = methodFor(p,c.totals[p.id]);
-  if (method === 'manual') return p.contactId ? {} : {error:'Add this person from Contacts.'};
-  const handle = recipientHandle(method,p);
-  const target = requestTarget(method, handle);
-  return target.error || !c.totals[p.id] ? target : paymentRequest({method,handle,amount:c.totals[p.id]});
+  return {c, ready: others.filter(p => p.contactId), blocked: others.filter(p => !p.contactId), globalBlock: c.unassigned.length > 0 || c.totalsOff || !canConfirmTotal(c)};
 }
 function preparedRequests(){
-  const {c, ready, globalBlock} = sendPlan();
-  if (globalBlock) return [];
-  return ready.map(p => {
-    const method = methodFor(p,c.totals[p.id]);
-    const routing = method === 'manual'
-      ? {method,contactId:p.contactId,items:requestItems(p,c)}
-      : {method,handle:requestTarget(method,recipientHandle(method,p)).value};
-    const note = acceptsNote(method) ? {note:draftNote(p,c).trim().slice(0,160) || autoMessage(p,c).slice(0,160)} : {};
-    return {pid:p.id,name:p.name,...routing,amount:c.totals[p.id],...note,handoffVersion:1};
-  });
+  const {c, ready, blocked, globalBlock} = sendPlan();
+  if (globalBlock || blocked.length) return [];
+  return ready.map(p => ({pid:p.id,name:p.name,method:'manual',contactId:p.contactId,
+    items:requestItems(p,c),amount:c.totals[p.id],handoffVersion:1}));
 }
 function refresh(){
   document.querySelectorAll('[data-live]').forEach(el => {
@@ -3210,9 +3148,7 @@ const A = {
     if (!d.people.some(p => p.id === ds.id && !p.me)) return;
     d.people = d.people.filter(p => p.id !== ds.id);
     for (const id of Object.keys(d.assign)) d.assign[id] = d.assign[id].filter(pid => pid !== ds.id);
-    delete d.msgs?.[ds.id];
     delete d.manualLinks?.[ds.id];
-    delete d.confirmedRequests?.[ds.id];
     if (ui.matchPersonId === ds.id) ui.matchPersonId = null;
     refreshMatch({strip:true,picker:ui.contactPicker});
     matchButton('matchPerson', activeMatchPerson()?.id)?.focus({preventScroll:true});
@@ -3393,13 +3329,6 @@ const A = {
     render();
   },
   copyrequest: ds => copyRequest(ds),
-  confirmLinked: ds => {
-    const r = S.draft.results?.[Number(ds.index)];
-    if (CFG.preview || S.view !== 'sent' || !r || ['manual','cash'].includes(r.method) ||
-      JSON.stringify(S.draft.results) !== JSON.stringify(preparedRequests())) return;
-    (S.draft.confirmedRequests ||= {})[r.pid] = JSON.stringify(r);
-    render();
-  },
   checkconsent: ds => checkConsent(ds.id),
   saveconsent: ds => saveConsent(ds.id),
   send: () => prepareSplitRequests(),
@@ -3895,7 +3824,7 @@ document.addEventListener('input', e => {
   }
   if (k === 'cropzoom') { const c = profileState().crop; if (c) { zoomCrop(c, +el.value); applyCrop(); } return; }
   if (S.view === 'summary') ui.sendError = '';
-  if (k === 'pmsg' || k === 'requestNote') sizeRequestNote(el);
+  if (k === 'requestNote') sizeRequestNote(el);
   if (['gname','gquery','gmember'].includes(k) && ui.sheet?.type === 'group') {
     const s = ui.sheet;
     if (ui.saving) return;
@@ -3955,7 +3884,6 @@ document.addEventListener('input', e => {
       document.getElementById('match-picker-list').scrollTop = 0;
       return;
     case 'hq': case 'cq': ui[k] = val; break;
-    case 'pmsg': (d.msgs ||= {})[el.dataset.id] = val; break;
     case 'receiveCheckout': (d.checkouts ||= {})[el.dataset.id] = {amount:calc(d).totals[el.dataset.id],url:val}; break;
   }
   refresh(); save();
