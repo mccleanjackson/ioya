@@ -36,7 +36,7 @@ test('Home shows Discard next to Resume current split, only when there is a spli
   api.S.view = 'home';
   assert.doesNotMatch(api.V.home(), /askDiscard/);
   startSplit(api);
-  assert.match(api.V.home(), /data-act="resume"[\s\S]*data-act="askDiscard">Discard</);
+  assert.match(api.V.home(), /data-act="resume"[\s\S]*data-act="askDiscard">.*Discard<\/button>/);
 });
 
 test('every split screen and the camera banner offer Discard', () => {

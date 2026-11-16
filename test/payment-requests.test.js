@@ -43,7 +43,7 @@ test('History separates paid, partly paid and unpaid bills and Home expands only
   const api=app();
   outstandingHistory(api);
   const all=api.V.history();
-  assert.deepEqual([...all.matchAll(/data-k="h" data-f="([^"]+)"/g)].map(m=>m[1]),['all','unpaid','part','paid']);
+  assert.deepEqual([...all.matchAll(/data-k="h" data-f="([^"]+)"/g)].map(m=>m[1]),['all','paid','part','unpaid']);
   assert.match(all,/2 paid, 1 partly paid, 1 unpaid/);
   api.ui.hf='unpaid';
   const unpaid=api.V.history();

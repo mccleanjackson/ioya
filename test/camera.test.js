@@ -20,7 +20,10 @@ function harness(options={}){
   const video={srcObject:null,videoWidth:900,videoHeight:1000,readyState:4,paused:0,getBoundingClientRect:()=>({width:300,height:400}),addEventListener(){},play:async()=>{},pause(){this.paused++;}};
   const elements={'receipt-camera':video,'capture-photo':{disabled:true},'camera-in':{clicks:0,click(){this.clicks++;}},'file-in':{click(){}},'camera-toggle':{focus(){this.focused=true;}}};
   const document={hidden:false,getElementById:id=>elements[id]||{},addEventListener:(n,f)=>events[n]=f,
-    createElement:()=>({getContext:()=>({drawImage(...args){draws.push(args);if(options.onFrame)options.onFrame(t);}}),toBlob:cb=>{if(options.frameError)throw Error('Frame failed');cb({type:'image/jpeg',size:345});}})};
+    createElement:()=>({getContext:()=>({
+      drawImage(...args){if(args.length===9){draws.push(args);if(options.onFrame)options.onFrame(t);}},
+      getImageData:()=>({data:new Uint8ClampedArray([100,100,100,255])})
+    }),toBlob:cb=>{if(options.frameError)throw Error('Frame failed');cb({type:'image/jpeg',size:345});}})};
   const window={isSecureContext:options.secure!==false,addEventListener:(n,f)=>events[n]=f,
     navigator:{mediaDevices:{getUserMedia:async c=>{requests.push(c);return options.getUserMedia?options.getUserMedia(c):stream(t);}}}};
   if(options.flash){
@@ -129,9 +132,9 @@ test('permission denial shows camera settings and preserves the draft',async()=>
   const h=harness({getUserMedia:async()=>{throw error;}}),draft=h.api.S.draft;
   await h.api.openCamera();assert.equal(h.api.ui.cameraOpen,false);
   assert.match(h.api.ui.cameraError,/not allowed/);assert.equal(h.api.S.draft,draft);
-  assert.match(h.api.V.scan(), /data-act="snap">Allow camera<\/button>/);
+  assert.match(h.api.V.scan(), /Camera access is blocked[\s\S]*data-act="snap">Try again<\/button>/);
   h.api.A.nativeCamera();
-  assert.doesNotMatch(h.api.V.scan(), /data-act="snap">Allow camera<\/button>/);
+  assert.doesNotMatch(h.api.V.scan(), /Camera access is blocked/);
 });
 
 test('closing a pending camera request stops the late stream and does not reopen it',async()=>{
@@ -152,9 +155,12 @@ test('leaving the view, hiding the tab or unloading releases all camera tracks',
 
 test('a video-frame capture stops the camera before passing a real file to the scanner',async()=>{
   const h=harness();await h.api.openCamera();await h.api.captureCameraPhoto();
-  assert.equal(h.scans.length,1);assert.equal(h.scans[0].type,'image/jpeg');assert.equal(h.scans[0].size,345);
+  assert.equal(h.scans.length,0);
   assert.equal(h.t.stopped,1);assert.equal(h.api.ui.cameraOpen,false);
   assert.deepEqual(h.draws[0].slice(1),[75,0,750,1000,0,0,750,1000]);
+  await h.api.A.useCapture();
+  assert.equal(h.scans.length,1);assert.equal(h.scans[0].type,'image/jpeg');assert.equal(h.scans[0].size,345);
+  assert.equal(h.api.ui.captureFile,null);
 });
 
 test('still-photo flash fires only at capture and supports a manual off choice',async()=>{
@@ -163,9 +169,9 @@ test('still-photo flash fires only at capture and supports a manual off choice',
     assert.equal(h.api.ui.cameraLightMode,'flash');assert.equal(h.api.ui.cameraFlashEnabled,true);assert.equal(h.t.light,false);
     if(!enabled)await h.api.toggleCameraLight();
     await h.api.captureCameraPhoto();assert.equal(options.photoSettings.fillLightMode,enabled?'flash':'off');
-    assert.equal(h.scans[0].size,345);assert.equal(h.t.stopped,1);
-    assert.deepEqual(h.draws[0].slice(1),[150,0,1500,2000,0,0,1500,2000]);
-    assert.deepEqual(h.revoked,['blob:camera-test']);
+    assert.equal(h.api.ui.captureFile.size,345);assert.equal(h.t.stopped,1);
+    assert.deepEqual(h.draws[1].slice(1),[150,0,1500,2000,0,0,1500,2000]);
+    assert.deepEqual(h.revoked,Array(3).fill('blob:camera-test'));
   }
 });
 
@@ -179,7 +185,7 @@ test('preview crop excludes hidden edges for wide, tall and matching streams',()
 
 test('high-resolution stills match the stream area before applying the visible preview crop',async()=>{
   const h=harness({flash:true,stillWidth:4000,stillHeight:3000});await h.api.openCamera();await h.api.captureCameraPhoto();
-  assert.deepEqual(h.draws[0].slice(1),[875,0,2250,3000,0,0,2250,3000]);assert.equal(h.scans.length,1);
+  assert.deepEqual(h.draws[1].slice(1),[875,0,2250,3000,0,0,2250,3000]);assert.ok(h.api.ui.captureFile);
 });
 
 test('invalid preview bounds and still decode failures never scan an uncropped photo',async()=>{
@@ -196,7 +202,8 @@ test('closing during still-image decoding discards the crop and releases its tem
   await h.api.openCamera();const capturing=h.api.captureCameraPhoto();
   for(let i=0;i<10;i++)await Promise.resolve();
   h.api.A.closeCamera();ready.resolve();await capturing;
-  assert.equal(h.scans.length,0);assert.equal(h.draws.length,0);assert.equal(h.api.S.draft,draft);assert.deepEqual(h.revoked,['blob:camera-test']);
+  assert.equal(h.scans.length,0);assert.equal(h.draws.length,1);assert.ok(!h.api.ui.captureFile);
+  assert.equal(h.api.S.draft,draft);assert.deepEqual(h.revoked,['blob:camera-test']);
 });
 
 test('Start split opens the camera directly even with an existing draft; closing preserves it',async()=>{
@@ -212,7 +219,8 @@ test('torch-only devices pulse light for the captured frame and turn it off befo
     await h.api.openCamera();assert.equal(t.light,false);
     if(!enabled)await h.api.toggleCameraLight();
     await h.api.captureCameraPhoto();
-    assert.equal(h.scans.length,1);assert.equal(t.light,false);assert.equal(t.stopped,1);
+    assert.equal(h.scans.length,0);assert.equal(t.light,false);assert.equal(t.stopped,1);
+    await h.api.A.useCapture();assert.equal(h.scans.length,1);
     assert.equal(t.requests.length,enabled?2:0);
   }
 });
