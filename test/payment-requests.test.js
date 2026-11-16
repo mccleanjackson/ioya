@@ -14,7 +14,7 @@ function app({clipboardError=false,userAgent='Android',preview=false,production=
   const context={window,fetch,navigator:{userAgent,clipboard:{writeText:async text=>{if(clipboardError)throw Error('denied');copied.push(text);}}},
     document:{getElementById:()=>fallback,querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:()=>null,setItem(){}},
     setTimeout:fn=>timers.push(fn),clearTimeout(){},console};
-  vm.runInNewContext(script.replace('if (!V[S.view]', 'render=()=>{};globalThis.api={S,A,V,LIVE,ui,newDraft,normalizeTipDraft,requestTarget,paymentRequest,requestCard,sendPlan,sheetHTML,copyRequest,autoMessage,normContact,preparedRequests};return;\nif (!V[S.view]'),context);
+  vm.runInNewContext(script.replace('if (!V[S.view]', 'render=()=>{};globalThis.api={S,A,V,LIVE,ui,newDraft,normalizeTipDraft,requestTarget,paymentRequest,requestCard,sendPlan,sheetHTML,copyRequest,normContact,preparedRequests};return;\nif (!V[S.view]'),context);
   if (preview) context.api.S.me={first:'Taylor',last:'Preview',phone:''};
   context.api.S.paymentAccounts={venmo:'taylor-preview',paypal:'TaylorPreview',zelle:'payer@example.test',cashapp:'$Taylor',applecash:'8015550104'};
   return {...context.api,copied,timers,fallback};
@@ -22,7 +22,7 @@ function app({clipboardError=false,userAgent='Android',preview=false,production=
 function split(api){
   const d=api.newDraft();
   Object.assign(d,{merchant:'Test cafe',items:[{id:'a',name:'Meal',price:1000}],printed:1000,
-    people:[{id:'me',name:'You',me:true},{id:'p',name:'Alex',method:'venmo',venmo:'@alex-test'}],assign:{a:['me','p']}});
+    people:[{id:'me',name:'You',me:true},{id:'p',name:'Alex',method:'venmo',venmo:'@alex-test',contactId:'11'}],assign:{a:['me','p']}});
   api.S.draft=d;return d;
 }
 const request=(overrides={})=>({name:'Alex',method:'venmo',handle:'@alex-test',amount:1234,note:'Dinner & tea? #1 + tax',...overrides});
@@ -43,7 +43,7 @@ test('History separates paid, partly paid and unpaid bills and Home expands only
   const api=app();
   outstandingHistory(api);
   const all=api.V.history();
-  assert.deepEqual([...all.matchAll(/data-k="h" data-f="([^"]+)"/g)].map(m=>m[1]),['all','unpaid','part','paid']);
+  assert.deepEqual([...all.matchAll(/data-k="h" data-f="([^"]+)"/g)].map(m=>m[1]),['all','paid','part','unpaid']);
   assert.match(all,/2 paid, 1 partly paid, 1 unpaid/);
   api.ui.hf='unpaid';
   const unpaid=api.V.history();
@@ -129,33 +129,27 @@ test('SMS drafts omit custom notes on Android and iPhone',()=>{
     assert.ok(!body.includes('ioya.app'));
   }
 });
-test('prepare snapshots each share and message without sending, timers or status changes',()=>{
-  const api=app(),d=split(api);d.msgs.p='Custom note';api.A.send();
-  assert.equal(api.S.view,'sent');assert.equal(d.results[0].amount,500);assert.equal(d.results[0].note,'Custom note');
-  assert.equal(d.results[0].handle,'alex-test');assert.equal(d.results[0].handoffVersion,1);assert.equal(d.results[0].status,undefined);
-  assert.equal(api.timers.length,0);assert.equal(api.copied.length,0);
-  const page=api.V.sent();assert.ok(page.includes('Payment requests'));assert.ok(!page.includes('Requests sent'));
-  assert.ok(!page.includes('QR code'));assert.ok(!page.includes('ioya.app'));
-});
-test('direct prepare is guarded by split validity and bad contacts are excluded',()=>{
-  const api=app(),d=split(api);d.assign.a=[];api.A.send();assert.equal(d.results,null);
-  d.assign.a=['me','p'];d.people[1].venmo='@one,@two';assert.equal(api.sendPlan().ready.length,0);api.A.send();assert.equal(d.results,null);
-});
-test('editing a prepared split hides old handoffs until requests are prepared again',()=>{
-  const api=app(),d=split(api);api.A.send();
-  d.items[0].price=1200;d.printed=1200;
-  assert.match(api.V.sent(),/Your split changed/);assert.ok(!api.V.sent().includes('href='));
-  api.A.send();assert.equal(d.results[0].amount,600);assert.ok(api.V.sent().includes('Open Venmo request'));
+test('QR preparation requires assigned items and a saved contact for every share',async()=>{
+  const api=app({preview:true,fetch:()=>assert.fail('An invalid split must not create links')}),d=split(api);
+  d.assign.a=[];
+  await api.A.send();
+  assert.equal(d.results,null);
+  d.assign.a=['me','p'];delete d.people[1].contactId;
+  assert.equal(api.sendPlan().blocked.length,1);
+  await api.A.send();
+  assert.equal(d.results,null);
 });
 test('clipboard copies exact fields and denial offers selectable manual details',async()=>{
-  const api=app();split(api);api.A.send();
-  await api.copyRequest({index:'0',part:'amount'});await api.copyRequest({index:'0',part:'contact'});
-  assert.deepEqual(api.copied,['5.00','alex-test']);
-  const denied=app({clipboardError:true});split(denied);denied.A.send();await denied.copyRequest({index:'0',part:'all'});
+  const api=app();api.ui.sheet={type:'payment',request:request()};
+  await api.copyRequest({index:'sheet',part:'amount'});await api.copyRequest({index:'sheet',part:'contact'});
+  assert.deepEqual(api.copied,['12.34','alex-test']);
+  const denied=app({clipboardError:true});denied.ui.sheet={type:'payment',request:request()};
+  await denied.copyRequest({index:'sheet',part:'all'});
   assert.equal(denied.fallback.open,true);assert.equal(denied.fallback.selected,true);assert.match(denied.ui.toast,/manually/);
 });
 test('returning home preserves the split; legacy simulated sends are discarded on reload',()=>{
-  const api=app(),d=split(api);api.A.send();api.A.done();assert.equal(api.S.draft,d);assert.equal(d.results.length,1);assert.equal(api.S.view,'home');
+  const api=app(),d=split(api);d.results=api.preparedRequests();
+  api.A.done();assert.equal(api.S.draft,d);assert.equal(d.results.length,1);assert.equal(api.S.view,'home');
   const legacy={at:'sent',items:[{id:'a'}],results:[{pid:'p',status:'sent'}]};api.normalizeTipDraft(legacy);
   assert.equal(legacy.results,null);assert.equal(legacy.at,'summary');assert.equal(legacy.items.length,1);
 });
@@ -179,12 +173,10 @@ test('Cash App accepts a cashtag, email or phone without linking to a payment to
   }
   for(const handle of ['$12345','$a/b','$alex&txn=pay','https://cash.app/$AlexTest','$abcdefghijklmnopqrstu']) assert.ok(api.requestTarget('cashapp',handle).error);
 });
-test('Cash App rejects sub-dollar shares in preparation and explains why',()=>{
-  const api=app(),d=split(api);d.people[1].method='cashapp';d.people[1].cashapp='$AlexTest';
-  d.items[0].price=100;d.printed=100;
-  assert.equal(api.sendPlan().ready.length,0);assert.equal(api.sendPlan().blocked.length,1);
-  api.A.send();assert.equal(d.results,null);assert.match(api.paymentRequest(request({method:'cashapp',handle:'$AlexTest',amount:99})).error,/\$1/);
-  d.items[0].price=200;d.printed=200;api.A.send();assert.equal(d.results[0].amount,100);
+test('Cash App reminders reject sub-dollar shares and explain why',()=>{
+  const api=app(), cashApp={method:'cashapp',handle:'$AlexTest'};
+  assert.match(api.paymentRequest(request({...cashApp,amount:99})).error,/\$1/);
+  assert.ok(api.paymentRequest(request({...cashApp,amount:100})).href);
 });
 test('Apple Cash opens only a Messages draft and explains the native Request step',()=>{
   const api=app({userAgent:'iPhone'}), info=api.paymentRequest(request({method:'applecash',handle:'8015550100'}));
@@ -194,12 +186,9 @@ test('Apple Cash opens only a Messages draft and explains the native Request ste
   assert.ok(!api.paymentRequest(request({method:'applecash',handle:'8015550100'})).error);
 });
 test('cash needs no electronic contact, makes no external link and stays unpaid',()=>{
-  const api=app(),d=split(api);d.people[1].method='cash';
-  assert.equal(api.sendPlan().ready.length,1);api.A.send();
-  assert.equal(d.results[0].amount,500);assert.equal(d.results[0].status,undefined);
-  const card=api.requestCard(d.results[0],0);assert.ok(!card.includes('href='));assert.ok(!card.includes('Copy contact'));
+  const api=app();
+  const card=api.requestCard(request({method:'cash',handle:''}),'sheet');assert.ok(!card.includes('href='));assert.ok(!card.includes('Copy contact'));
   assert.match(card,/collect this amount in person/);
-  assert.match(api.V.summary(),/In person/);
 });
 test('reminder method choices remain available alongside the simpler split review',()=>{
   const api=app();split(api);
@@ -225,7 +214,7 @@ test('contacts and overlapping groups add each person once and remove their assi
   assert.match(api.V.assign(),/0 of 1 matched/);
 });
 
-test('review uses saved accounts and one QR for manual recipients with or without a phone',async()=>{
+test('one preview QR includes Venmo contacts and contacts with or without a phone',async()=>{
   const calls=[];
   const api=app({preview:true,fetch:async (url,request)=>{
     if (!request.body) return {ok:true,json:async()=>({})};
@@ -237,30 +226,24 @@ test('review uses saved accounts and one QR for manual recipients with or withou
     {id:'qr',name:'Jordan',method:'sms',contactId:'13',phone:''},
     {id:'qr2',name:'Morgan',method:'sms',contactId:'14',phone:''});
   d.assign.a.push('sms','qr','qr2');
-  d.msgs.p='Thanks for lunch';
-  d.msgs.sms='Old text note';
   const review=api.V.summary();
-  assert.match(review,/alex-test/);
-  assert.equal((review.match(/aria-label="Request for /g)||[]).length,1);
-  assert.doesNotMatch(review,/Shared QR code|Phone number|8015550100/);
-  assert.match(review,/Thanks for lunch/);
-  assert.doesNotMatch(review,/Old text note/);
-  assert.equal((review.match(/data-in="pmsg"/g)||[]).length,1);
-  assert.doesNotMatch(review,/<select/);
+  assert.doesNotMatch(review,/alex-test|8015550100|data-in="pmsg"|<select/);
   await api.A.send();
-  assert.equal(d.results[1].method,'manual');
-  assert.equal(d.results[1].phone,undefined);
+  assert.ok(d.results.every(r=>r.method==='manual' && r.status===undefined));
+  assert.equal(calls[0].body.contactId,11);
   assert.deepEqual(calls[0].body.items,[{name:'Meal',amountCents:200}]);
   assert.equal(calls[0].body.note,undefined);
-  assert.deepEqual(calls.at(-1).body.recipients,[{id:'1',name:'Sam'},{id:'2',name:'Jordan'},{id:'3',name:'Morgan'}]);
+  assert.deepEqual(calls.at(-1).body.recipients,[{id:'1',name:'Alex'},{id:'2',name:'Sam'},{id:'3',name:'Jordan'},{id:'4',name:'Morgan'}]);
   const page=api.V.sent();
   assert.equal((page.match(/alt="Shared QR code/g)||[]).length,1);
   assert.match(page,/No requests were sent/);
   assert.doesNotMatch(page,/Back to review/);
   assert.match(page,/Edit split/);
   const oldQr=d.sharedQr.id;
-  api.A.go({v:'summary'});
   d.items[0].name='Updated item';
+  assert.match(api.V.sent(),/Your split changed/);
+  assert.doesNotMatch(api.V.sent(),/href=/);
+  api.A.go({v:'summary'});
   await api.A.send();
   assert.notEqual(d.sharedQr.id,oldQr);
   assert.ok(calls.some(x=>x.body.contactId===13 && x.body.items[0].name==='Updated item'));
@@ -282,7 +265,7 @@ test('matching keeps the selected contact and lists unmatched items before conti
   assert.equal(api.S.view,'summary');
 });
 
-test('production opens the QR even for a single manual recipient with a phone and preserves app confirmation',async()=>{
+test('production creates and reuses a QR even when the only recipient has Venmo',async()=>{
   const calls=[];
   const api=app({production:true,fetch:async (url,request)=>{
     calls.push({url,body:JSON.parse(request.body)});
@@ -292,20 +275,17 @@ test('production opens the QR even for a single manual recipient with a phone an
   api.S.me.first='Taylor';
   api.S.userId=1;
   api.S.paymentAccounts={venmo:'taylor-preview'};
-  d.people.push({id:'sms',name:'Sam',method:'sms',contactId:'12',phone:'8015550100'});
-  d.assign.a.push('sms');
+  assert.match(api.V.summary(),/Apple Pay checkout for Alex/);
   await api.A.send();
   assert.deepEqual(calls.map(call=>call.url),['/api/manual-requests','/api/manual-requests/group']);
-  assert.deepEqual(calls[1].body,{recipients:[{id:'manual-link',name:'Sam'}]});
+  assert.deepEqual(calls[0].body.methods,{venmo:'taylor-preview'});
+  assert.deepEqual(calls[1].body,{recipients:[{id:'manual-link',name:'Alex'}]});
   assert.match(api.V.sent(),/Open shared payment page/);
-  assert.doesNotMatch(api.V.sent(),/Requested using Venmo|sms:/);
-  api.A.confirmLinked({index:'0'});
-  assert.match(api.V.sent(),/Requested using Venmo/);
-  assert.doesNotMatch(api.V.sent(),/Copy contact/);
+  assert.doesNotMatch(api.V.sent(),/Open Venmo request|I sent the request|sms:/);
   api.A.go({v:'summary'});
   await api.A.send();
   assert.equal(calls.length,2);
-  assert.match(api.V.sent(),/Requested using Venmo/);
+  assert.match(api.V.sent(),/Open shared payment page/);
 });
 
 test('the active tab preserves the current split step and active page state',()=>{
@@ -325,38 +305,20 @@ test('the active tab preserves the current split step and active page state',()=
   assert.equal(api.ui.sheet,null);
 });
 
-test('Review and Send chooses only methods shared with the payer and falls back to QR',()=>{
-  const api=app(),d=split(api);
-  Object.assign(d.people[1],{contactId:'20',method:'paypal',paypal:'alex@example.test',phone:'8015550100'});
-  api.S.contacts=[{id:'20',method:'paypal',paypal:'alex@example.test',venmo:'current-alex',phone:'8015550100'}];
-  api.S.paymentAccounts={paypal:'TaylorPreview',venmo:'taylor-preview'};
-  assert.match(api.V.summary(),/alex@example.test/);
-  api.S.paymentAccounts={venmo:'taylor-preview'};
-  const preferredUnavailable=api.V.summary();
-  assert.doesNotMatch(preferredUnavailable,/Request for Alex|current-alex|alex@example.test|8015550100/);
-  api.S.contacts[0].method='sms';
-  assert.match(api.V.summary(),/current-alex/);
-  api.S.paymentAccounts={applecash:'8015550104'};
-  const fallback=api.V.summary();
-  assert.doesNotMatch(fallback,/Request for Alex|current-alex|data-in="pmsg"/);
-  d.people[1].phone='';
-  assert.equal(api.preparedRequests()[0].method,'manual');
-});
-
-test('saved Apple Cash addresses reach Messages, and QR requests omit phone details',()=>{
+test('history reminders use the saved Apple Cash address',()=>{
   const api=app(),d=split(api);
   const c=api.normContact({contact_id:12,cont_first_name:'Alex',cont_last_name:'',phone:'8015550100',
     contacts_payment_method:[{pay_method_id:6,pay_method_username:'+18015550199',is_preferred:true,payment_methods:{pay_method_name:'Apple Cash'}}]});
   Object.assign(d.people[1],c,{id:'p',contactId:c.id});
   api.S.contacts=[c];
-  const [linked]=api.preparedRequests();
+  const bill={id:'event',merchant:'Test cafe',requests:[{contactId:12,name:'Alex',amount:500}]};
+  api.S.history=[bill];
+  api.ui.sheet={type:'req',sid:bill.id,i:0};
+  api.A.remind();
+  const linked=api.ui.sheet.request;
   assert.equal(linked.method,'applecash');
   assert.equal(linked.handle,'+18015550199');
   assert.match(api.paymentRequest(linked).href,/^sms:\+18015550199/);
-  api.S.paymentAccounts={};
-  const [manual]=api.preparedRequests();
-  assert.equal(manual.method,'manual');
-  assert.equal(manual.phone,undefined);
 });
 
 test('Cash App shares below one dollar fall back to the manual payment link',()=>{
@@ -369,7 +331,7 @@ test('Cash App shares below one dollar fall back to the manual payment link',()=
   assert.equal(request.amount,75);
 });
 
-test('one production send prepares the preferred app and groups all manual shares without texting',async()=>{
+test('production groups all positive shares without sending app requests or texts',async()=>{
   const calls=[];
   const api=app({production:true,fetch:async (url,request)=>{
     const body=JSON.parse(request.body);
@@ -380,31 +342,29 @@ test('one production send prepares the preferred app and groups all manual share
   api.S.me.first='Taylor';api.S.userId=1;
   api.S.paymentAccounts={venmo:'taylor-preview'};
   d.people.push({id:'sms',name:'Sam',method:'paypal',paypal:'sam@example.test',venmo:'sam-venmo',contactId:'12',phone:'8015550100'},
-    {id:'qr',name:'Jordan',method:'paypal',paypal:'jordan@example.test',contactId:'13',phone:''});
+    {id:'qr',name:'Jordan',method:'paypal',paypal:'jordan@example.test',contactId:'13',phone:''},
+    {id:'zero',name:'Drew',method:'cash',contactId:'14'});
   d.assign.a.push('sms','qr');
-  d.usePaymentLinks=true; // Old previews may still have this option saved.
   const actions=api.LIVE.sendbar();
-  assert.deepEqual([...actions.matchAll(/<button[^>]*>([^<]+)<\/button>/g)].map(match=>match[1]),['Send requests']);
+  assert.deepEqual([...actions.matchAll(/<button[^>]*>([^<]+)<\/button>/g)].map(match=>match[1]),['Create payment QR code']);
   await api.A.send();
   assert.equal(api.S.view,'sent');
-  assert.deepEqual(calls.map(x=>x.url),['/api/manual-requests','/api/manual-requests','/api/manual-requests/group']);
-  assert.deepEqual(calls[2].body.recipients,[{id:'link-12',name:'Sam'},{id:'link-13',name:'Jordan'}]);
-  assert.equal(calls[0].body.phone,undefined);
+  assert.deepEqual(calls.map(x=>x.url),['/api/manual-requests','/api/manual-requests','/api/manual-requests','/api/manual-requests/group']);
+  assert.deepEqual(calls[3].body.recipients,[{id:'link-11',name:'Alex'},{id:'link-12',name:'Sam'},{id:'link-13',name:'Jordan'}]);
+  assert.ok(calls.slice(0,3).every(({body})=>body.phone===undefined && body.handle===undefined));
   const page=api.V.sent();
-  assert.match(page,/Open Venmo request/);
   assert.match(page,/Shared QR code/);
   assert.match(page,/Open shared payment page/);
-  assert.doesNotMatch(page,/Requested using Venmo|Text (not )?submitted|Retry text/);
+  assert.doesNotMatch(page,/Open Venmo request|I sent the request|sms:/);
 });
 
-test('the default request note uses the split date and only that person’s items',()=>{
+test('QR requests include only the recipient’s items and exact shares',()=>{
   const api=app(), d=split(api);
-  d.date='2026-11-09';
   d.items.push({id:'b',name:'Taco',price:200,quantity:2},{id:'c',name:'Coffee',price:300});
   Object.assign(d.assign,{b:['p'],c:['me']});
   const [r]=api.preparedRequests();
-  assert.equal(r.note,'Test cafe on Nov 9: Meal, Taco x 2');
-  assert.equal(new URL(api.paymentRequest(r).href).searchParams.get('note'),r.note);
+  assert.deepEqual(Array.from(r.items, item=>[item.name,item.amountCents]),[['Meal',500],['Taco',400]]);
+  assert.equal(r.amount,900);
 });
 
 test('payment preparation explains an HTML response from an outdated preview server', async()=>{

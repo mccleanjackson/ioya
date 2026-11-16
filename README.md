@@ -8,7 +8,7 @@ Scan a receipt, match items to friends, and make sure you get paid back.
 
 ## App Summary
 
-When one person pays a shared restaurant bill, they are left doing math on a receipt, splitting shared appetizers, spreading tax and tip fairly, and then chasing each friend for their share. That process is slow, easy to get wrong, and makes it easy to forget who still owes money. IOYA is for the person who picks up the tab for a group of friends, roommates, or family. The app reads a photo of the receipt into line items, lets the payer tap which friend had which item (including shared items), and splits tax, tip, and fees in proportion to what each person ordered. It then prepares a payment request for each friend in their preferred app (Venmo, PayPal, Zelle, Cash App, Apple Cash, or cash), or one shared QR code that friends scan to see their share. Saved splits go to History, Home shows who still owes you, and text reminders are one tap away. Saved contacts, friend groups like "Lunch crew", and a shareable profile with your own payment apps make the next split faster. Anyone can start as a guest; a profile (email and password) keeps your data across devices, and admins get pages to maintain every table.
+When one person pays a shared restaurant bill, they are left doing math on a receipt, splitting shared appetizers, spreading tax and tip fairly, and then chasing each friend for their share. That process is slow, easy to get wrong, and makes it easy to forget who still owes money. IOYA is for the person who picks up the tab for a group of friends, roommates, or family. The app reads a photo of the receipt into line items, lets the payer tap which friend had which item (including shared items), and splits tax, tip, and fees in proportion to what each person ordered. It then creates a shared QR code for everyone who owes a share. Friends scan the code and choose their name to see their share and the payer's available payment options. Saved splits go to History, Home shows who still owes you, and text reminders are one tap away. Saved contacts, friend groups like "Lunch crew", and a shareable profile with your own payment apps make the next split faster. Anyone can start as a guest; a profile (email and password) keeps your data across devices, and admins get pages to maintain every table.
 
 ## ERD
 
@@ -63,7 +63,7 @@ The whole app is one process. **The user** (the person who paid) sends in the re
 |---|---|
 | 1.1 Scan / Upload Receipt | Takes a photo (or upload, or typed items), sends the image to Tesseract OCR, and turns the text into receipt items, tax and total. |
 | 1.2 Calculate Bill Split | Combines the items with who had what, tax and tip, and the user's contacts, and works out each person's exact share in cents. |
-| 1.3 Send Payment Requests | Prepares a request in each person's payment app (or a shared QR code). |
+| 1.3 Send Payment Requests | Creates one shared QR code for everyone who owes a share. |
 | 1.4 Manage Contacts | Adds, edits, imports and deletes contacts and groups. |
 | 1.5 Save Split to History | Saves the finished split (receipt, items, shares, people). |
 | 1.6 Track Payment Status | Shows who still owes, records who paid, and prepares reminders. |
@@ -96,7 +96,7 @@ The two data stores are tables in Supabase: **D1 Contacts** (`contacts`, `contac
 1. **Pay New Tab** on Home opens the camera. Take a photo, **Upload** one, or **Type** the items in. After taking a photo you can adjust its brightness, save it to your device, and then **Use photo**. Tesseract reads it in the browser; nothing is uploaded to a recognition service. The camera needs HTTPS or localhost; otherwise the phone's own camera picker is used.
 2. **Check the items.** Fix any names or prices, set quantities, enter tax and **Tip and fees** (one dollar amount), and confirm the **Total to split** matches the receipt. Long scanned names are shortened, and **Use original name** undoes it.
 3. **Match items.** Add people from Contacts or groups, or create a **New contact** right there (it's saved to Contacts too). Tap a person, then tap their items. Shared items are split evenly.
-4. **Review & send.** Shows each person's items and their share of tax, fees and tip (in proportion to what they ordered, rounded so every cent adds up to the bill). **Send requests** prepares each person's request in their payment app; people without a matching app share one QR code that opens the `/pay` page, where they choose their name and pay their share.
+4. **Review & send.** Shows each person's items and their share of tax, fees and tip (in proportion to what they ordered, rounded so every cent adds up to the bill). **Create payment QR code** opens one shared `/pay` page for everyone who owes a share, including contacts with saved payment apps. Each person selects their name to see their items, exact amount, and payment options.
 5. **Save to History** saves the split to Supabase with everyone as "not paid yet" ([`supabase/save-splits.sql`](supabase/save-splits.sql)). A split is never saved twice, even after a double tap. **Not now** keeps it in the browser, and **Resume current split** on Home picks it back up.
 6. **Discard split** (top of every split screen, or next to Resume on Home) throws an unfinished split away after asking first.
 
@@ -265,7 +265,7 @@ Open the printed address on the phone and enter the emailed PIN. It needs the co
 ### A full split, end to end
 
 1. Tap **Pay New Tab** and photograph a receipt (or **Upload** a photo, or **Type** the items). Check the items, tax and **Tip and fees**, and confirm the total matches the receipt.
-2. In **Match items**, add Alex Johnson (or any contact) and assign items. In **Review & send**, check that everyone's shares add up to the bill plus tip, then tap **Send requests** and look at each request. Use test contacts and stop before sending a real request in a payment app.
+2. In **Match items**, add Alex Johnson (or any contact) and assign items. In **Review & send**, check that everyone's shares add up to the bill plus tip, then tap **Create payment QR code**. Open the shared payment page and confirm that all test contacts who owe a share are listed. Choose each name to check the amount and items.
 3. Tap **Save to History**. History opens with the new split, and it's still there after a refresh. In Supabase, it's a new row in `events` (with its `receipts`, `line_items`, `item_assignments` and `participants`).
 4. **Mark as paid:** on **Home**, open the bill, tap Alex, choose how they paid and tap **Mark as paid**. The app updates `participants.paid_method_id`, Alex moves to paid, and stays paid after a refresh. **Mark as unpaid** undoes it.
 
@@ -307,6 +307,6 @@ docs/                     ERD, architecture and data flow diagrams (SVG sources 
 This project was built with help from AI coding assistants; the team reviewed and merged each change through pull requests. What the AI did:
 
 - **Claude (Anthropic):** the original clickable prototype and its connection to Supabase; guest accounts and private-data security rules; profiles with email codes and passwords; profile pictures; profile payment accounts and the preferred app; the landing page, cookie login and admin flag; the five admin Maintain pages; Save to History; shared profile pages with QR codes; Discard split; the loading screen and screen transitions; the redrawn ERD, the architecture diagram, and the Level 0 and Level 1 data flow diagrams; automated tests; and documentation.
-- **Other AI assistants used by teammates:** payment-app handoffs, validation, clipboard fallback, reminders, Home unpaid bills and text drafts, History filters, the shared QR code and `/pay` page, the contact and group pickers, item matching, the group editor, the responsive phone/laptop layout, contact import, and receipt entry improvements, with their automated checks.
+- **Other AI assistants used by teammates:** payment-app handoffs, validation, clipboard fallback, reminders, Home unpaid bills and text drafts, History filters, the shared QR code and `/pay` page for all recipients, the contact and group pickers, item matching, the group editor, the responsive phone/laptop layout, contact import, and receipt entry improvements, with their automated checks.
 
 Software checks in `test/` are not student-authored course testing or findings. Each student discloses AI assistance in their own submissions.
