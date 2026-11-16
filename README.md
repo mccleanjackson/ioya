@@ -8,7 +8,7 @@ Scan a receipt, match items to friends, and make sure you get paid back.
 
 ## App Summary
 
-When one person pays a shared restaurant bill, they are left doing math on a receipt, splitting shared appetizers, spreading tax and tip fairly, and then chasing each friend for their share. That process is slow, easy to get wrong, and makes it easy to forget who still owes money. IOYA is for the person who picks up the tab for a group of friends, roommates, or family. The app turns a receipt into line items, lets the payer tap which friend had which item (including shared items), and splits tax, tip, and fees in proportion to what each person ordered. Each outing is saved as an event, so Home shows what friends still owe you and History tracks all splits and how they were paid. Saved contacts with their preferred payment method (Venmo, PayPal, Zelle, or cash) and friend groups like "Family" or "Lunch crew" make the next split faster.
+When one person pays a shared restaurant bill, they are left doing math on a receipt, splitting shared appetizers, spreading tax and tip fairly, and then chasing each friend for their share. That process is slow, easy to get wrong, and makes it easy to forget who still owes money. IOYA is for the person who picks up the tab for a group of friends, roommates, or family. The app reads a photo of the receipt into line items, lets the payer tap which friend had which item (including shared items), and splits tax, tip, and fees in proportion to what each person ordered. It then prepares a payment request for each friend in their preferred app (Venmo, PayPal, Zelle, Cash App, Apple Cash, or cash), or one shared QR code that friends scan to see their share. Saved splits go to History, Home shows who still owes you, and text reminders are one tap away. Saved contacts, friend groups like "Lunch crew", and a shareable profile with your own payment apps make the next split faster. Anyone can start as a guest; a profile (email and password) keeps your data across devices, and admins get pages to maintain every table.
 
 ## ERD
 
@@ -37,7 +37,7 @@ The same diagram is in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf), and its source 
 
 **How the diagram becomes tables.** The SQL in [`supabase/schema.sql`](supabase/schema.sql) uses the same tables and columns, written in Postgres's lowercase snake_case style: `Users.UserFirstName` becomes `users.user_first_name`, `Contacts_Payment_Method` becomes `contacts_payment_method`, and so on. Money is stored as whole cents, so `1959` means $19.59. One table in `schema.sql` is not drawn: `manual_payment_sms`, which is only for an optional text-message feature the live app doesn't use.
 
-**Accounts.** `Users.AuthUserID` (unique) links a row to its Supabase Auth login; it is empty for the sample users in `seed.sql` and for users an admin adds before they log in. `UserEmail` is the login email, `IsAdmin` marks admins, and `AvatarPath` names the profile picture file in Supabase Storage (empty = no photo), and `ProfileCode` (unique) is the random code in a shared profile link, `/u/<code>` (empty until the person first taps **Share my profile**). `Events.ClientKey` is a random key the app sends with **Save to History** so a split is never saved twice. `Profile_Payment_Accounts.Accounts` and `Manual_Payment_Requests.Data` hold several values in one JSON column.
+**Accounts.** `Users.AuthUserID` (unique) links a row to its Supabase Auth login; it is empty for the sample users in `seed.sql` and for users an admin adds before they log in. `UserEmail` is the login email, `IsAdmin` marks admins, `AvatarPath` names the profile picture file in Supabase Storage (empty = no photo), and `ProfileCode` (unique) is the random code in a shared profile link, `/u/<code>` (empty until the person first taps **Share my profile**). `Events.ClientKey` is a random key the app sends with **Save to History** so a split is never saved twice. `Profile_Payment_Accounts.Accounts` and `Manual_Payment_Requests.Data` hold several values in one JSON column.
 
 **The payer is also a contact.** Each user has one row in `contacts` with the same name and phone as their `users` row. That lets the payer be a participant and be assigned items like everyone else, and the app shows that contact as "You."
 
@@ -45,101 +45,91 @@ The same diagram is in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf), and its source 
 
 ![IOYA system architecture](docs/ioya-architecture.png)
 
-This diagram shows how IOYA is built today: the three pages (landing, app, admin) and the login cookies in the browser, Supabase for the database, functions, login and profile pictures, and the Express server on Render for the payment-request links. Its source is [`docs/ioya-architecture.svg`](docs/ioya-architecture.svg).
+This diagram shows how IOYA is built: the three pages (landing, app, admin) and the login cookies in the browser; Supabase for the database, functions, login and profile pictures; and the Express server on Render, which serves the pages, the payment-request links and the shared profile pages. Its source is [`docs/ioya-architecture.svg`](docs/ioya-architecture.svg).
 
 ## Data Flow Diagrams
 
-Level 1 data flow diagrams showing how data moves between the user, IOYA's main processes, receipt reading and payment apps. We made two versions.
+### Level 0 (context diagram)
 
-**Version 1**
+![IOYA Level 0 data flow diagram](docs/ioya-dfd-level0.png)
 
-![IOYA Level 1 data flow diagram, version 1](docs/ioya-dfd-level1-a.png)
+The whole app is one process. **The user** (the person who paid) sends in the receipt photo, their contacts, who had what, and who has paid; IOYA sends back each person's share, unpaid bills, payment status and reminders. **Tesseract OCR** turns the receipt image into text. **Payment apps** receive the payment request for each share. Payment apps don't report back to IOYA, so the user marks people as paid.
 
-**Version 2**
+### Level 1
 
-![IOYA Level 1 data flow diagram, version 2](docs/ioya-dfd-level1-b.png)
+![IOYA Level 1 data flow diagram](docs/ioya-dfd-level1.png)
+
+| Process | What it does |
+|---|---|
+| 1.1 Scan / Upload Receipt | Takes a photo (or upload, or typed items), sends the image to Tesseract OCR, and turns the text into receipt items, tax and total. |
+| 1.2 Calculate Bill Split | Combines the items with who had what, tax and tip, and the user's contacts, and works out each person's exact share in cents. |
+| 1.3 Send Payment Requests | Prepares a request in each person's payment app (or a shared QR code). |
+| 1.4 Manage Contacts | Adds, edits, imports and deletes contacts and groups. |
+| 1.5 Save Split to History | Saves the finished split (receipt, items, shares, people). |
+| 1.6 Track Payment Status | Shows who still owes, records who paid, and prepares reminders. |
+
+The two data stores are tables in Supabase: **D1 Contacts** (`contacts`, `contacts_payment_method`, `friend_groups`, `group_members`) and **D2 Splits & Payments** (`events`, `receipts`, `line_items`, `item_assignments`, `participants`). Sources: [`docs/ioya-dfd-level0.svg`](docs/ioya-dfd-level0.svg) and [`docs/ioya-dfd-level1.svg`](docs/ioya-dfd-level1.svg). The team's two earlier Level 1 drafts are kept in [`docs/ioya-dfd-level1-original-v1.png`](docs/ioya-dfd-level1-original-v1.png) and [`v2`](docs/ioya-dfd-level1-original-v2.png).
 
 ## Tech Stack
 
 | Layer | What we used | Why |
 |---|---|---|
-| Database + backend | [Supabase](https://supabase.com) (hosted PostgreSQL with an automatic REST API) | Most of our group already knows Supabase, the free tier covers this project, and the Table Editor lets everyone see the data without installing a database. |
-| Frontend | Plain HTML, CSS and JavaScript: the landing page [`public/index.html`](public/index.html) (`/`), the app [`public/app.html`](public/app.html) (`/app`) and the admin pages [`public/admin.html`](public/admin.html) (`/admin`), using the [`supabase-js`](https://supabase.com/docs/reference/javascript) library | Our screens started as one clickable HTML prototype, so we kept it and connected it to Supabase. There is no build step. |
-| Web server | Node.js 18+ with Express, in [`server.js`](server.js) | Serves the page and passes it the Supabase URL and key from `.env`, so they are never committed to GitHub. |
-| Receipt reader | [Tesseract.js 7.0.0](https://github.com/naptha/tesseract.js), loaded on the first scan | Reads photos in a browser worker without an OCR API key or uploading the photo to a recognition service. Its script, engine and English language data download from public CDNs. |
+| Database + backend | [Supabase](https://supabase.com) (hosted PostgreSQL with an automatic REST API, Auth and Storage) | Most of our group already knows Supabase, the free tier covers this project, and the Table Editor lets everyone see the data without installing a database. Login, guest accounts and profile pictures come with it. |
+| Frontend | Plain HTML, CSS and JavaScript: the landing page [`public/index.html`](public/index.html) (`/`), the app [`public/app.html`](public/app.html) (`/app`), the admin pages [`public/admin.html`](public/admin.html) (`/admin`), the payment page [`public/pay.html`](public/pay.html) (`/pay`) and the shared profile page [`public/profile.html`](public/profile.html) (`/u/<code>`), using the [`supabase-js`](https://supabase.com/docs/reference/javascript) library | Our screens started as one clickable HTML prototype, so we kept it and connected it to Supabase. There is no build step. |
+| Web server | Node.js 18+ with Express, in [`server.js`](server.js), hosted on [Render](https://render.com) | Serves the pages and passes them the Supabase URL and key from `.env`, so they are never committed to GitHub. Also runs the payment-request links and shared profile pages, and makes their QR codes with the [`qrcode`](https://www.npmjs.com/package/qrcode) package. |
+| Receipt reader | [Tesseract.js 7.0.0](https://github.com/naptha/tesseract.js), loaded on the first scan | Reads photos in the browser without an OCR API key or uploading the photo to a recognition service. Its script, engine and English language data download from public CDNs. |
 | Secrets | A git-ignored `.env` file | [`.env.example`](.env.example) shows the format. |
 
-**Landing page and login.** The site opens on a landing page (`/`) with an image of the app, a short "How it works", and a **Log in** box (email and password). **Try IOYA** opens the app at `/app` without an account. When an **admin** logs in, the landing page shows **Maintain Users**, **Maintain Contacts**, **Maintain Groups**, **Maintain Splits** and **Maintain Payment Methods**, which open the admin pages at `/admin`; a regular user gets **Open IOYA** instead. **Log out** ends the login, deletes the login cookies and hides the buttons. The login is kept in **cookies** ([`public/session.js`](public/session.js)), shared by every page. Passwords are stored hashed by Supabase Auth, never in our tables. Admins are users with `users.is_admin = true` ([`supabase/admin-login.sql`](supabase/admin-login.sql)); the database checks this (`is_admin()`), so hiding the buttons is not the only protection.
+## Features
 
-**Maintain Users** (`/admin#users`, admins only) lists every user with their type (Admin, Profile, Guest, or No login for users added here) and how many contacts and splits they have. Admins can search, filter and sort, **View** a user's details, **Add** a user (name, email, phone, admin), **Edit** one (their "You" contact stays in sync), and **Delete** one after a confirmation that says exactly what goes (their contacts, groups and splits). Someone added here with an email is linked to that user when they first log in with that email. The email of someone who already logs in can't be changed here, and admins can't delete themselves or remove their own admin access. The database functions are in [`supabase/admin-users.sql`](supabase/admin-users.sql); each checks `is_admin()` first.
+### Landing page, login and accounts
 
-**Maintain Contacts, Groups and Payment Methods** (`/admin#contacts`, `#groups`, `#methods`, admins only) work the same way: search, filter, sort, View, Add, Edit and Delete, with red messages under the field that needs fixing. **Contacts** shows every user's contacts with their owner, phone and payment apps (★ = preferred). A new contact is added for a chosen user; each user's own "You" contact is changed in Maintain Users instead, and a contact who is on a past split can't be deleted. **Groups** shows each group's owner and members; members are picked from the owner's contacts, and deleting a group keeps the contacts. **Payment Methods** lists the six built-in apps (Venmo, PayPal, Zelle, Cash, Cash App, Apple Cash), which can't be renamed or deleted because the app relies on them, and lets admins add others (for example Google Pay). An added method can be renamed, and deleted once no contact or payment uses it. A contact's or group's owner can't be changed after it's added. The database functions are in [`supabase/admin-records.sql`](supabase/admin-records.sql).
+- **Landing page (`/`).** Pictures of the app, a short "How it works", and **Log in** (email and password). **Try IOYA** opens the app at `/app` without an account. **Log out** ends the login and deletes the login cookies ([`public/session.js`](public/session.js) keeps the login in cookies shared by every page).
+- **Guests.** The first time a browser opens the app, it signs in to Supabase anonymously, and `ensure_my_user` creates that person's `users` row and their "You" contact. The same browser keeps the same account. Clearing the browser's data or using a private window starts a new, empty account.
+- **Profiles.** A guest can **create a profile** on the Profile tab: name, then email, then a 6-digit code that Supabase emails to confirm it, then a password. The same account (same data) becomes permanent. On another device, **Log in** with the email and password; **Forgot password?** emails a code to choose a new one. A guest's data is not merged into a profile they log in to. Passwords and emails are kept by Supabase Auth, not in our tables.
+- **Profile tab.** Shows your name, phone, email, number of splits and contacts, and how much you're owed. The pencil edits your name, phone and **profile picture** (saved profiles only): drag and zoom to frame it, and it's saved as a small JPEG in a public Storage bucket with a random file name ([`supabase/avatars.sql`](supabase/avatars.sql)).
+- **Your payment accounts.** Link Venmo, PayPal, Zelle, Cash App and Apple Cash so friends can pay you, and mark one as **Preferred**. Each mistake gets its own red message.
+- **Share my profile.** Saved profiles get a QR code and link (`/u/<random code>`). Anyone who scans it sees your name, photo and payment apps (preferred first) with buttons that open Venmo, PayPal or Cash App, or copy your Zelle or Apple Cash details. Nothing else is shown. **Make a new link** replaces the code, and the old link stops working ([`supabase/profile-share.sql`](supabase/profile-share.sql)).
 
-**Maintain Splits** (`/admin#splits`, admins only) lists every split with who paid, the merchant, date, total (with tip), how many people are on it and how many have paid back, with filters for **Waiting on payment** and **Fully paid**. **View** shows each item, who shares it, and what each person owes (tax, fees and tip shared in proportion to what they ordered, the same math as the app). **Add** and **Edit** use one form: who paid (chosen when adding, locked afterwards), split name, merchant, date, tax, fees, tip and the printed total (blank = items + tax + fees); item rows with a price and who shares each one (picked from the payer's contacts; a shared item is split evenly); and a **Paid with …** dropdown for each person. Totals and what each person owes update as you type. **Delete** removes the split's receipt, items and paid records but keeps contacts. Splits with more than one receipt can be viewed and deleted but not edited. The database functions are in [`supabase/admin-splits.sql`](supabase/admin-splits.sql); `admin_save_split()` replaces the whole split in one step, so a failed save never leaves half a split.
+### Splitting a bill
 
-**Accounts.** Guests don't need to log in. The first time a browser opens the app, it signs in to Supabase anonymously, which creates a guest account, and the database function `ensure_my_user` creates that person's `users` row and their own "You" contact. The browser keeps the session, so the same person gets the same account on later visits. Clearing the browser's data or using a private window starts a new, empty account. A new account doesn't see the sample data in `seed.sql`, which belongs to the sample user, Demo Payer.
+1. **Pay New Tab** on Home opens the camera. Take a photo, **Upload** one, or **Type** the items in. After taking a photo you can adjust its brightness, save it to your device, and then **Use photo**. Tesseract reads it in the browser; nothing is uploaded to a recognition service. The camera needs HTTPS or localhost; otherwise the phone's own camera picker is used.
+2. **Check the items.** Fix any names or prices, set quantities, enter tax and **Tip and fees** (one dollar amount), and confirm the **Total to split** matches the receipt. Long scanned names are shortened, and **Use original name** undoes it.
+3. **Match items.** Add people from Contacts or groups, or create a **New contact** right there (it's saved to Contacts too). Tap a person, then tap their items. Shared items are split evenly.
+4. **Review & send.** Shows each person's items and their share of tax, fees and tip (in proportion to what they ordered, rounded so every cent adds up to the bill). **Send requests** prepares each person's request in their payment app; people without a matching app share one QR code that opens the `/pay` page, where they choose their name and pay their share.
+5. **Save to History** saves the split to Supabase with everyone as "not paid yet" ([`supabase/save-splits.sql`](supabase/save-splits.sql)). A split is never saved twice, even after a double tap. **Not now** keeps it in the browser, and **Resume current split** on Home picks it back up.
+6. **Discard split** (top of every split screen, or next to Resume on Home) throws an unfinished split away after asking first.
 
-**Profile and saved accounts.** The **Profile** tab shows your profile card. Press the pencil to set your name, phone and **profile picture**; the database function `save_my_profile` (in [`supabase/profile.sql`](supabase/profile.sql)) updates your `users` row and your "You" contact together, so the app keeps recognizing which contact is you. A guest can **create a profile**: name, then email, then a 6-digit code that Supabase emails to confirm it, then a password. The same account (same data) becomes permanent. On another device or browser, **Log in** takes the email and password. **Forgot password?** emails a 6-digit code, then lets you choose a new password. Logged-in profiles can **Change password** and **Log out** (which deletes the login cookies and gives that browser a fresh guest account). A guest's data is not merged into a profile they log in to. Email addresses are kept by Supabase Auth, not in our tables.
+IOYA never sends money or marks anyone paid by itself: payment apps don't report back, so the payer marks people as paid. This version reads English receipts with US-dollar prices; blurry photos, multi-line items and discounts may need fixing by hand.
 
-**Profile pictures.** Only saved profiles can have a photo; guests see "Create a profile to add a profile picture." In edit mode, **Add photo** opens the phone's photo picker (or camera), then **Adjust your photo**: drag to move it, and zoom with the slider, a pinch on a phone, or the mouse wheel (keyboard: arrow keys and + / -). The part inside the circle is saved as a 400×400 JPEG (about 50 KB), made in the browser. It shows as a preview (with **Adjust** to reframe it) and uploads only when you press **Save**; **Cancel** throws it away. The photo then shows on the profile card and as the Profile tab's icon, with your initials as the fallback. Photos are stored in a public Supabase Storage bucket called `avatars`, one folder per account, set up by [`supabase/avatars.sql`](supabase/avatars.sql). Anyone with a photo's exact link can view it (the planned profile QR page needs that), but file names are random, so links can't be guessed and no one can list other people's photos. Each account can upload, replace and delete only its own files. Changing or removing a photo deletes the old file.
+**Payment apps.** Venmo opens a prefilled request; PayPal opens Request with copy buttons; Zelle shows the account to use in your bank's app; Cash App and Apple Cash give step-by-step instructions (Apple Cash opens a Messages draft); Cash needs no link. If the clipboard is blocked, **Request details** shows selectable text.
 
-**Payment accounts.** The Profile tab lists the payment apps you've linked (Venmo, PayPal, Zelle, Cash App, Apple Cash) so friends can pay you, with readable handles (`@username`, `(801) 555-1234`). With none linked it shows **Add a payment app**. In the editor, each mistake gets its own red message (for example "Venmo usernames are at least 5 characters. This one has 3."), and you can mark one app as **Preferred**: it shows first with a star, and when a contact has no preferred app of their own, payment requests try yours first. Accounts are saved by `save_my_payment_accounts` ([`supabase/profile-payment-accounts.sql`](supabase/profile-payment-accounts.sql)); the preference by `set_my_payment_preference` ([`supabase/payment-preference.sql`](supabase/payment-preference.sql)). Guests can link payment apps too, since they need them to request money.
+### Home, History and reminders
 
-**Security.** The browser uses Supabase's public **anon** key. Row Level Security is on for every table, and the rules are in [`supabase/private-data.sql`](supabase/private-data.sql). Each account's data is private: a signed-in person can
+- **Home** lists unpaid bills and the total friends owe you. Open a bill to see who still owes, then tap a person to **Mark as paid** (choose how they paid) or **Mark as unpaid**.
+- **Prepare text reminders** writes one message per person with their unpaid bills and total; **Open text** opens your messaging app with it, or **Copy message**.
+- **History** shows every saved split with search and **All / Unpaid / Paid** filters (Unpaid includes partly paid). Open a split to see the receipt and each person's share, mark payments, or prepare a reminder.
 
-- **read only their own rows**: their user row, their contacts and those contacts' payment usernames, their groups, and the splits they paid for (with those splits' items, participants and assignments). Everyone signed in can read the list of payment methods;
-- **update only `participants.paid_method_id`** ("Mark as paid"), and only on their own splits;
-- **add, edit and delete contacts** only through the database functions `save_contact` and `delete_contact`, and **groups** only through `save_group` and `delete_group`. They check the input, act only on the signed-in person's own contacts and groups, and make all their changes in one transaction. A contact who is on a past split can't be deleted, because that would erase their items from the receipt.
+### Contacts and groups
 
-Someone with only the anon key and no session can't read or change anything.
+- Add, edit and delete contacts with their phone and payment usernames (★ = preferred). A contact on a past split can't be deleted, because that would erase their items from the receipt.
+- **Import device contacts** uses the phone's contact picker where supported, or a `.vcf` file. You review the list and tick who to save; only names and the first phone number are used, and people you already have are skipped.
+- **Groups** (for example "Lunch crew") can be added to a split in one tap. Search keeps your selections, empty groups are allowed, and deleting a group keeps its contacts.
 
-Every other change has to be made in the Supabase dashboard. Never put the `service_role` key or the database password in `.env` or in the code.
+### Admin pages (`/admin`)
 
-**Saved to Supabase:** your guest account (and its email, once saved), your profile name and phone, contacts you add, edit or delete on the Contacts screen, and "Mark as paid." Each account can read only its own data (see Security).
+Admins (`users.is_admin = true`) see **Maintain Users, Contacts, Groups, Splits and Payment Methods** on the landing page, and an **Admin tools** button on the Profile tab. Each page has search, filters, sorting, **View**, **Add**, **Edit** and **Delete** (with a confirmation that says exactly what goes), and red messages under the field that needs fixing. Highlights:
 
-**Receipt scanning:** Start split → Take photo or Upload photo → Check the items. On HTTPS or localhost, Take photo opens a live in-page preview when the browser supports it, after the user grants camera permission. It prefers the rear camera and does not request a microphone. Capture photo takes a still (or a video frame where needed) and reads it locally. The camera stops after capture, on closing, on leaving the capture view and when the tab is hidden/unloaded. On HTTP phone LAN addresses or unsupported browsers, Take photo uses the native camera/file picker instead. That fallback is also available explicitly. Choose a browser-readable image under 20 MB. The first scan needs internet to download the OCR reader. Check every item, tax, fees and printed total before continuing. Photos stay in memory; the editable draft is saved locally. Scanning does not save a receipt to Supabase.
+- **Users:** type (Admin, Profile, Guest, or No login), contacts and splits per user. A user added with an email is linked when they first log in. Admins can't delete themselves or remove their own admin access.
+- **Contacts and Groups:** every user's records with their owner; a new one is added for a chosen user.
+- **Splits:** who paid, merchant, date, total and how many have paid back. Add and Edit use one form with item rows, who shares each one, and **Paid with…** for each person; totals update as you type. Saving replaces the whole split in one step, so a failed save never leaves half a split.
+- **Payment Methods:** the six built-in apps are locked; admins can add others (for example Google Pay).
 
-Start split opens the camera directly; Resume current split continues the existing draft. The preview uses portrait proportions with compact controls below it, without simulated scanner animation. Its light stays off during preview. Capture photo requests a still-photo flash when supported, or briefly pulses a supported torch while taking the photo. Flash can be switched off. Failed light control offers retry/native capture rather than silently reading an unlit frame. The native fallback retains the phone's flash controls. Hardware support varies by browser. [`getUserMedia()` requires a secure context](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia), so use the protected HTTPS preview below for phone testing.
+The database checks `is_admin()` in every admin function, so hiding the buttons is not the only protection ([`supabase/admin-login.sql`](supabase/admin-login.sql), [`admin-users.sql`](supabase/admin-users.sql), [`admin-records.sql`](supabase/admin-records.sql), [`admin-splits.sql`](supabase/admin-splits.sql)).
 
-The live feed fills the portrait preview without black bars. Embedded-camera captures are cropped to the same centered area visible at the moment you tap Capture photo, so OCR and Compare with receipt photo exclude content outside that frame. Still photos are decoded and mapped to the stream's centered aspect before applying the preview crop; video captures use the stream pixels directly. Keep the whole receipt inside the frame. Uploads and the native phone-camera picker use the chosen image, since this page does not control their preview.
+### Security
 
-New scans shorten item names locally by stripping obvious long product codes, expanding a small set of common abbreviations and keeping up to three words. No external AI service receives the receipt. This is conservative text cleanup, not product identification: unknown labels may still need editing. Meaningful short numbers such as 2%, V8 and 7UP are retained; prices, item IDs and assignments do not change. Review offers original labels and Use original name for changed items until refresh. Those source labels remain in tab memory, while the chosen editable names stay in the local draft. Shorten item names also applies the same cleanup to an existing scanned draft when requested.
-
-**Tips:** Enter **Tip and fees** as one dollar amount below Tax. Leave it blank if there are none. Dollar amounts must be zero or positive with at most two decimal places. An invalid tip blocks continuing. Tips split proportionally to item shares, with cent rounding preserved. Drafts with an explicitly selected percentage keep its dollar equivalent when reopened. Scanned fees and fees from older drafts appear in the combined field. **Total to split** adds items, tax, fees and tip as you type. Tap **Next** and compare the total with your receipt, including any tip, before continuing.
-
-This first version recognizes English receipts with explicit US-dollar decimal prices. Blurry photos, multi-line items, discounts, included tips and unfamiliar layouts need manual correction. OCR uses the printed total when available to help pick the best scan. Unreadable images and reader/network failures offer another photo or Type it in; cancelling a scan preserves the previous draft. The app never fills in a sample receipt: the laptop screen list opens your own split, and with an empty split the later screens go to Check the items.
-
-If the first read finds no priced items, misses the total, or its items/tax/fees do not match that total, the reader retries once using a single-column layout, skew correction and Sauvola thresholding for uneven lighting. It selects one complete reading by total reconciliation, then item count; item lists from different reads are never combined. This is a heuristic, not proof of accuracy. The parser also accepts spaces around an explicit decimal price and short store tax flags (for example `3 . 49 FN`).
-
-If the receipt cannot be read, the camera screen offers three ways to continue. Try scanning again, use **Upload** to choose another photo, or use **Type** to enter the items. Fill the frame with a straight, focused receipt in bright, even light.
-
-**Payment requests:** Review & Send prepares payment-app handoffs and one shared QR code for manual requests. Finish linked requests in the payment app. Venmo opens a best-effort prefilled **charge** link (request from that person); verify the fields because browser/app support varies. PayPal opens Request with copy buttons for the person's email, amount and note. Zelle requests are completed in your bank's app; IOYA shows the enrolled email/U.S. mobile number and links to the bank directory. Manual recipients scan the QR code and choose their name to see their share. No provider credentials or paid messaging service are required. See [Venmo's request flow](https://venmo.com/financial-education/how-to-send-receive-money), [PayPal's request links](https://www.paypal.com/us/cshelp/article/how-do-i-create-and-use-paypal-links-to-send-and-request-money-help1249) and [Zelle's bank-app flow](https://www.zelle.com/faq/how-can-i-use-zelle).
-
-**Send requests** prepares the payment app handoffs and automatically creates a shared QR code for contacts who need the payment page. The default note for a payment app shows the bill name, split date, and that person's items. Saved payment handles identify accounts for handoffs. The payer completes the request in the provider's app.
-
-Copy contact, amount, note or all details; Request details / copy manually provides selectable text if clipboard access is unavailable. History → an unpaid person → Prepare reminder opens the same handoff with editable method/contact/note. Preparing, copying or opening a request does not mark it sent or paid: IOYA has no delivery or settlement callback. No automated requests or messages are sent. Keep using Mark as paid only after confirming payment.
-
-Home lists unpaid bills. Open a bill to see which friends still owe you, or use **Prepare text reminders** to see one draft per contact with their outstanding bills and total. **Open text** uses the contact's saved U.S. mobile number and opens the phone's messaging app, where you review and send each message. If a phone number is missing or the messaging app drops the draft text, use **Copy message**. History's **Unpaid** filter includes partly paid bills.
-
-Additional per-split methods are **Cash App, Apple Cash and Cash**. Cash App accepts a $cashtag, email or U.S. phone, opens its sign-in/app handoff and shows how to choose Request (minimum $1). Do not build a payment link to the debtor's $cashtag: that would pay the person who owes you. Cash App's own generated request links can allow eligible people without Cash App to pay using Apple Pay or Google Pay; IOYA does not generate those links. [Cash App instructions](https://cash.app/learn/getting-started/how-to-send-and-receive-money).
-
-Apple Cash opens a Messages draft for the person's U.S. mobile number. On an eligible iPhone, choose + → Apple Cash → enter the amount → Request → send. The text draft is not itself an Apple Cash request. Apple Cash requires eligible Apple devices/accounts in the U.S.; an Android user cannot send one. This does not add Apple Pay merchant checkout, which needs a separate merchant/payment setup. [Apple Cash instructions](https://support.apple.com/en-us/105013), [Apple Pay setup](https://developer.apple.com/help/account/capabilities/configure-apple-pay-on-the-web). Cash needs no electronic contact and creates no external link; arrange collection in person. None of these options automatically mark payment received. Apple Cash reuses the contact's phone; Cash App details entered for a split stay in that local draft. The saved Contacts editor continues to use the methods already configured in Supabase; no lookup rows or SQL have been changed.
-
-Return home preserves the local split and prepared requests; Resume current split reopens them. Editing the split hides stale handoffs until you prepare updated requests. A successful new scan or Type it in replaces the current draft as before. The old prototype QR/code and simulated delivery timers were removed; legacy simulated results are discarded on reload. **Save to History** on the last screen saves the split to Supabase: the receipt, items, each person's exact share (the same amounts as the payment requests) and everyone as "not paid yet". The draft is then cleared (no more Resume split) and History opens with the new split. If saving fails, the split stays in the browser with a red message and **Try again**; a split is never saved twice, even after a double tap or a reload while saving (each one carries a random save key, `events.client_key`). **Not now, keep it in this browser** keeps the old behavior. To throw an unfinished split away, tap **Discard** next to **Resume current split** on Home (or in the camera's resume banner), or **Discard split** at the top of any split screen or under the payment requests. It asks first, then clears the split from this browser and returns Home; splits already saved to History are not affected. Everyone on the split must be in your Contacts. The database function is `save_my_split()` in [`supabase/save-splits.sql`](supabase/save-splits.sql).
-
-**Groups on Contacts:** Choose New group, enter a name and select your contacts. Search narrows the member list without losing selected members. Empty groups are allowed. Tap an existing group to rename it or replace its members. Save reads back the database's row before updating the list; errors keep the entered name/selections, and retrying after a readback failure updates the saved ID instead of creating a duplicate. Delete group asks for confirmation and removes only the group, keeping contacts and past splits. Saved groups remain available when adding people to a split.
-
-The editor uses the existing `save_group` and `delete_group` functions from `supabase/private-data.sql`; it needs no new SQL, grants or schema changes. Groups remain private to the signed-in account. The ERD shows the owner as `Friend_Groups.UserID` → `Users.UserID` (one user owns many groups).
-
-**Add someone while splitting:** In Match items, open Add Contacts → New contact. Enter their name, phone and optional payment accounts, then choose Save & add. The existing `save_contact()` function saves them to Contacts before adding them to the current split. A matching contact is reused. Failed saves retain the form; a failed readback retries the saved id rather than creating another contact. Removing the person from the current split keeps their saved contact.
-
-**Import device contacts:** Contacts and the split's Add Contacts picker both offer Import device contacts. Supported browsers on a secure top-level page can open the native contact picker; access is requested only after tapping Choose from device. [Contact Picker API support is limited](https://developer.chrome.com/docs/capabilities/web-apis/contact-picker), so other browsers offer a `.vcf` file exported from their Contacts app. UTF-8 vCard 3.0/4.0 files up to 5 MB and 1,000 contacts are supported; old quoted-printable/base64 name fields need re-exporting. Only the name and first phone number are used. Email addresses, photos and other fields are ignored.
-
-Review imported entries, check individual contacts or Select all, then choose Save selected. Repeated/existing phone numbers (ignoring punctuation and U.S. +1), or matching names when neither entry has a phone, are skipped; existing contact records/payment accounts are not overwritten. Files and unselected contacts stay in tab memory and are discarded when the dialog closes. Selected contacts use the existing owner-scoped contact RPC and readback; partial failures keep completed contacts, and retry reads any saved id before creating another. Imported contacts are available to select for the split; importing never adds a whole address book to a receipt. No new SQL or database permissions are required.
-
-**Software checks and remaining device checks:** Automated checks use fake data. On a supported physical phone, verify the native picker, cancellation and chosen entries. On an iPhone or desktop without native picker support, export a small UTF-8 `.vcf`, review/select entries, save, refresh and verify them in Contacts. Test New contact from Match items, then remove the person and confirm Contacts still retains them. Check your required student testing separately.
-
-**AI assistance for contacts and responsive layout:** AI removed the prototype sidebar, implemented responsive laptop/phone layouts, contact creation from the split, native/file import with explicit review and selection, duplicate/retry handling, documentation and isolated software checks. Real-device contact-picker behavior and live Supabase persistence still require verification; software checks are not student-authored findings.
+The browser uses Supabase's public **anon** key, and Row Level Security is on for every table ([`supabase/private-data.sql`](supabase/private-data.sql)). A signed-in person can **read only their own rows** (their user row, contacts, groups, and the splits they paid for), **update only `participants.paid_method_id`** on their own splits, and change everything else only through database functions (`save_contact`, `save_group`, `save_my_split`, and so on) that check the input and act only on their own data. Someone with the anon key and no session can't read or change anything. The only public reads are the shared payment page and shared profile page, which return just what those pages show. Never put the `service_role` key or the database password in `.env` or in the code.
 
 ## How to Get It Running
 
@@ -160,12 +150,12 @@ npm install
 **Option B: set up your own project from scratch.**
 
 1. Sign in at [supabase.com](https://supabase.com) and create a new project (the free plan is fine).
-2. Open **SQL Editor** → **New query**, paste the whole contents of [`supabase/schema.sql`](supabase/schema.sql), and click **Run**. You should see "Success. No rows returned."
+2. Open **SQL Editor** → **New query**, paste the whole contents of [`supabase/schema.sql`](supabase/schema.sql), and click **Run**. You should see "Success. No rows returned." It creates every table, security rule and database function, plus the `avatars` storage bucket, so you don't need to run the other `.sql` files (they're the same changes, for projects set up earlier).
 3. Open another **New query**, paste all of [`supabase/seed.sql`](supabase/seed.sql), and click **Run**. The result shows a `setval` column; that is expected.
-4. In **Table Editor** you should now see 11 tables, each with sample rows. (`schema.sql` already includes the contact and account functions, so you don't need to run `contacts-sync.sql` or `anonymous-accounts.sql` separately.)
+4. In **Table Editor** you should now see 15 tables, the original ones with sample rows.
 5. Open **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**, then click **Save**. Without it, the app shows "Guest accounts are turned off."
 6. Open **Authentication → URL Configuration**. Set **Site URL** to your live address (ours is `https://ioya.onrender.com`) and add `http://localhost:3001/**` under **Redirect URLs**.
-7. For saving accounts with email (see "Set up account emails" below): check that **Authentication → Sign In / Providers → Email** is on, put the 6-digit code in the email templates, and, so anyone can receive the emails, set up your own email sender.
+7. For profiles with email (see "Set up account emails" below): check that **Authentication → Sign In / Providers → Email** is on, put the 6-digit code in the email templates, and, so anyone can receive the emails, set up your own email sender.
 8. Find your **Project URL** and **anon public key** under **Project Settings → API** (or the **Connect** button).
 
 #### Set up account emails (6-digit codes) and passwords
@@ -183,7 +173,7 @@ The app emails a 6-digit code to confirm a new profile's email and to reset a fo
    ```
 
    A subject like `Your IOYA code` works for all four. The app has no link-based sign-in, so the templates don't need a link.
-3. **Your own email sender (needed for anyone outside the Supabase team).** Supabase's built-in sender only delivers to members of the Supabase project and only a few emails per hour. So that a TA or anyone else can save an account, open **Authentication → Emails → SMTP Settings**, turn on **Enable custom SMTP**, and fill in a real email account's SMTP details. With a Gmail account made for the project (recommended over a personal one): host `smtp.gmail.com`, port `465`, username = the full Gmail address, password = a Gmail **app password** (Google Account → Security → 2-Step Verification must be on, then **App passwords**), sender email = that Gmail address, sender name `IOYA`. Never commit the app password or put it in `.env`.
+3. **Your own email sender (needed for anyone outside the Supabase team).** Supabase's built-in sender only delivers to members of the Supabase project and only a few emails per hour. So that a TA or anyone else can create a profile, open **Authentication → Emails → SMTP Settings**, turn on **Enable custom SMTP**, and fill in a real email provider's SMTP details (we use [Brevo](https://www.brevo.com)'s free plan; a Gmail account made for the project with an **app password** also works). Never commit the SMTP password or put it in `.env`.
 4. **Passwords:** in **Authentication → Sign In / Providers → Email**, set **Minimum password length** to `8` (the app asks for at least 8) and click **Save**.
 5. **Authentication → Rate Limits**: after custom SMTP is on, check **Rate limit for sending emails** (for example 30 per hour) is enough for testing.
 
@@ -200,7 +190,7 @@ SUPABASE_URL=https://YOUR-PROJECT-ID.supabase.co
 SUPABASE_ANON_KEY=your-anon-public-key
 ```
 
-`.env` is listed in `.gitignore`, so it is never committed.
+`.env` is listed in `.gitignore`, so it is never committed. On Render, the same two values go in the service's **Environment** settings; Render supplies the site's public address itself, which the payment and profile QR codes use (set `IOYA_PUBLIC_ORIGIN` only for a custom domain).
 
 ### 4. Start the app
 
@@ -208,7 +198,11 @@ SUPABASE_ANON_KEY=your-anon-public-key
 npm start
 ```
 
-Open **http://localhost:3001** for the landing page, or **http://localhost:3001/app** for the app. The app uses a spacious workspace with top navigation on laptops and a full-screen layout with bottom navigation on phones. The prototype screen-jump sidebar and technical storage notes have been removed.
+Open **http://localhost:3001** for the landing page, or **http://localhost:3001/app** for the app. Laptops get a wide layout with tabs along the top; phones get a full-screen layout with tabs along the bottom.
+
+To try the app **without Supabase** (fake data that disappears when the server stops), run `IOYA_PREVIEW=1 PORT=3003 npm start` on Mac/Linux, or `$env:IOYA_PREVIEW='1'; $env:PORT='3003'; npm.cmd start` in PowerShell, open `http://127.0.0.1:3003/app`, and choose **Try an example split** on Home. Payment apps don't open in preview.
+
+Run `npm test` for the automated checks (fake data; they never contact Supabase or send real requests).
 
 #### Make an admin account
 
@@ -220,82 +214,32 @@ UPDATE users SET is_admin = true WHERE lower(user_email) = lower('their@email.co
 
 Log out and back in to see the buttons. To remove admin access, run the same line with `false`.
 
-### 5. Optional protected HTTPS phone preview
+### 5. Optional: test the camera on a phone
 
-Install the official [cloudflared client](https://developers.cloudflare.com/tunnel/downloads/) with protected Quick Tunnel support (`--allowed-mail`). Keep IOYA running, then in PowerShell:
+Phone browsers only allow the in-page camera on HTTPS. The easiest way is the live site. For your own computer's copy, [`scripts/start-https-preview.ps1`](scripts/start-https-preview.ps1) (Windows) opens a temporary HTTPS address through a [Cloudflare protected Quick Tunnel](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/) that only one email address can open:
 
 ```powershell
 .\scripts\start-https-preview.ps1 -Email "you@example.com" -CloudflaredPath "C:\path\to\cloudflared.exe"
 ```
 
-The launcher requires one exact email address and refuses clients without email protection. It uses an explicit empty tunnel configuration so unrelated user tunnel settings are not imported. Cloudflare prints a temporary HTTPS address; open it on the phone and enter the email PIN there. Do not share sign-in codes in chat. This routes app traffic through Cloudflare with access restricted to that email, under [Cloudflare's terms](https://www.cloudflare.com/website-terms/). It is for development, needs the computer awake, changes URL after restart, and ends with Ctrl+C. No router ports, trusted-root certificates or Windows services are installed. [Protected Quick Tunnel documentation](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/).
-
-The HTTPS address is a new browser origin: its local draft and camera permission are separate from the old HTTP page. Old drafts remain on their original address. On the HTTPS page, choose Take photo, grant camera permission, check the Light/Flash indicator, and capture a real receipt. Never use an unprotected public preview for the shared team app.
+Open the printed address on the phone and enter the emailed PIN. It needs the computer awake, changes address each time, and stops with Ctrl+C. Never use an unprotected public tunnel for the shared team app.
 
 **Troubleshooting**
 
 - `Missing SUPABASE_URL or SUPABASE_ANON_KEY`: `.env` is missing, misnamed, or not in the project folder.
-- "Couldn't load your data" in the app: check that the URL and key in `.env` match your project, that you ran both SQL files, and that your internet connection works. Restart `npm start` after editing `.env`.
+- "Couldn't load your data": check that the URL and key in `.env` match your project, that you ran both SQL files, and that your internet connection works. Restart `npm start` after editing `.env`.
 - "Guest accounts are turned off": turn on **Allow anonymous sign-ins** (step 2, item 5).
-- "The database is missing the accounts update", or `Could not find the function public.save_contact`: the project was set up before accounts were added. Run [`supabase/anonymous-accounts.sql`](supabase/anonymous-accounts.sql) once in the SQL Editor.
 - "Too many new accounts were created from this network": Supabase limits how many guest accounts one network can create per hour. Wait, or reuse a browser that already has an account.
-- `permission denied` when saving: you are trying to change something other than a contact or "Mark as paid," which the security rules block on purpose.
-- "The database is missing the profile update": run [`supabase/profile.sql`](supabase/profile.sql) once in the SQL Editor.
-- "Profile photos aren't set up in the database yet", or "Couldn't load your data" mentioning `avatar_path`: run [`supabase/avatars.sql`](supabase/avatars.sql) once in the SQL Editor.
-- "the preferred app needs a database update": run [`supabase/payment-preference.sql`](supabase/payment-preference.sql) once in the SQL Editor (your accounts were already saved).
-- "This browser couldn't open that photo": some desktop browsers can't read iPhone HEIC photos. Choose a JPG or PNG, or add the photo from the phone (iPhones convert it automatically).
-- The code email never arrives: check spam, then **Authentication → Emails → SMTP Settings** (without your own sender, only Supabase project members get emails) and Supabase's **Logs → Auth** for the error. "The email could not be sent" in the app means the SMTP details are wrong.
-- "This email already has an IOYA profile": use **Log in** instead of **Create profile**.
-- "That email and password don't match": check both, or use **Forgot password?**. Profiles created before passwords existed have no password yet; **Forgot password?** sets one.
-- "The database needs an update: run supabase/admin-users.sql" on the Users page: run that file once in the SQL Editor.
-- "The database needs an update: run supabase/admin-records.sql" on the Contacts, Groups or Payment Methods page: run that file once in the SQL Editor.
-- "The database needs an update: run supabase/admin-splits.sql" on the Splits page: run that file once in the SQL Editor.
-- "Saving needs a database update: run supabase/save-splits.sql" after tapping Save to History: run that file once in the SQL Editor. Your split stays in the browser until then.
-- No **Maintain** buttons after logging in: the account isn't an admin yet (see "Make an admin account"), or `supabase/admin-login.sql` hasn't been run.
-- The password-reset email has a link instead of a code: add `{{ .Token }}` to the **Reset Password** template (setup step 2 above).
-- The email has an 8-digit code but the app asks for 6: set **Email OTP Length** to `6` (setup step 1 under "Set up account emails").
-- The code is rejected: codes expire after an hour and each new code replaces the last one, so use the newest email.
+- A message that names a `supabase/….sql` file (for example "run supabase/save-splits.sql"): that project was set up before the feature existed. Run the named file once in the SQL Editor. A missing `save_contact` function means [`anonymous-accounts.sql`](supabase/anonymous-accounts.sql); a missing `avatar_path` means [`avatars.sql`](supabase/avatars.sql).
+- "This browser couldn't open that photo": some desktop browsers can't read iPhone HEIC photos. Choose a JPG or PNG, or add the photo from the phone.
+- The code email never arrives: check spam, then **Authentication → Emails → SMTP Settings** and Supabase's **Logs → Auth**. "The email could not be sent" in the app means the SMTP details are wrong.
+- The email has a link instead of a code, or 8 digits instead of 6: see "Set up account emails" steps 1 and 2. Codes expire after an hour, and each new code replaces the last one.
+- "This email already has an IOYA profile": use **Log in** instead. "That email and password don't match": check both, or use **Forgot password?**.
+- No **Maintain** buttons after logging in: the account isn't an admin yet (see "Make an admin account").
 
 ## Verifying the Vertical Slice
 
-### Check the receipt-photo flow
-
-1. Start a split and choose Take photo on a phone or Upload photo on a computer. Use a clear, straight photo of a receipt with item names and decimal prices.
-2. Wait for the reader, then compare the extracted item names/prices, tax, service fees and printed total with the photo in Check the items. Correct a price and confirm that the subtotal and Total to split update. Tap Next and check both options in the confirmation. Add any missed lines and remove any false matches.
-3. Enter a dollar tip and press Enter to format it to two decimal places. A negative or invalid tip must block continuing. In the final summary, confirm everyone's shares add up to the bill plus the tip.
-4. Try a blank image and confirm that the app offers retry and Type items instead without loading sample items. Cancel a scan and confirm that a previous draft is preserved. Check both phone and laptop widths.
-5. Continue through People → Assign items → Review & send → Prepare requests. Check each contact, amount and note. Use fake details for software testing and stop before sending a real request. Confirm Return home → Resume current split preserves the draft and editing requires updated handoffs. Check Home, History and Contacts too; no Supabase migration is needed for scanning, tips or request handoffs.
-
-### Check payment-app handoffs
-
-1. Prepare a split with Venmo, PayPal and Zelle contacts. Confirm shares including cent rounding. Invalid contacts must show an error and be skipped; unassigned items and invalid tips must block preparation.
-2. On a physical phone, open Venmo and confirm Request mode, person, amount and note. If prefill is unavailable, copy the details. In PayPal, choose Request and paste them. In Zelle, open your bank's app and choose Request. Only a student intending to send a real request should complete the final action.
-3. Check copy/manual fallback, notes, refresh/resume and History reminders at phone and laptop widths. Opening a provider must leave paid status unchanged. Automated tests use isolated data and send no real requests.
-4. Choose Apple Cash and verify the Messages draft shows the right person and amount on an eligible physical iPhone, then check the native Request step yourself. Try Cash App with a $cashtag and a sub-dollar share (it must offer another method), and Cash with no contact details. Cash must show collection instructions with no launch link. Verify the new choices also appear in reminder preparation.
-
-**AI assistance for this feature:** AI implemented provider handoffs, validation, exact-share snapshots, clipboard/manual fallback, reminder preparation, Home unpaid bills and SMS drafts, combined History filters, stale-request protection, draft preservation and software checks. Students must verify their own payment apps and disclose this assistance accurately. Software checks are not student-authored course testing or findings.
-
-Run `npm test` for deterministic receipt-parser checks. These are software checks, not student-authored usability, accessibility or course-assignment findings. Students should perform and record their own required testing and disclose AI assistance accurately.
-
-### Check profile sharing
-
-1. Log in to a saved profile (guests don't see the Share box). On the **Profile** tab, tap **Share my profile**. A QR code and a link ending in `/u/` plus 10 letters and digits appear.
-2. Tap **Open my page** (or scan the QR code with a phone). The page shows your name, photo and payment apps, with your preferred app first, and nothing else. It works in a private window, without logging in.
-3. Back in the app, tap **Make a new link**, then **Make new link**. The old link now says "This profile link isn't working", and the new one works.
-4. On the live site the QR code uses the site's public address. On your own computer it uses `http://localhost:3001`, so only that computer can open it.
-
-The database side is [`supabase/profile-share.sql`](supabase/profile-share.sql): run it once in the SQL Editor. Until then, the Share screen says to run it.
-
-### Check group editing
-
-1. On Contacts, create a group with two test contacts, refresh and check its name/members. Rename it, replace a member, save and refresh again. Verify searching the picker preserves hidden selections and that an empty group can be saved.
-2. Try a blank name and confirm the error. A failed save must keep the typed name and selections. Check the saving state and phone/laptop layouts.
-3. Open a group, choose Delete group, cancel once, then confirm deletion of your test group. Refresh and confirm the group is gone while contacts and past splits remain. A group should also be selectable in the split's People step without adding duplicate people.
-4. In an authorized live test, confirm the saved `friend_groups.user_id` belongs to the signed-in guest/profile in Supabase Table Editor and clean up test records. The isolated local preview uses a fake database; its refresh checks do not establish live Supabase deployment state.
-
-**AI assistance for groups:** AI implemented the Contacts group editor, member search/selection, save/readback/retry handling, delete confirmation, error/saving states and software checks. Students remain responsible for their required course testing, findings and disclosure. The ERD was later redrawn by AI to match the database (see below).
-
-### Existing database vertical slice
+### The database round trip: adding a contact
 
 **The button:** **Save** when adding a contact on the **Contacts** screen. (This is the action shown in our demo video.)
 
@@ -308,52 +252,59 @@ The database side is [`supabase/profile-share.sql`](supabase/profile-share.sql):
 
 **Steps:**
 
-1. Open http://localhost:3001 and tap **Contacts** in the bottom bar.
+1. Open http://localhost:3001/app and tap **Contacts**.
 2. Scroll down and tap **Add contact**.
-3. Enter **First name** `Alex`, **Last name** `Johnson`, and a **Venmo** username such as `@alex-johnson`. Select **Preferred** next to Venmo.
-4. Tap **Save**. The sheet closes, a "Saved Alex Johnson." message appears, and Alex Johnson is at the bottom of the contacts list with Venmo as the preferred payment.
+3. Enter **First name** `Alex`, **Last name** `Johnson`, and a **Venmo** username such as `alex-johnson`. Select **Preferred** next to Venmo.
+4. Tap **Save**. The sheet closes, a "Saved Alex Johnson." message appears, and Alex Johnson is in the contacts list with Venmo as the preferred payment.
 5. **Refresh the page** (Cmd+R or Ctrl+R) and open **Contacts** again. Alex Johnson is still there, because the list is loaded from Supabase.
-6. Optional: in Supabase, open **Table Editor → contacts**. Alex Johnson is a new row, and **contacts_payment_method** has a row with that `contact_id`, `@alex-johnson`, and `is_preferred` = true. (The Table Editor may need its refresh button to show rows added since you opened it.)
+6. Optional: in Supabase, open **Table Editor → contacts**. Alex Johnson is a new row, and **contacts_payment_method** has a row with that `contact_id`, `alex-johnson`, and `is_preferred` = true. (The Table Editor may need its refresh button to show new rows.)
 
 **To clean up:** tap Alex Johnson on the Contacts screen and choose **Delete**.
 
-**A second working example: "Mark as paid."** This needs a saved split, so it only works for an account that has one. A new guest account has none, because the sample splits belong to Demo Payer and new splits aren't saved yet. On the **Home** screen, tap someone in the **Unpaid** column, choose how they paid, and tap **Mark as paid**. The app updates `participants.paid_method_id` in Supabase and moves them to the **Paid** column, and they stay there after a refresh. Tap them again and choose **Mark as unpaid** to undo it.
+### A full split, end to end
+
+1. Tap **Pay New Tab** and photograph a receipt (or **Upload** a photo, or **Type** the items). Check the items, tax and **Tip and fees**, and confirm the total matches the receipt.
+2. In **Match items**, add Alex Johnson (or any contact) and assign items. In **Review & send**, check that everyone's shares add up to the bill plus tip, then tap **Send requests** and look at each request. Use test contacts and stop before sending a real request in a payment app.
+3. Tap **Save to History**. History opens with the new split, and it's still there after a refresh. In Supabase, it's a new row in `events` (with its `receipts`, `line_items`, `item_assignments` and `participants`).
+4. **Mark as paid:** on **Home**, open the bill, tap Alex, choose how they paid and tap **Mark as paid**. The app updates `participants.paid_method_id`, Alex moves to paid, and stays paid after a refresh. **Mark as unpaid** undoes it.
+
+### Other checks
+
+- **Profile sharing:** log in to a saved profile, tap **Profile → Share my profile**, then **Open my page** (or scan the QR code on the live site). The page shows only your name, photo and payment apps, even in a private window. **Make a new link** makes the old link say "This profile link isn't working."
+- **Discard split:** start a split, tap **Discard split**, then **Keep split** (nothing changes) and again **Discard split** (Home no longer shows Resume, even after a refresh).
+- **Groups:** on Contacts, create a group, rename it, change members, refresh, and delete it (its contacts stay).
+
+These are steps for checking the software, not test results. Students do and record their own required course testing.
 
 ## Project Layout
 
 ```
-server.js              Serves public/ and /config.js (Supabase URL + anon key from .env)
-public/index.html      The landing page (/): hero image, How it works, Log in, admin Maintain buttons, Log out
-public/app.html        The app (/app): screens, styles, and Supabase calls
-public/admin.html      Admin Maintain pages (/admin), admins only
-public/session.js      Keeps the Supabase login in cookies (shared by all three pages)
-public/profile.html    The public profile page a friend sees after scanning a profile QR code (/u/<code>)
-profile-share.js       Server routes for /u/<code>: the page, its details (/api/u/<code>) and the QR picture (/api/u/<code>/qr)
-public/images/         Screenshots of the app used on the landing page
-supabase/schema.sql    Creates the 11 tables, security rules and contact/group functions (drops existing tables first)
-supabase/contacts-sync.sql  Adds just the contact functions to a project set up before they existed (older version)
-supabase/anonymous-accounts.sql  Guest accounts: links users to Supabase Auth and updates the contact functions
-supabase/private-data.sql  Makes each account's data private, gives groups an owner, adds save_group/delete_group
-supabase/profile.sql   Adds save_my_profile (name and phone for the Profile screen)
-supabase/avatars.sql   Profile pictures: the avatars storage bucket and its rules, users.avatar_path, set_my_avatar
-supabase/admin-users.sql  Maintain Users: admin_list_users, admin_save_user, admin_delete_user; links a first login to an admin-added user
-supabase/admin-records.sql  Maintain Contacts, Groups and Payment Methods: admin_list_/save_/delete_ functions for each
-supabase/save-splits.sql  Save to History: events.client_key and save_my_split() for the signed-in user
-supabase/profile-share.sql  Share my profile: users.profile_code, get_/new_my_profile_code(), read_profile() for the public /u/<code> page
-supabase/admin-splits.sql  Maintain Splits: admin_list_splits, admin_save_split (whole split at once), admin_delete_split
-supabase/admin-login.sql  users.user_email, users.is_admin, is_admin(); ensure_my_user() keeps user_email current
-supabase/payment-preference.sql  Preferred payment app: profile_payment_accounts.preferred, get/set_my_payment_preference
-supabase/seed.sql      Sample rows for every table
-docs/ioya-erd.svg      Our ERD (source); ioya-erd.png and .pdf are exports of it. ioya-erd-original.* is the team's October diagram
-.env.example           Template for your .env file
+server.js                 Serves public/ and /config.js (Supabase URL + anon key from .env); mounts the routes below
+manual-payment-requests.js  /api/manual-requests: payment links and shared QR codes for the /pay page
+profile-share.js          /u/<code> shared profile pages, their details and QR codes
+sms-delivery.js           Optional text-message delivery for payment links (not used by the live app)
+public/index.html         The landing page (/): How it works, Log in, admin Maintain buttons, Log out
+public/app.html           The app (/app): all screens, styles and Supabase calls
+public/admin.html         Admin Maintain pages (/admin), admins only
+public/pay.html           The page friends open from a payment link or shared QR code (/pay)
+public/profile.html       The public profile page from a profile QR code (/u/<code>)
+public/session.js         Keeps the Supabase login in cookies (shared by every page)
+public/contact-import.js  Reads .vcf contact files for Import device contacts
+public/images/            Screenshots of the app used on the landing page
+supabase/schema.sql       Creates everything for a new project (drops existing tables first)
+supabase/seed.sql         Sample rows for the original tables
+supabase/*.sql            Each feature's database change on its own, for projects set up before it (safe to re-run)
+test/                     Automated checks (npm test)
+scripts/                  Optional HTTPS phone preview (Windows)
+docs/                     ERD, architecture and data flow diagrams (SVG sources with PNG/PDF exports)
+.env.example              Template for your .env file
 ```
 
-## Local review and manual payments
+## AI Assistance
 
-For an isolated review, install dependencies and run `$env:IOYA_PREVIEW='1'; $env:PORT='3003'; npm.cmd start` in PowerShell. Open `http://127.0.0.1:3003/` and select **Try an example split**. The example includes a linked contact and two manual recipients who share a QR code. Preview links use local in-memory data, expire on server restart, and open on the same computer. Payment app launches are disabled in preview.
+This project was built with help from AI coding assistants; the team reviewed and merged each change through pull requests. What the AI did:
 
-For deployment, apply `supabase/manual-payment-requests.sql`, `supabase/shared-manual-payment-requests.sql`, and `supabase/manual-payment-profile-methods.sql` in Supabase's SQL Editor after the base account and private-data migrations. Apply `supabase/profile-payment-accounts.sql` after `supabase/private-data.sql` to enable saving payment accounts. Apply `supabase/contact-payment-methods.sql` to make Cash App and Apple Cash available in Contacts. The QR flow requires no Twilio environment variables or `supabase/manual-payment-sms.sql`. New QR codes open the deployed `/pay` page without sign-in. Render supplies its public HTTPS URL automatically. Set `IOYA_PUBLIC_ORIGIN` to use a custom domain. Public links expire after seven days.
+- **Claude (Anthropic):** the original clickable prototype and its connection to Supabase; guest accounts and private-data security rules; profiles with email codes and passwords; profile pictures; profile payment accounts and the preferred app; the landing page, cookie login and admin flag; the five admin Maintain pages; Save to History; shared profile pages with QR codes; Discard split; the loading screen and screen transitions; the redrawn ERD, the architecture diagram, and the Level 0 and Level 1 data flow diagrams; automated tests; and documentation.
+- **Other AI assistants used by teammates:** payment-app handoffs, validation, clipboard fallback, reminders, Home unpaid bills and text drafts, History filters, the shared QR code and `/pay` page, the contact and group pickers, item matching, the group editor, the responsive phone/laptop layout, contact import, and receipt entry improvements, with their automated checks.
 
-Review shows a request section with the saved payment account and an editable note for linked payment-app requests. Manual recipients show only their items and total. IOYA uses a contact's preferred payment app when both people have saved account details. For a contact without a preference, IOYA uses an eligible shared app if one exists. Everyone else shares a single QR code, regardless of whether they have a phone number. The payer finishes linked requests in the payment app and selects **I sent the request** to update the status. **Edit split** lets the payer revise the split. Preparing again creates updated links when the recipient’s share or routing changes. Anyone with the shared QR link can view the listed names and select a share. In preview, splits without a QR recipient go straight to local preview History. Before release, open a shared QR on the deployed HTTPS site in a signed-out browser and check the provider handoffs with test accounts. The recipient page offers a Venmo handoff with copyable details, a PayPal.Me link for the amount, plus copyable instructions and app entry points for PayPal email, Zelle, Cash App, and Apple Cash. Apple Pay is available when the payer supplies an Apple Pay-enabled Stripe checkout URL for that recipient's exact amount and currency. IOYA does not create the Stripe checkout or confirm payments. The recipient can optionally share an account identifier they enter themselves. The payer reviews the submitted value before saving it to the contact.
-
-AI assistance for this change covered the contact and group picker, item assignment UI, manual payment links and recipient page, QR-only delivery for manual requests, and automated verification.
+Software checks in `test/` are not student-authored course testing or findings. Each student discloses AI assistance in their own submissions.
