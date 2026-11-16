@@ -82,6 +82,22 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .screen{overflow-y:auto;overflow-x:hidden;padding:22px 18px 28px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth}
 /* Keep every block at its full height so long lists scroll instead of being squeezed and clipped. */
 .screen > *{flex-shrink:0}
+/* Screen changes (render() adds one of these classes only when the screen changes). "backwards" fill,
+   so nothing stays transformed afterwards. Turned off by the reduced-motion rule below. */
+.screen.view-in > :not(.match-picker):not(.sheet-bg):not(.sheet){animation:view-in .2s ease-out backwards}
+.screen.view-fwd > :not(.match-picker):not(.sheet-bg):not(.sheet){animation:view-fwd .22s ease-out backwards}
+.screen.view-back > :not(.match-picker):not(.sheet-bg):not(.sheet){animation:view-back .22s ease-out backwards}
+@keyframes view-in{from{opacity:0;transform:translateY(8px)}}
+@keyframes view-fwd{from{opacity:0;transform:translateX(18px)}}
+@keyframes view-back{from{opacity:0;transform:translateX(-18px)}}
+.app-loading{flex:1;min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}
+.app-loading-logo{width:200px;height:94px;object-fit:cover;animation:loading-pulse 1.6s ease-in-out infinite}
+.app-loading-dots{display:flex;gap:6px}
+.app-loading-dots i{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:loading-dot 1.2s ease-in-out infinite}
+.app-loading-dots i:nth-child(2){animation-delay:.15s}
+.app-loading-dots i:nth-child(3){animation-delay:.3s}
+@keyframes loading-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.96);opacity:.75}}
+@keyframes loading-dot{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-6px);opacity:1}}
 
 /* tab bar */
 .tabbar{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--card);padding:6px 6px calc(8px + env(safe-area-inset-bottom,0px));position:relative}
@@ -2517,7 +2533,7 @@ function sheetHTML(){
 
 /* ---------- render ---------- */
 const scr = document.getElementById('screen');
-let lastView = null;
+let lastView = null, lastWasLoading = false;
 let lastActiveTabIndex = null;
 let tabSquashTimer = null;
 let lastFlowStep = null;
@@ -2641,6 +2657,14 @@ function syncTabIndicator(){
   bar.style.setProperty('--tab-indicator-left', `${active.offsetLeft + active.offsetWidth * .3}px`);
   bar.style.setProperty('--tab-indicator-width', `${active.offsetWidth * .4}px`);
 }
+// Shown while the account and data load (and while Render wakes the server up): the logo, gently pulsing.
+function loadingScreen(){
+  return `<div class="app-loading" role="status" aria-live="polite">
+    <img class="app-loading-logo" src="/ioya_logo.png" alt="" width="200" height="94">
+    <div class="app-loading-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    <p class="fine">${S.userId == null ? 'Setting up your account…' : 'Loading your splits…'}</p>
+  </div>`;
+}
 function render(){
   const v = S.view;
   const stripScroll = v === lastView ? document.getElementById('match-strip')?.scrollLeft : 0;
@@ -2656,7 +2680,15 @@ function render(){
   }) : null;
   if (flowProgressFrame !== null){ cancelAnimationFrame(flowProgressFrame); flowProgressFrame = null; }
   const needsData = !FLOW.includes(v) || ['assign','summary','sent'].includes(v);
-  scr.innerHTML = needsData && S.loading ? `<p class="fine" role="status">${S.userId == null ? 'Setting up your account…' : 'Loading your splits…'}</p>`
+  const loading = needsData && S.loading;
+  // Screen changes fade and slide in (only when the screen changes, never on a re-render of the same
+  // screen, so typing doesn't flicker). Split steps slide sideways: forward from the right, Back from the left.
+  const from = FLOW.indexOf(lastView), to = FLOW.indexOf(v);
+  const enter = lastView === null || loading ? '' : v !== lastView ? (from > 1 && to > 1 ? (to > from ? 'view-fwd' : 'view-back') : 'view-in') : lastWasLoading ? 'view-in' : '';
+  scr.classList.remove('view-in', 'view-fwd', 'view-back');
+  if (enter) { void scr.offsetWidth; scr.classList.add(enter); }
+  lastWasLoading = loading;
+  scr.innerHTML = loading ? loadingScreen()
     : needsData && S.loadError ? `<div class="alert bad" role="alert"><b>Couldn't load your data.</b>${esc(S.loadError)}<button class="link" data-act="reload">Try again</button></div>`
     : V[v]();
   syncFlowProgress(v);
