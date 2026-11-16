@@ -110,6 +110,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .btn.small{min-height:36px;font-size:14px;width:auto;border-radius:10px;padding:0 14px}
 .next{display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:6px}
 .next.two{flex-direction:row}
+.capture-review-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .iconbtn{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:var(--ink)}
 .iconbtn:hover{background:var(--card)}
 .iconbtn.sm{width:32px;height:32px}
@@ -236,16 +237,22 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 input[type=text],input[type=password],input:not([type]),input[inputmode],select{background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0;width:100%}
 input:focus,select:focus{outline:none;border-color:var(--pen)}
 .items{display:flex;flex-direction:column;background:var(--card);border-radius:14px;box-shadow:inset 0 0 0 1.5px var(--line);padding:4px 6px}
-.irow{display:grid;grid-template-columns:1fr 92px 32px;gap:6px;align-items:center;padding:4px 0;border-bottom:1px dashed var(--line)}
+.irow{display:grid;grid-template-columns:minmax(0,1fr) 54px 100px 32px;gap:6px;align-items:center;padding:4px 0;border-bottom:1px dashed var(--line)}
+.irow > .money-in{margin-inline-start:8px}
 .irow:last-child{border-bottom:0}
 .irow input{border-color:transparent;background:transparent;padding:8px 6px}
 .irow input:focus{background:var(--paper)}
+.item-quantity button,.irow .item-quantity input{width:100%;min-height:40px;border:1.5px solid var(--line);border-radius:10px;text-align:center}
+.item-quantity button{color:var(--muted);font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-quantity button:hover,.item-quantity button:focus-visible{color:var(--ink);border-color:var(--pen)}
+.irow .item-quantity input{padding-inline:2px}
+.irow .item-quantity input:focus{border-color:var(--pen)}
 .money-in{display:flex;align-items:center;gap:2px;font-family:var(--f-mono)}
 .money-in input{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
 .addrow{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:12px;border:1.5px dashed var(--line);color:var(--muted);font-weight:600}
 .addrow:hover{color:var(--ink);border-color:var(--muted)}
 .addrow .ic{width:18px;height:18px}
-.fees{display:flex;flex-direction:column;gap:2px}
+.fees{display:grid;grid-template-rows:repeat(3,1fr) auto;gap:2px}
 .frow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:4px 0}
 .frow .money-in{width:120px}
 .frow .money-in input{padding:7px 10px}
@@ -303,15 +310,13 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .hstatus-bar{display:flex;height:10px;overflow:hidden;border-radius:999px;background:var(--line);gap:3px}
 .hstatus-bar i{display:block;height:100%;min-width:0}
 .hstatus-bar .paid{background:var(--history-paid)}
-.hstatus-bar .part{background:var(--history-part)}
 .hstatus-bar .unpaid{background:var(--history-unpaid)}
 .hstatus-empty{width:100%;background:var(--line)}
-.hstatus-counts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+.hstatus-counts{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:12px}
 .hstatus-count{display:flex;flex-direction:column;gap:2px;min-width:0}
 .hstatus-count span{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;white-space:nowrap}
 .hstatus-count span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
 .hstatus-count.paid span::before{background:var(--history-paid)}
-.hstatus-count.part span::before{background:var(--history-part);box-shadow:inset 0 0 0 1px rgba(21,23,28,.18)}
 .hstatus-count.unpaid span::before{background:var(--history-unpaid)}
 .hstatus-count strong{font:600 22px/1 var(--f-mono)}
 .hstatus-count:not(:last-child){border-right:1px solid var(--line)}
@@ -329,7 +334,6 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-filter-glider.ready{transition:left .4s cubic-bezier(.2,1.12,.3,1),width .3s cubic-bezier(.2,.8,.2,1),background-color .18s ease}
 .history-filter-glider[data-f="all"]{background:var(--accent)}
 .history-filter-glider[data-f="unpaid"]{background:var(--history-unpaid)}
-.history-filter-glider[data-f="part"]{background:var(--history-part)}
 .history-filter-glider[data-f="paid"]{background:var(--history-paid)}
 .history-filter-glider.squash{animation:history-filter-squash .4s cubic-bezier(.2,.8,.2,1)}
 @keyframes history-filter-squash{0%,100%{transform:scaleX(1)}34%{transform:scaleX(1.1)}66%{transform:scaleX(.96)}}
@@ -373,8 +377,6 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-fchips .fchip[data-f="all"].on{background:var(--accent);color:var(--ink);box-shadow:none}
 .history-fchips .fchip[data-f="paid"]{background:var(--history-paid-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-paid)}
 .history-fchips .fchip[data-f="paid"].on{background:var(--history-paid);color:var(--ink);box-shadow:none}
-.history-fchips .fchip[data-f="part"]{background:var(--history-part-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-part)}
-.history-fchips .fchip[data-f="part"].on{background:var(--history-part);color:var(--ink);box-shadow:none}
 .history-fchips .fchip[data-f="unpaid"]{background:var(--history-unpaid-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-unpaid)}
 .history-fchips .fchip[data-f="unpaid"].on{background:var(--history-unpaid);color:var(--ink);box-shadow:none}
 .history-fchips .fchip{position:relative;z-index:1;transition:color .18s ease,background-color .18s ease,box-shadow .18s ease}
@@ -492,6 +494,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .sheet{overscroll-behavior:contain}
 .sheet > *{flex-shrink:0}
 .sheet::before{content:"";width:40px;height:4px;border-radius:2px;background:var(--line);align-self:center}
+.sheet[data-sheet-type="confirmTotal"]::before{content:none}
 .sheet h2{font-family:var(--f-display);font-size:22px;margin:0;letter-spacing:-.01em}
 @keyframes up{from{transform:translateY(40px);opacity:0}}
 @keyframes fade{from{opacity:0}}
@@ -716,11 +719,13 @@ const ICONS = {
 const I = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
 
 /* ---------- data ---------- */
+const BALANCED_SPLIT_KEY = 's-balanced-';
 function newDraft(){
-  return {at:'scan', merchant:'', items:[], tax:0, fees:0, printed:0, tipMode:null, tipPct:null, tipInput:'',
+  return {at:'scan', date:today(), merchant:'', items:[], tax:0, fees:0, printed:0, tipMode:null, tipPct:null, tipInput:'', balanceCents:true,
     people:[{id:'me', name:'You', me:true}], assign:{}, msgs:{}, results:null};
 }
 function normalizeTipDraft(d){
+  d.date ||= today();
   // Older drafts cannot distinguish an automatic 18% from a deliberate choice.
   // Keep the receipt and assignments, and let the user choose under the new UI.
   if (!Object.prototype.hasOwnProperty.call(d, 'tipMode')) Object.assign(d, {tipMode:null, tipPct:null, tipInput:''});
@@ -731,6 +736,8 @@ function normalizeTipDraft(d){
   mergeDraftFees(d);
   // Discard old prototype delivery claims; they never represented real requests.
   if (d.results?.some(r => r.handoffVersion !== 1)) { d.results = null; if (d.at === 'sent') d.at = 'summary'; }
+  // Keep the amounts on already-prepared requests and in-progress saves.
+  d.balanceCents ??= d.saveKey ? d.saveKey.startsWith(BALANCED_SPLIT_KEY) : !d.results?.length;
   if (d.people) d.people = d.people.filter(p => p.me || p.name.trim());
   if (d.at === 'people') d.at = 'assign';
   return d;
@@ -752,18 +759,15 @@ const fullName = (f, l) => [f, l].filter(Boolean).join(' ');
 const need = ({data, error}) => { if (error) throw new Error(error.message); return data; };
 
 // Same rule the split screens use: tax, fees and tip are shared in proportion to each person's items.
-function owedByContact(receipt){
+function owedByContact(receipt, balanceCents){
   const pre = {};
   receipt.line_items.forEach(li => li.item_assignments.forEach(a => pre[a.contact_id] = (pre[a.contact_id] || 0) + a.share_cents));
-  const ids = Object.keys(pre), assigned = ids.reduce((t, id) => t + pre[id], 0);
-  const extra = receipt.tax_cents + receipt.fees_cents + receipt.tip_cents, out = {};
-  if (!assigned) return out;
-  const raw = ids.map(id => ({id, v: extra * pre[id] / assigned}));
-  raw.forEach(r => out[r.id] = pre[r.id] + Math.floor(r.v));
-  let left = extra - raw.reduce((t, r) => t + Math.floor(r.v), 0);
-  raw.sort((a, b) => (b.v - Math.floor(b.v)) - (a.v - Math.floor(a.v)));
-  for (let i = 0; left > 0; i = (i + 1) % raw.length, left--) out[raw[i].id]++;
-  return out;
+  const ids = Object.keys(pre);
+  if (!ids.some(id => pre[id] > 0)) return {};
+  const extra = receipt.tax_cents + receipt.fees_cents + receipt.tip_cents;
+  const shared = balanceCents && receipt.line_items.every(li => !li.price_cents || li.item_assignments.length === ids.length);
+  const alloc = (shared && equalSplitExtras(pre, ids, extra)) || shareOut(extra, pre);
+  return Object.fromEntries(ids.map(id => [id, pre[id] + alloc[id]]));
 }
 
 /* Every browser gets its own account without a login screen: Supabase anonymous sign-in.
@@ -824,7 +828,7 @@ async function loadAll(){
       sb.from('contacts').select(CONTACT_SELECT)
         .eq('user_id', S.userId).order('contact_id').then(need),
       sb.from('friend_groups').select('group_id, group_name, group_members(contact_id)').order('group_id').then(need),
-      sb.from('events').select(`event_id, event_name,
+      sb.from('events').select(`*,
           participants(contact_id, paid_method_id),
           receipts(receipt_id, payer_user_id, merchant_name, receipt_date, tax_cents, fees_cents, tip_percent, tip_cents, total_cents,
             line_items(item_id, description, price_cents, position, item_assignments(contact_id, share_cents)))`).order('event_id').then(need),
@@ -846,9 +850,10 @@ async function loadAll(){
     S.groups = groups.map(groupFromRow);
     S.history = events.filter(e => e.receipts.some(r => r.payer_user_id === S.userId)).map(e => {
       const owed = {};
-      e.receipts.forEach(r => Object.entries(owedByContact(r)).forEach(([cid, v]) => owed[cid] = (owed[cid] || 0) + v));
+      const balanceCents = e.client_key?.startsWith(BALANCED_SPLIT_KEY);
+      e.receipts.forEach(r => Object.entries(owedByContact(r, balanceCents)).forEach(([cid, v]) => owed[cid] = (owed[cid] || 0) + v));
       const r0 = e.receipts[0];
-      return {id:String(e.event_id), eventName:e.event_name, merchant:e.receipts.map(r => r.merchant_name).join(' + '), date:r0.receipt_date,
+      return {id:String(e.event_id), eventName:e.event_name, merchant:e.receipts.map(r => r.merchant_name).join(' + '), date:r0.receipt_date, balanceCents,
         you:owed[S.selfContactId] || 0,
         receipts:e.receipts.map(r => ({...r, line_items:r.line_items || []})),
         requests:e.participants.filter(p => String(p.contact_id) !== S.selfContactId).map(p => {
@@ -893,6 +898,7 @@ let cameraSession = null;
 /* ---------- receipt text parser ----------
    English / US dollar receipts. Keep only explicit decimal prices; never invent
    missing amounts. OCR and these heuristics need a human check in Review. */
+const MISSING_RECEIPT_TOTAL = 'The scan couldn’t find the printed total. Compare Total to split below with the total on your receipt. If they differ, edit the items or charges.';
 function parseReceiptText(text){
   const lines = String(text).split(/\r?\n/).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
   const out = {merchant:'', items:[], tax:0, fees:0, printed:0, warnings:[]};
@@ -925,7 +931,7 @@ function parseReceiptText(text){
     if (value < 0 || /[-(]\s*\$?\s*$/.test(label)) { out.warnings.push('A discount or refund needs manual adjustment.'); continue; }
     if (/[a-z]/i.test(label)) out.items.push({name:label.slice(0, 150), price:value});
   }
-  if (!totalFound) out.warnings.push('The printed total was not found. Enter it from your receipt.');
+  if (!totalFound) out.warnings.push(MISSING_RECEIPT_TOTAL);
   out.warnings = [...new Set(out.warnings)];
   return out;
 }
@@ -964,7 +970,15 @@ function preferReceiptRead(current, candidate){
 }
 
 /* ---------- math (R7, R9, R10, R11) ---------- */
-function tipState(d, subtotal = d.items.reduce((sum, it) => sum + it.price, 0)){
+function itemQuantity(item){
+  const raw = String(item.quantity ?? 1).trim();
+  const quantity = Number(raw);
+  return /^\d+$/.test(raw) && Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 0;
+}
+function itemTotal(item){
+  return item.price * itemQuantity(item);
+}
+function tipState(d, subtotal = d.items.reduce((sum, it) => sum + itemTotal(it), 0)){
   const invalid = {cents:0, valid:false, chosen:true, label:'Invalid tip', error:'Enter 0 or a positive dollar amount with up to two decimal places.'};
   if (d.tipMode === 'percent'){
     if (!Number.isFinite(d.tipPct) || d.tipPct < 0 || d.tipPct > 100) return invalid;
@@ -990,38 +1004,69 @@ function mergeDraftFees(d){
     d.tipInput = cIn(tip.cents + d.knownFees);
   }
 }
+// On a fully shared receipt, round the final bill once. Each person's extras
+// make up the difference between that final share and their rounded items.
+function equalSplitExtras(pre, ids, extra){
+  const amounts = ids.map(id => pre[id]);
+  if (!ids.length || Math.max(...amounts) - Math.min(...amounts) > 1) return null;
+  const total = amounts.reduce((sum, cents) => sum + cents, extra);
+  const base = Math.floor(total / ids.length);
+  // First give leftover cents to anyone whose items already exceed the base.
+  const order = [...ids].sort((a, b) => Number(pre[b] > base) - Number(pre[a] > base));
+  return Object.fromEntries(order.map((id, i) => [id, base + Number(i < total % ids.length) - pre[id]]));
+}
 function calc(d){
   const ids = d.people.map(p => p.id);
   const pre = {}, lines = {}; ids.forEach(id => { pre[id] = 0; lines[id] = []; });
-  const unassigned = [];
-  let subtotal = 0;
+  const unassigned = [], nextCent = new Map();
+  const balanceCents = d.balanceCents !== false;
+  let subtotal = 0, itemsValid = true;
   d.items.forEach(it => {
-    subtotal += it.price;
-    const who = (d.assign[it.id] || []).filter(id => id in pre);
-    if (!who.length) { if (it.price) unassigned.push(it); return; }
-    const base = Math.floor(it.price / who.length); const rem = it.price - base * who.length;
-    who.forEach((id, i) => { const share = base + (i < rem ? 1 : 0); pre[id] += share; lines[id].push({itemId:it.id, name:it.name, share, of:who.length}); });
+    const total = itemTotal(it);
+    if (!Number.isSafeInteger(total) || total <= 0){
+      itemsValid = false;
+      return;
+    }
+    subtotal += total;
+    const selected = d.assign[it.id] || [];
+    const who = balanceCents ? ids.filter(id => selected.includes(id)) : selected.filter(id => id in pre);
+    if (!who.length) { unassigned.push(it); return; }
+    const base = Math.floor(total / who.length); const rem = total - base * who.length;
+    const quantity = itemQuantity(it);
+    // Pick up where the last item shared by these people left off.
+    const group = JSON.stringify(who);
+    const offset = nextCent.get(group) || 0;
+    if (balanceCents) nextCent.set(group, (offset + rem) % who.length);
+    who.forEach((id, i) => {
+      const place = (i - offset + who.length) % who.length;
+      const share = base + Number(place < rem);
+      pre[id] += share;
+      lines[id].push({itemId:it.id, name:it.name, quantity, share, of:who.length});
+    });
   });
   const tipInfo = tipState(d, subtotal), tip = tipInfo.cents;
   const extra = d.tax + d.fees + tip;
-  const assigned = ids.reduce((a, id) => a + pre[id], 0);
-  const alloc = {}; ids.forEach(id => alloc[id] = 0);
-  if (assigned > 0){
-    const raw = ids.map(id => ({id, v: extra * pre[id] / assigned}));
-    raw.forEach(r => alloc[r.id] = Math.floor(r.v));
-    let left = extra - raw.reduce((a, r) => a + Math.floor(r.v), 0);
-    raw.sort((a, b) => (b.v - Math.floor(b.v)) - (a.v - Math.floor(a.v)));
-    for (let i = 0; left > 0; i = (i + 1) % raw.length, left--) alloc[raw[i].id]++;
+  // Contact ID order makes ties resolve the same way when History reloads.
+  const contactId = p => p.me ? S.selfContactId : p.contactId;
+  const ordered = balanceCents
+    ? [...d.people].sort((a, b) => Number(contactId(a) || 0) - Number(contactId(b) || 0))
+    : d.people;
+  let shares;
+  if (nextCent.size === 1 && !unassigned.length){
+    const shared = ordered.filter(p => lines[p.id].length);
+    shares = equalSplitExtras(pre, shared.map(p => p.id), extra);
   }
+  shares ||= shareOut(extra, pre, ordered.map(p => p.id));
+  const alloc = Object.fromEntries(ids.map(id => [id, shares[id] || 0]));
   const totals = {}; ids.forEach(id => totals[id] = pre[id] + alloc[id]);
   const sumTotals = ids.reduce((a, id) => a + totals[id], 0);
   const computed = subtotal + d.tax + d.fees;
   const grand = computed + tip;
-  return {pre, lines, alloc, totals, unassigned, subtotal, tip, tipValid:tipInfo.valid, extra, computed, grand, sumTotals,
-    totalsOff: !unassigned.length && Math.abs(sumTotals - grand) > 1};
+  return {pre, lines, alloc, totals, unassigned, subtotal, itemsValid, tip, tipValid:tipInfo.valid, extra, computed, grand, sumTotals,
+    totalsOff: !unassigned.length && sumTotals !== grand};
 }
 function canConfirmTotal(c){
-  return c.subtotal > 0 && c.tipValid && Number.isSafeInteger(c.grand);
+  return c.itemsValid && c.subtotal > 0 && c.tipValid && Number.isSafeInteger(c.grand);
 }
 
 /* ---------- payment app handoffs ----------
@@ -1131,8 +1176,8 @@ function splitStatus(s){
   return ['unpaid','Unpaid'];
 }
 // Splits `cents` in proportion to `weights` ({contactId: cents}) with largest-remainder rounding, so the parts add up exactly.
-function shareOut(cents, weights){
-  const ids = Object.keys(weights), base = ids.reduce((n, id) => n + weights[id], 0), out = {};
+function shareOut(cents, weights, ids = Object.keys(weights)){
+  const base = ids.reduce((n, id) => n + weights[id], 0), out = {};
   if (!base) return out;
   const raw = ids.map(id => ({id, v:cents * weights[id] / base}));
   raw.forEach(r => out[r.id] = Math.floor(r.v));
@@ -1158,8 +1203,13 @@ function receiptSplitDetail(s){
     ['tax','fees','tip'].forEach(k => sum[k] += r[k + '_cents']);
     // owedByContact() decides what each person is asked to pay. The two smaller extras are shared out on their own and
     // the largest takes the rest of each person's extra, so each person's lines add up to their total.
-    const owed = owedByContact(r), [rest, ...shared] = ['tax','fees','tip'].sort((a, b) => r[b + '_cents'] - r[a + '_cents']);
-    const split = Object.fromEntries(shared.map(k => [k, shareOut(r[k + '_cents'], pre)]));
+    const owed = owedByContact(r, s.balanceCents), [rest, ...shared] = ['tax','fees','tip'].sort((a, b) => r[b + '_cents'] - r[a + '_cents']);
+    const remaining = Object.fromEntries(Object.keys(pre).map(cid => [cid, owed[cid] - pre[cid]]));
+    const split = {};
+    for (const k of shared){
+      split[k] = shareOut(r[k + '_cents'], s.balanceCents ? remaining : pre);
+      Object.keys(remaining).forEach(cid => { remaining[cid] -= split[k][cid] || 0; });
+    }
     Object.keys(pre).forEach(cid => {
       const p = people[cid]; let extra = owed[cid] - pre[cid];
       shared.forEach(k => { p[k] += split[k][cid] || 0; extra -= split[k][cid] || 0; });
@@ -1216,20 +1266,22 @@ function receiptSplitDetail(s){
     </section>`).join('')}
     ${s.receipts.map(receiptCard).join('')}`;
 }
+function historyPaymentStatus(split){
+  return split.requests.some(isUnpaid) ? 'unpaid' : 'paid';
+}
 function historyStatusSummary(){
-  const counts = {paid:0, part:0, unpaid:0};
-  S.history.forEach(s => counts[splitStatus(s)[0]]++);
+  const counts = {paid:0, unpaid:0};
+  S.history.forEach(s => counts[historyPaymentStatus(s)]++);
   const total = S.history.length;
   const width = cls => total ? `${counts[cls] / total * 100}%` : '0%';
   const bar = total
-    ? ['paid','part','unpaid'].map(cls => counts[cls] ? `<i class="${cls}" style="width:${width(cls)}" aria-hidden="true"></i>` : '').join('')
+    ? ['paid','unpaid'].map(cls => counts[cls] ? `<i class="${cls}" style="width:${width(cls)}" aria-hidden="true"></i>` : '').join('')
     : '<i class="hstatus-empty" aria-hidden="true"></i>';
   return `<section class="hstatus" aria-label="Split status overview">
     <div class="hstatus-title"><b>Payment status</b><small>${total} split${total === 1 ? '' : 's'}</small></div>
-    <div class="hstatus-bar" role="img" aria-label="${counts.paid} paid, ${counts.part} partly paid, ${counts.unpaid} unpaid">${bar}</div>
+    <div class="hstatus-bar" role="img" aria-label="${counts.paid} paid, ${counts.unpaid} unpaid">${bar}</div>
     <div class="hstatus-counts">
       <div class="hstatus-count paid"><span>Paid</span><strong>${counts.paid}</strong></div>
-      <div class="hstatus-count part"><span>Partly paid</span><strong>${counts.part}</strong></div>
       <div class="hstatus-count unpaid"><span>Unpaid</span><strong>${counts.unpaid}</strong></div>
     </div>
   </section>`;
@@ -1328,7 +1380,7 @@ function findBar(k, placeholder, label, filters, filterLabel){
       `<button class="fchip${ui[k + 'f'] === f ? ' on' : ''}" data-act="filter" data-k="${k}" data-f="${f}" aria-pressed="${ui[k + 'f'] === f}">${icon ? I(icon) : ''}${esc(name)}</button>`).join('')}</div>
   </div>`;
 }
-const HFILTERS = [['all','All'],['paid','Paid'],['part','Partly paid'],['unpaid','Unpaid']];
+const HFILTERS = [['all','All'],['unpaid','Unpaid'],['paid','Paid']];
 // Everything a split can be found by, with a label for the parts that aren't already visible on its card.
 function historySearchFields(s){
   return [[s.merchant], [s.eventName], [fmtDate(s.date)], [money(s.you + s.requests.reduce((a, r) => a + r.amount, 0))],
@@ -1345,7 +1397,7 @@ function historyMatch(s, q){
 function historyList(){
   const q = ui.hq.trim();
   const shown = S.history.map(s => ({s, hits:q ? historyMatch(s, q) : []}))
-    .filter(x => x.hits && (ui.hf === 'all' || splitStatus(x.s)[0] === ui.hf));
+    .filter(x => x.hits && (ui.hf === 'all' || historyPaymentStatus(x.s) === ui.hf));
   const filtering = q || ui.hf !== 'all';
   const status = HFILTERS.find(([k]) => k === ui.hf)[1].toLowerCase();
   if (!S.history.length) return '<p class="fine">No splits yet. Scan a receipt to start one.</p>';
@@ -1430,8 +1482,10 @@ V.scan = () => {
     <input class="capture-brightness" type="range" min="75" max="200" step="5" value="${Math.round((ui.captureBrightness || 1) * 100)}" data-in="captureBrightness" aria-label="Photo brightness"></label>
   ${ui.captureError ? `<p class="ferr" role="alert">${esc(ui.captureError)}</p>` : ''}
   <div class="next"><button class="btn" data-act="useCapture">Use photo</button>
-    <button class="btn ghost" data-act="saveCapture">Save photo to device</button>
-    <button class="btn ghost" data-act="redoCapture">Retake photo</button></div>`;
+    <div class="capture-review-actions">
+      <button class="btn ghost" data-act="saveCapture">Save photo</button>
+      <button class="btn ghost" data-act="redoCapture">Retake</button>
+    </div></div>`;
   return `
   ${ui.cameraDenied ? `<div class="camera-banner"><span role="alert">Camera access is blocked. Change this site's camera permission in your browser settings, then try again.</span>
     <button class="link" data-act="snap">Try again</button></div>` : ''}
@@ -1442,8 +1496,9 @@ V.scan = () => {
   ${ui.scanError ? `<div class="alert bad" role="alert"><b>Couldn't scan this receipt.</b>${esc(ui.scanError)}</div>` : ''}
   ${ui.cameraError && !ui.cameraDenied ? `<div class="alert bad" role="alert">${esc(ui.cameraError)}</div>` : ''}
   ${ui.scanError && ui.scanText ? `<details><summary>Text read from receipt</summary><textarea readonly aria-label="Text read from scan" style="width:100%;min-height:160px">${esc(ui.scanText)}</textarea></details>` : ''}
-  <div class="camera-stage"><div class="camera-preview">
-    ${ui.cameraOpen ? '<video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>' : '<div class="camera-guide" aria-hidden="true"></div>'}
+  <div class="camera-stage"><div class="camera-preview"${ui.cameraOpen ? '' : ' data-camera-off'}>
+    ${ui.cameraOpen ? '<video id="receipt-camera" autoplay playsinline muted aria-label="Live receipt camera"></video>'
+      : `<div class="camera-off" role="status"><span class="camera-off-icon">${I('cameraOff')}</span>Camera Turned Off</div>`}
     ${ui.cameraLoading || ui.capturing ? `<p class="camera-status" role="status">${ui.capturing ? 'Taking photo…' : 'Opening camera…'}</p>` : ''}
     <div class="camera-overlay">
       ${S.draft.items.length && !dismissedCameraDrafts.has(S.draft) ? `<div class="camera-banner camera-resume">
@@ -1479,10 +1534,11 @@ V.scanning = () => {
 
 V.review = () => {
   const d = S.draft;
+  const warnings = (d.scanWarnings || []).map(w => w === 'The printed total was not found. Enter it from your receipt.' ? MISSING_RECEIPT_TOTAL : w);
   return `
   ${flowHead(0, 'scan')}
   <h1 class="h">${d.manualEntry ? 'Type receipt items' : 'Check the items'}</h1>
-  ${d.fromScan ? `<div class="alert warn"><b>Check every item and amount against your receipt.</b>Scans can miss or misread lines.${(d.scanWarnings || []).map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
+  ${d.fromScan ? `<div class="alert warn"><b>Check every item and amount against your receipt.</b><span>Scans can miss or misread lines.</span>${warnings.map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
   ${d.fromScan && ui.photo ? `<details><summary>Compare with receipt photo</summary><img src="${esc(ui.photo)}" alt="Receipt used for this scan" style="max-width:100%;height:auto"></details>` : ''}
   ${d.fromScan && ui.photo ? '<button class="link" data-act="saveReceiptPhoto">Save receipt photo to device</button>' : ''}
   <label class="field"><span>Where did you eat?</span><input id="merchant" data-in="merchant" value="${esc(d.merchant)}" placeholder="Restaurant name"></label>
@@ -1491,15 +1547,20 @@ V.review = () => {
   <div class="items" id="items">
     ${d.items.map(it => `<div class="irow">
       <input id="n-${it.id}" data-in="iname" data-id="${it.id}" value="${esc(it.name)}" placeholder="Item name" aria-label="Item name">
-      <span class="money-in">$<input id="p-${it.id}" data-in="iprice" data-id="${it.id}" inputmode="decimal" enterkeyhint="done" value="${it.price ? cIn(it.price) : ''}" placeholder="0.00" aria-label="Price of ${esc(it.name || 'item')}"></span>
+      <span class="item-quantity">
+        <button type="button" id="qb-${it.id}" data-act="editQuantity" data-id="${it.id}" aria-label="Quantity for ${esc(it.name || 'item')}: ${itemQuantity(it)}. Edit quantity" ${itemQuantity(it) ? '' : 'hidden'}>x ${itemQuantity(it)}</button>
+        <input id="q-${it.id}" data-in="quantity" data-id="${it.id}" inputmode="numeric" enterkeyhint="done" maxlength="16" value="${esc(it.quantity ?? 1)}" aria-label="Quantity for ${esc(it.name || 'item')}" aria-describedby="item-note" ${itemQuantity(it) ? 'hidden' : 'aria-invalid="true"'}>
+      </span>
+      <span class="money-in">$<input id="p-${it.id}" data-in="iprice" data-id="${it.id}" inputmode="decimal" enterkeyhint="done" value="${it.price || it.priceEntered ? cIn(it.price) : ''}" placeholder="0.00" aria-label="Price of ${esc(it.name || 'item')}"></span>
       <button class="iconbtn sm" data-act="delitem" data-id="${it.id}" aria-label="Delete ${esc(it.name || 'item')}">${I('x')}</button>
       ${ui.originalNames[it.id] ? `<details class="original-name"><summary>Original receipt label</summary><p>${esc(ui.originalNames[it.id])}</p><button class="link" data-act="restoreName" data-id="${it.id}">Use original name</button></details>` : ''}
     </div>`).join('') || '<div class="empty">No items yet. Add each line from the receipt.</div>'}
   </div>
   <button class="addrow" data-act="additem">${I('plus')} Add item</button>
+  <div id="item-note" data-live="itemnotice" hidden></div>
   <div class="fees">
     <div class="frow"><span>Subtotal</span><span class="mono" data-live="subtotal"></span></div>
-    <label class="frow"><span>Tax</span><span class="money-in">$<input id="tax" data-in="tax" inputmode="decimal" enterkeyhint="done" value="${cIn(d.tax)}"></span></label>
+    <label class="frow"><span>Tax</span><span class="money-in">$<input id="tax" data-in="tax" inputmode="decimal" enterkeyhint="done" value="${d.tax ? cIn(d.tax) : ''}" placeholder="0.00"></span></label>
     <label class="frow" for="tip-amount"><span>Tip and fees</span><span class="money-in">$<input id="tip-amount" data-in="tipamount" inputmode="decimal" enterkeyhint="done" maxlength="20" value="${esc(d.tipInput || '')}" placeholder="0.00" aria-describedby="tip-note"></span></label>
     <div id="tip-note" data-live="tipnotice"></div>
   </div>
@@ -1526,9 +1587,9 @@ function matchItems(){
     const who = d.people.filter(p => d.assign[it.id]?.includes(p.id));
     const checked = who.includes(person);
     return `<li><button class="match-item" data-act="toggle" data-id="${esc(it.id)}" aria-pressed="${checked}" ${person ? '' : 'disabled'}>
-      ${I(checked ? 'check' : 'plus')}<span class="item-name"><b>${esc(it.name || 'Untitled item')}</b>
+      ${I(checked ? 'check' : 'plus')}<span class="item-name"><b>${esc(it.name || 'Untitled item')}${itemQuantity(it) > 1 ? ` <small>x ${itemQuantity(it)}</small>` : ''}</b>
       <small>${who.length ? esc(who.map(p => p.name).join(', ')) : 'Unmatched'}</small></span>
-      <span class="mono">${money(it.price)}</span>
+      <span class="mono">${money(itemTotal(it))}</span>
     </button></li>`;
   }).join('')}</ul>
   <div class="next"><button class="btn" data-act="matchNext">See totals</button></div>
@@ -1578,7 +1639,7 @@ V.summary = () => {
     const nm = p.me ? 'You' : (p.name || 'Unnamed');
     return `<article class="pcard">
       <header><div><b>${esc(nm)}</b>${p.me ? '<span class="meta">Paid the bill</span>' : ''}</div><span class="ptotal mono">${money(c.totals[p.id])}</span></header>
-      <ul class="lines">${c.lines[p.id].map(l => `<li><span>${esc(l.name)}${l.of > 1 ? ` <small>÷${l.of}</small>` : ''}</span><span class="mono">${money(l.share)}</span></li>`).join('') || '<li><span class="fine">Nothing assigned yet</span></li>'}
+      <ul class="lines">${c.lines[p.id].map(l => `<li><span>${esc(l.name)}${l.quantity > 1 ? ` <small>x ${l.quantity}</small>` : ''}${l.of > 1 ? ` <small>÷${l.of}</small>` : ''}</span><span class="mono">${money(l.share)}</span></li>`).join('') || '<li><span class="fine">Nothing assigned yet</span></li>'}
         <li class="alloc"><span>Tax, tip & fees</span><span class="mono">${money(c.alloc[p.id])}</span></li></ul>
       ${p.me || !c.totals[p.id] ? '' : reviewRequest(p,c)}
     </article>`;
@@ -1641,7 +1702,7 @@ function linkedStatus(r,i){
     ${confirmed ? `<p class="request-status">Requested using ${esc(label)}</p>`
       : CFG.preview ? `<p class="request-status">Payment app · ${esc(label)}</p>`
       : r.method === 'cash' ? '<p class="request-status">Collect in person</p>'
-      : `<div class="request-finish"><p class="request-status">Ready in ${esc(label)}</p>
+      : `<div class="request-finish"><p class="request-status">Finish in ${esc(label)}</p>
         ${info.href ? `<a class="btn small ghost" href="${esc(info.href)}" target="_blank" rel="noopener noreferrer">${esc(info.label)}</a>` : ''}
         <button class="btn small ghost" data-act="confirmLinked" data-index="${i}">I sent the request</button>
         <details><summary>Request instructions</summary>${requestCard(r,i,{showLink:false})}</details></div>`}
@@ -1659,8 +1720,16 @@ async function manualApi(path, body){
     headers:{Authorization:'Bearer ' + session.access_token, ...(body ? {'Content-Type':'application/json'} : {})},
     ...(body ? {body:JSON.stringify(body)} : {})
   });
-  const data = await response.json();
-  if (!response.ok) throw Object.assign(new Error(data.error || 'The payment request could not be updated.'), {status:response.status});
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    const message = CFG.preview
+      ? 'The preview server could not create or load payment links. Restart the IOYA preview server and reload this page.'
+      : 'The payment link service returned an unexpected response. Try again later.';
+    throw Object.assign(new Error(message), {status:response.status});
+  }
+  if (!response.ok) throw Object.assign(new Error(data?.error || 'The payment request could not be updated.'), {status:response.status});
   return data;
 }
 async function createManualRequest(r, draft){
@@ -1817,19 +1886,20 @@ function splitForSaving(d){
     if (!contactId) throw new Error(`${p.name} isn't in your contacts. Tap Edit split and add them from Contacts.`);
     c.lines[p.id].forEach(l => (shares[l.itemId] ||= []).push({contact_id:Number(contactId), share_cents:l.share}));
   });
-  const today = new Date(), date = today.toLocaleDateString('en-CA');
+  const date = d.date || today();
   // The user can lower the combined amount below the original fee.
   const knownFees = Math.min(d.knownFees || 0, c.tip);
   const tip = c.tip - knownFees;
   const tipPct = d.tipMode === 'percent' ? Number(d.tipPct) || 0 : c.subtotal ? Math.round(tip * 10000 / c.subtotal) / 100 : 0;
-  return {client_key:d.saveKey, name:'Split on ' + today.toLocaleDateString('en-US', {month:'short', day:'numeric'}), merchant:(d.merchant || '').trim(), date,
+  return {client_key:d.saveKey, name:'Split on ' + shortDate(date), merchant:(d.merchant || '').trim(), date,
     tax_cents:d.tax, fees_cents:d.fees + knownFees, tip_cents:tip, tip_percent:Math.min(tipPct, 999.99), total_cents:c.computed + knownFees,
-    items:d.items.map(it => ({description:(it.name || '').trim(), price_cents:it.price, shares:shares[it.id] || []}))};
+    items:d.items.map(it => ({description:(it.name || '').trim(), price_cents:itemTotal(it), shares:shares[it.id] || []}))};
 }
 async function saveSplitToHistory(){
   if (ui.savingSplit || CFG.preview || !sb) return;
   const d = S.draft;
-  d.saveKey ||= 's-' + (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  d.saveKey ||= (d.balanceCents === false ? 's-' : BALANCED_SPLIT_KEY)
+    + (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
   save();  // keep the key even if the page is closed while saving
   ui.savingSplit = true; ui.saveSplitError = ''; render();
   try {
@@ -1849,30 +1919,51 @@ async function saveSplitToHistory(){
 }
 
 /* ---------- live regions (updated while typing without losing focus) ---------- */
+function reviewItemIssue(d){
+  const checks = [
+    ['n', it => !it.name?.trim(), 'needs a name'],
+    ['q', it => !itemQuantity(it), 'needs a positive whole number for quantity'],
+    ['p', it => !Number.isSafeInteger(itemTotal(it)) || itemTotal(it) <= 0, 'needs a valid price greater than $0']
+  ];
+  for (const [field, invalid, reason] of checks){
+    const index = d.items.findIndex(invalid);
+    if (index !== -1) return {input:field + '-' + d.items[index].id, message:`Item ${index + 1} ${reason}.`};
+  }
+}
 const LIVE = {
   hlist: () => historyList(),
   clist: () => contactList(),
   subtotal: () => money(calc(S.draft).subtotal),
+  itemnotice: el => {
+    const items = S.draft.items;
+    let message = '';
+    if (ui.reviewChecked === S.draft) message = reviewItemIssue(S.draft)?.message || '';
+    else if (items.some(it => !itemQuantity(it))) message = 'Enter a positive whole number for each quantity.';
+    else if (items.some(it => it.name.trim() && !it.price)) message = 'Enter a price greater than $0 for each item.';
+    else if (items.some(it => !Number.isSafeInteger(itemTotal(it)))) message = 'Check the quantity and price for each item.';
+    el.hidden = !message;
+    return message ? `<p class="warn-line" role="alert">${message}</p>` : '';
+  },
   tipnotice: () => { const t = tipState(S.draft); return t.valid ? '' : `<p class="warn-line" role="alert">${t.error}</p>`; },
   reviewTotal: () => money(calc(S.draft).grand),
-  revnext: () => `<button id="receipt-next" class="btn" data-act="reviewNext" ${canConfirmTotal(calc(S.draft)) ? '' : 'disabled'}>Next</button>`,
+  revnext: () => `<button id="receipt-next" class="btn" data-act="reviewNext" ${S.draft.items.some(it => it.name?.trim() || it.price || it.priceEntered) ? '' : 'disabled'}>Next</button>`,
   requestSheet: () => ui.sheet?.type === 'payment' ? requestCard(ui.sheet.request, 'sheet') : '',
   sendbar: () => {
-    const {ready, blocked, globalBlock} = sendPlan();
-    const label = ready.length === 1 ? 'request' : 'requests';
+    const {c, ready, blocked, globalBlock} = sendPlan();
+    const hasAppRequests = ready.some(p => !['manual','cash'].includes(methodFor(p,c.totals[p.id])));
     return `${blocked.length ? `<p class="warn-line">Check the request details for ${blocked.map(p => esc(p.name)).join(', ')}.</p>` : ''}
       ${ui.sendError ? `<p class="alert bad" role="alert">${esc(ui.sendError)}</p>` : ''}
-      <button class="btn" data-act="send" ${ui.preparing || globalBlock || blocked.length || !ready.length ? 'disabled' : ''}>${ui.preparing ? 'Preparing…' : CFG.preview ? 'Send ' + label + ' (preview)' : 'Send ' + label}</button>`;
+      ${hasAppRequests ? '<p class="fine">Finish direct requests in the payment app.</p>' : ''}
+      <button class="btn" data-act="send" ${ui.preparing || globalBlock || blocked.length || !ready.length ? 'disabled' : ''}>${ui.preparing ? 'Preparing…' : CFG.preview ? 'Send requests (preview)' : 'Send requests'}</button>`;
   }
 };
-// Greetings use the first name: the saved contact's first name, or the first word of a typed name.
-function firstName(p){
-  const c = p.contactId && S.contacts.find(x => x.id === String(p.contactId));
-  return c?.first || p.name.trim().split(/\s+/)[0];
-}
 function autoMessage(p, c){
-  const d = S.draft, amt = money(c.totals[p.id]), when = shortDate(today());
-  return `Hi ${firstName(p)}! ${d.merchant || 'Dinner'} on ${when}: your share is ${amt}.`;
+  const billName = S.draft.merchant?.trim() || 'Dinner';
+  const items = c.lines[p.id].map(line => {
+    const name = line.name?.trim() || 'Receipt item';
+    return line.quantity > 1 ? `${name} x ${line.quantity}` : name;
+  });
+  return `${billName} on ${shortDate(S.draft.date || today())}: ${items.join(', ')}`;
 }
 function payerAccountValid(method,value){
   if (!value || value.length > 100) return false;
@@ -3037,8 +3128,25 @@ const A = {
   go: ds => { ui.sheet = null; go(ds.v); },
   jump: ds => { ui.sheet = null; go(ds.v); },
   start: () => { clearCapturePreview(); ui.sheet = null; ui.contactPicker = false; ui.contactQuery = ''; if (S.view === 'scanning') cancelScan(); S.view = 'scan'; render(); return openCamera(); },
-  resume: () => { ui.sheet = null; const at = S.draft.at && S.draft.at !== 'scanning' && S.draft.at !== 'scan' ? S.draft.at : 'review'; go(at); },
+  resume: () => {
+    ui.sheet = null;
+    dismissedCameraDrafts.delete(S.draft);
+    const at = S.draft.at && S.draft.at !== 'scanning' && S.draft.at !== 'scan' ? S.draft.at : 'review';
+    go(at);
+  },
+  dismissCameraResume: (_ds, button) => {
+    dismissedCameraDrafts.add(S.draft);
+    // Keep the live video element in place while removing the banner.
+    button.closest('.camera-resume')?.remove();
+    document.getElementById('camera-toggle')?.focus();
+  },
   snap: () => openCamera(),
+  openCamera: () => {
+    if (cameraAvailable()) return openCamera();
+    ui.cameraError = 'Live camera is unavailable here. Use the phone camera or upload a photo.';
+    render();
+  },
+  nativeCamera: () => usePhotoPicker('camera-in'),
   useCapture: async () => {
     if (!ui.captureFile) return;
     try { const file=await adjustedCaptureFile(); clearCapturePreview(); runScan(file); }
@@ -3055,7 +3163,12 @@ const A = {
   redoCapture: () => { clearCapturePreview(); openCamera(); },
   capturePhoto: () => captureCameraPhoto(),
   cameraLight: () => toggleCameraLight(),
-  closeCamera: () => { stopCamera(); ui.cameraError = ''; render(); },
+  closeCamera: () => {
+    stopCamera();
+    ui.cameraError = '';
+    render();
+    document.getElementById('camera-toggle')?.focus();
+  },
   shortenNames: () => { shortenDraftNames(); render(); },
   saveReceiptPhoto: () => {
     if (!ui.photo) return;
@@ -3075,6 +3188,14 @@ const A = {
     setTimeout(() => document.getElementById('n-' + d.items[0].id)?.focus({preventScroll:true}), 30);
   },
   additem: () => { const it = {id:uid('i'), name:'', price:0}; S.draft.items.push(it); render(); document.getElementById('n-' + it.id)?.focus(); },
+  editQuantity: ds => {
+    const input = document.getElementById('q-' + ds.id);
+    if (!input) return;
+    document.getElementById('qb-' + ds.id).hidden = true;
+    input.hidden = false;
+    input.focus();
+    input.select();
+  },
   delitem: ds => { const d = S.draft; d.items = d.items.filter(it => it.id !== ds.id); delete d.assign[ds.id]; render(); },
   openPicker: () => setContactPicker(true),
   closePicker: () => setContactPicker(false),
@@ -3119,7 +3240,9 @@ const A = {
     matchButton('toggle', ds.id)?.focus({preventScroll:true});
   },
   matchNext: () => {
-    if (!calc(S.draft).unassigned.length) return go('summary');
+    const c = calc(S.draft);
+    if (!canConfirmTotal(c)) return go('review');
+    if (!c.unassigned.length) return go('summary');
     ui.sheet = {type:'unmatched'};
     render();
     document.querySelector?.('[data-act="fixMatches"]')?.focus();
@@ -3132,8 +3255,16 @@ const A = {
   sheet: ds => { if (ds.s === 'group') return openGroup(ds.id); ui.sheet = {type:ds.s, id:ds.id || null};
     render(); },
   reviewNext: () => {
+    if (S.view !== 'review') return;
+    const issue = reviewItemIssue(S.draft);
     const c = calc(S.draft);
-    if (S.view !== 'review' || !canConfirmTotal(c)) return;
+    if (issue || !canConfirmTotal(c)){
+      ui.reviewChecked = S.draft;
+      refresh();
+      document.getElementById(issue?.input || 'tip-amount')?.focus?.();
+      return;
+    }
+    ui.reviewChecked = null;
     ui.sheet = {type:'confirmTotal', total:c.grand, tip:c.tip};
     render();
     document.getElementById('edit-receipt-total')?.focus?.();
@@ -3141,7 +3272,7 @@ const A = {
   confirmTotal: () => {
     if (S.view !== 'review' || ui.sheet?.type !== 'confirmTotal') return;
     const c = calc(S.draft);
-    if (!canConfirmTotal(c) || c.grand !== ui.sheet.total) return A.close();
+    if (reviewItemIssue(S.draft) || !canConfirmTotal(c) || c.grand !== ui.sheet.total) return A.close();
     ui.sheet = null;
     go('assign');
   },
@@ -3806,7 +3937,16 @@ document.addEventListener('input', e => {
   switch (k){
     case 'merchant': d.merchant = val; break;
     case 'iname': item().name = val; break;
-    case 'iprice': item().price = toC(val); break;
+    case 'quantity':
+      item().quantity = val;
+      el.setAttribute('aria-invalid', String(!itemQuantity(item())));
+      break;
+    case 'iprice': {
+      const row = item();
+      row.price = toC(val);
+      row.priceEntered = !!val.trim();
+      break;
+    }
     case 'tax': d.tax = toC(val); break;
     case 'tipamount': d.tipInput = val; d.tipMode = val.trim() ? 'amount' : null; d.tipPct = null; break;
     case 'contact-query':
@@ -3867,9 +4007,30 @@ function formatReviewAmount(el){
   if (Number.isSafeInteger(cents)) el.value = cIn(cents);
   return true;
 }
-document.addEventListener('focusout', e => formatReviewAmount(e.target));
+function finishQuantity(input, returnFocus = false){
+  const item = S.draft.items.find(it => it.id === input.dataset.id);
+  const quantity = item && itemQuantity(item);
+  if (!quantity) return;
+  const button = document.getElementById('qb-' + item.id);
+  if (!button || input.hidden) return;
+  button.textContent = 'x ' + quantity;
+  button.setAttribute('aria-label', 'Quantity for ' + (item.name || 'item') + ': ' + quantity + '. Edit quantity');
+  input.value = quantity;
+  button.hidden = false;
+  input.hidden = true;
+  if (returnFocus) button.focus();
+}
+document.addEventListener('focusout', e => {
+  if (e.target.dataset?.in === 'quantity') finishQuantity(e.target);
+  else formatReviewAmount(e.target);
+});
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || e.isComposing || ui.saving) return;
+  if (e.target.dataset?.in === 'quantity'){
+    e.preventDefault();
+    finishQuantity(e.target, true);
+    return;
+  }
   const act = e.target.dataset?.enter;
   if (act){ e.preventDefault(); A[act]({}); return; }
   if (formatReviewAmount(e.target)) e.preventDefault();

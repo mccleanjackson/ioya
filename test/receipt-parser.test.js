@@ -6,8 +6,8 @@ const vm = require('node:vm');
 
 // Exercise the production parser without needing Supabase, a DOM or OCR downloads.
 const html = fs.readFileSync(path.join(__dirname, '../public/app.html'), 'utf8');
-const source = html.slice(html.indexOf('function parseReceiptText('), html.indexOf('/* ---------- end receipt text parser'));
-const parse = vm.runInNewContext(`(${source})`);
+const source = html.slice(html.indexOf('/* ---------- receipt text parser'), html.indexOf('/* ---------- end receipt text parser'));
+const parse = vm.runInNewContext(`${source}\nparseReceiptText`);
 const read = text => JSON.parse(JSON.stringify(parse(text)));
 
 test('extracts real items and cents, not subtotal, payment or change', () => {
@@ -24,7 +24,7 @@ test('does not guess missing prices or the receipt total', () => {
   const r = read('CORNER SHOP\nTea 2.50\nSandwich price unreadable\nTax 0.20');
   assert.deepEqual(r.items, [{name:'Tea', price:250}]);
   assert.equal(r.printed, 0);
-  assert.match(r.warnings.join(' '), /total was not found/);
+  assert.match(r.warnings.join(' '), /Compare Total to split below with the total on your receipt/);
 });
 
 test('ignores discounts and included tips instead of silently charging them as items', () => {

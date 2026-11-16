@@ -75,10 +75,15 @@ test('the top camera button toggles the live camera and the draft resumes from i
   assert.match(V.scan(), /data-act="openCamera"[\s\S]*class="camera-preview"[\s\S]*class="camera-overlay"\s*>\s*<div class="camera-banner camera-resume"[\s\S]*data-act="resume"/);
   await A.openCamera();
   assert.match(V.scan(), /data-act="closeCamera"[\s\S]*<video id="receipt-camera"[\s\S]*camera-resume[\s\S]*data-act="resume"/);
+  assert.doesNotMatch(V.scan(), /Camera Turned Off/);
   A.closeCamera();
   assert.equal(S.view,'scan');
   assert.equal(h.t.stopped,1);
+  assert.match(V.scan(), /data-act="openCamera"[\s\S]*data-camera-off[\s\S]*Camera Turned Off/);
+  assert.doesNotMatch(V.scan(), /<video id="receipt-camera"/);
   await A.openCamera();
+  assert.equal(h.requests.length,2);
+  assert.match(V.scan(), /<video id="receipt-camera"/);
   A.resume();
   assert.equal(S.view,'review');
   assert.equal(h.t.stopped,2);

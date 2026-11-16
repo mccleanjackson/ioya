@@ -20,7 +20,7 @@ function app({rpc}={}){
   const context={window,navigator:{userAgent:'Android',clipboard:{writeText:async()=>{}}},
     document:{getElementById:()=>el,querySelectorAll:()=>[],addEventListener(){}},
     localStorage:{getItem:k=>stored[k]??null,setItem:(k,v)=>{stored[k]=v;}},setTimeout:()=>0,clearTimeout(){},console};
-  vm.runInNewContext(script.replace('if (!V[S.view]','render=()=>{};globalThis.api={S,A,V,ui,newDraft,calc,splitForSaving,preparedRequests};return;\nif (!V[S.view]'),context);
+  vm.runInNewContext(script.replace('if (!V[S.view]','render=()=>{};globalThis.api={S,A,V,ui,newDraft,calc,splitForSaving,preparedRequests,owedByContact};return;\nif (!V[S.view]'),context);
   const api=context.api;
   Object.assign(api.S,{userId:7,selfContactId:'1',paymentAccounts:{venmo:'taylor-test'},
     contacts:[{id:'2',name:'Alex Lee',first:'Alex',last:'Lee',methods:[{id:1,name:'Venmo',username:'alex-test'}],venmo:'alex-test',method:'venmo'},
@@ -65,13 +65,51 @@ test('the combined amount preserves a known fee in History without charging it t
   assert.equal(payload.total_cents,api.calc(d).grand);
 });
 
+test('a line with multiple units saves its extended price and matching shares',()=>{
+  const api=app(), d=split(api);
+  d.items[1].quantity=2;
+  const p=api.splitForSaving(d);
+  assert.equal(p.total_cents,4302);
+  assert.equal(p.items[1].price_cents,2002);
+  assert.equal(p.items[1].shares.reduce((sum,share)=>sum+share.share_cents,0),2002);
+  assert.equal(p.items[1].shares[0].share_cents,668);
+});
+
+test('equal shares include tax and tip and remain equal in requests and History',()=>{
+  const api=app(), d=split(api);
+  d.people.push({id:'r',name:'Test diner',contactId:'4'});
+  // Order the contacts differently from History, which sorts by contact ID.
+  d.people.reverse();
+  const ids=d.people.map(p=>p.id);
+  Object.assign(d,{items:[{id:'a',name:'Shared meal',price:1598}],assign:{a:ids},tax:1,tipMode:'amount',tipInput:'.01'});
+  assert.deepEqual(Object.values(api.calc(d).totals),[400,400,400,400]);
+  const requests = api.preparedRequests();
+  assert.deepEqual(Array.from(requests,r=>r.amount),[400,400,400]);
+  const manual = requests.find(r=>r.method==='manual');
+  assert.equal(manual.items.reduce((sum,it)=>sum+it.amountCents,0),400);
+
+  const p=api.splitForSaving(d);
+  const saved={...p,line_items:p.items.map(it=>({...it,item_assignments:it.shares}))};
+  assert.deepEqual(plain(api.owedByContact(saved,true)),{'1':400,'2':400,'3':400,'4':400});
+  assert.deepEqual(plain(api.owedByContact(saved,false)),{'1':399,'2':399,'3':401,'4':401});
+
+  // A bill with an indivisible total differs by just one cent, with the same
+  // result before and after saving.
+  d.tax=2;
+  const odd=api.splitForSaving(d);
+  const oddSaved={...odd,line_items:odd.items.map(it=>({...it,item_assignments:it.shares}))};
+  const owed=api.owedByContact(oddSaved,true), totals=api.calc(d).totals;
+  assert.deepEqual(plain(owed),{'1':401,'2':400,'3':400,'4':400});
+  d.people.forEach(p=>assert.equal(totals[p.id],owed[p.me ? api.S.selfContactId : p.contactId]));
+});
+
 test('Save to History saves once, clears the draft, opens History and reloads it', async()=>{
   let release; const api=app({rpc:()=>new Promise(r=>release=()=>r({data:42,error:null}))}); const d=split(api);
   api.A.saveSplit(); api.A.saveSplit();  // a double tap
   assert.equal(api.ui.savingSplit,true);
   assert.match(api.V.sent(),/data-act="saveSplit" disabled>Saving…/);
   assert.equal(api.calls.length,1,'only one save while saving');
-  assert.match(d.saveKey,/^s-/);
+  assert.match(d.saveKey,/^s-balanced-/);
   assert.match(api.stored['ioya-draft-v1']||'',new RegExp(d.saveKey),'the key is kept in the browser before saving');
   release(); await tick();
   assert.equal(api.calls[0][0],'save_my_split');

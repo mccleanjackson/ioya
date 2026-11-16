@@ -14,7 +14,7 @@ function app({clipboardError=false,userAgent='Android',preview=false,production=
   const context={window,fetch,navigator:{userAgent,clipboard:{writeText:async text=>{if(clipboardError)throw Error('denied');copied.push(text);}}},
     document:{getElementById:()=>fallback,querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:()=>null,setItem(){}},
     setTimeout:fn=>timers.push(fn),clearTimeout(){},console};
-  vm.runInNewContext(script.replace('if (!V[S.view]', 'render=()=>{};globalThis.api={S,A,V,ui,newDraft,normalizeTipDraft,requestTarget,paymentRequest,requestCard,sendPlan,sheetHTML,copyRequest,autoMessage,normContact,preparedRequests};return;\nif (!V[S.view]'),context);
+  vm.runInNewContext(script.replace('if (!V[S.view]', 'render=()=>{};globalThis.api={S,A,V,LIVE,ui,newDraft,normalizeTipDraft,requestTarget,paymentRequest,requestCard,sendPlan,sheetHTML,copyRequest,autoMessage,normContact,preparedRequests};return;\nif (!V[S.view]'),context);
   if (preview) context.api.S.me={first:'Taylor',last:'Preview',phone:''};
   context.api.S.paymentAccounts={venmo:'taylor-preview',paypal:'TaylorPreview',zelle:'payer@example.test',cashapp:'$Taylor',applecash:'8015550104'};
   return {...context.api,copied,timers,fallback};
@@ -379,6 +379,9 @@ test('one production send prepares the preferred app and groups all manual share
   d.people.push({id:'sms',name:'Sam',method:'paypal',paypal:'sam@example.test',venmo:'sam-venmo',contactId:'12',phone:'8015550100'},
     {id:'qr',name:'Jordan',method:'paypal',paypal:'jordan@example.test',contactId:'13',phone:''});
   d.assign.a.push('sms','qr');
+  d.usePaymentLinks=true; // Old previews may still have this option saved.
+  const actions=api.LIVE.sendbar();
+  assert.deepEqual([...actions.matchAll(/<button[^>]*>([^<]+)<\/button>/g)].map(match=>match[1]),['Send requests']);
   await api.A.send();
   assert.equal(api.S.view,'sent');
   assert.deepEqual(calls.map(x=>x.url),['/api/manual-requests','/api/manual-requests','/api/manual-requests/group']);
@@ -389,4 +392,27 @@ test('one production send prepares the preferred app and groups all manual share
   assert.match(page,/Shared QR code/);
   assert.match(page,/Open shared payment page/);
   assert.doesNotMatch(page,/Requested using Venmo|Text (not )?submitted|Retry text/);
+});
+
+test('the default request note uses the split date and only that person’s items',()=>{
+  const api=app(), d=split(api);
+  d.date='2026-11-09';
+  d.items.push({id:'b',name:'Taco',price:200,quantity:2},{id:'c',name:'Coffee',price:300});
+  Object.assign(d.assign,{b:['p'],c:['me']});
+  const [r]=api.preparedRequests();
+  assert.equal(r.note,'Test cafe on Nov 9: Meal, Taco x 2');
+  assert.equal(new URL(api.paymentRequest(r).href).searchParams.get('note'),r.note);
+});
+
+test('payment preparation explains an HTML response from an outdated preview server', async()=>{
+  const api=app({preview:true,fetch:async()=>new Response('<!DOCTYPE html>',{status:404})});
+  const d=split(api);
+  d.people[1].contactId='12';
+  d.people[1].method='manual';
+  d.people[1].venmo='';
+  api.S.view='summary';
+  await api.A.send();
+  assert.equal(api.S.view,'summary');
+  assert.match(api.ui.sendError,/Restart the IOYA preview server/);
+  assert.equal(api.ui.preparing,false);
 });
