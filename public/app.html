@@ -332,13 +332,15 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .hstatus-bar{display:flex;height:10px;overflow:hidden;border-radius:999px;background:var(--line);gap:3px}
 .hstatus-bar i{display:block;height:100%;min-width:0}
 .hstatus-bar .paid{background:var(--history-paid)}
+.hstatus-bar .part{background:var(--history-part)}
 .hstatus-bar .unpaid{background:var(--history-unpaid)}
 .hstatus-empty{width:100%;background:var(--line)}
-.hstatus-counts{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:12px}
+.hstatus-counts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
 .hstatus-count{display:flex;flex-direction:column;gap:2px;min-width:0}
 .hstatus-count span{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;white-space:nowrap}
 .hstatus-count span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
 .hstatus-count.paid span::before{background:var(--history-paid)}
+.hstatus-count.part span::before{background:var(--history-part);box-shadow:inset 0 0 0 1px rgba(21,23,28,.18)}
 .hstatus-count.unpaid span::before{background:var(--history-unpaid)}
 .hstatus-count strong{font:600 22px/1 var(--f-mono)}
 .hstatus-count:not(:last-child){border-right:1px solid var(--line)}
@@ -356,6 +358,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-filter-glider.ready{transition:left .4s cubic-bezier(.2,1.12,.3,1),width .3s cubic-bezier(.2,.8,.2,1),background-color .18s ease}
 .history-filter-glider[data-f="all"]{background:var(--accent)}
 .history-filter-glider[data-f="unpaid"]{background:var(--history-unpaid)}
+.history-filter-glider[data-f="part"]{background:var(--history-part)}
 .history-filter-glider[data-f="paid"]{background:var(--history-paid)}
 .history-filter-glider.squash{animation:history-filter-squash .4s cubic-bezier(.2,.8,.2,1)}
 @keyframes history-filter-squash{0%,100%{transform:scaleX(1)}34%{transform:scaleX(1.1)}66%{transform:scaleX(.96)}}
@@ -401,6 +404,8 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-fchips .fchip[data-f="paid"].on{background:var(--history-paid);color:var(--ink);box-shadow:none}
 .history-fchips .fchip[data-f="unpaid"]{background:var(--history-unpaid-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-unpaid)}
 .history-fchips .fchip[data-f="unpaid"].on{background:var(--history-unpaid);color:var(--ink);box-shadow:none}
+.history-fchips .fchip[data-f="part"]{background:var(--history-part-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-part)}
+.history-fchips .fchip[data-f="part"].on{background:var(--history-part);color:var(--ink);box-shadow:none}
 .history-fchips .fchip{position:relative;z-index:1;transition:color .18s ease,background-color .18s ease,box-shadow .18s ease}
 .history-fchips .fchip.on{background:transparent!important;color:var(--ink);box-shadow:none!important}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .history-fchips .fchip.on{color:#15171C!important}}
@@ -1298,22 +1303,24 @@ function receiptSplitDetail(s){
     </section>`).join('')}
     ${s.receipts.map(receiptCard).join('')}`;
 }
+// 'paid' (everyone paid), 'part' (some paid, some still owe) or 'unpaid' (nobody has paid yet).
 function historyPaymentStatus(split){
-  return split.requests.some(isUnpaid) ? 'unpaid' : 'paid';
+  return splitStatus(split)[0];
 }
 function historyStatusSummary(){
-  const counts = {paid:0, unpaid:0};
+  const counts = {paid:0, part:0, unpaid:0};
   S.history.forEach(s => counts[historyPaymentStatus(s)]++);
   const total = S.history.length;
   const width = cls => total ? `${counts[cls] / total * 100}%` : '0%';
   const bar = total
-    ? ['paid','unpaid'].map(cls => counts[cls] ? `<i class="${cls}" style="width:${width(cls)}" aria-hidden="true"></i>` : '').join('')
+    ? ['paid','part','unpaid'].map(cls => counts[cls] ? `<i class="${cls}" style="width:${width(cls)}" aria-hidden="true"></i>` : '').join('')
     : '<i class="hstatus-empty" aria-hidden="true"></i>';
   return `<section class="hstatus" aria-label="Split status overview">
     <div class="hstatus-title"><b>Payment status</b><small>${total} split${total === 1 ? '' : 's'}</small></div>
-    <div class="hstatus-bar" role="img" aria-label="${counts.paid} paid, ${counts.unpaid} unpaid">${bar}</div>
+    <div class="hstatus-bar" role="img" aria-label="${counts.paid} paid, ${counts.part} partly paid, ${counts.unpaid} unpaid">${bar}</div>
     <div class="hstatus-counts">
       <div class="hstatus-count paid"><span>Paid</span><strong>${counts.paid}</strong></div>
+      <div class="hstatus-count part"><span>Partly paid</span><strong>${counts.part}</strong></div>
       <div class="hstatus-count unpaid"><span>Unpaid</span><strong>${counts.unpaid}</strong></div>
     </div>
   </section>`;
@@ -1413,7 +1420,7 @@ function findBar(k, placeholder, label, filters, filterLabel){
       `<button class="fchip${ui[k + 'f'] === f ? ' on' : ''}" data-act="filter" data-k="${k}" data-f="${f}" aria-pressed="${ui[k + 'f'] === f}">${icon ? I(icon) : ''}${esc(name)}</button>`).join('')}</div>
   </div>`;
 }
-const HFILTERS = [['all','All'],['unpaid','Unpaid'],['paid','Paid']];
+const HFILTERS = [['all','All'],['unpaid','Unpaid'],['part','Partly paid'],['paid','Paid']];
 // Everything a split can be found by, with a label for the parts that aren't already visible on its card.
 function historySearchFields(s){
   return [[s.merchant], [s.eventName], [fmtDate(s.date)], [money(s.you + s.requests.reduce((a, r) => a + r.amount, 0))],

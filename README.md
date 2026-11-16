@@ -108,7 +108,7 @@ IOYA never sends money or marks anyone paid by itself: payment apps don't report
 
 - **Home** lists unpaid bills and the total friends owe you. Open a bill to see who still owes, then tap a person to **Mark as paid** (choose how they paid) or **Mark as unpaid**.
 - **Prepare text reminders** writes one message per person with their unpaid bills and total; **Open text** opens your messaging app with it, or **Copy message**.
-- **History** shows every saved split with search and **All / Unpaid / Paid** filters (Unpaid includes partly paid). Open a split to see the receipt and each person's share, mark payments, or prepare a reminder.
+- **History** shows every saved split, a status bar with how many are **Paid**, **Partly paid** and **Unpaid**, search, and **All / Unpaid / Partly paid / Paid** filters. Open a split to see the receipt and each person's share, mark payments, or prepare a reminder.
 
 ### Contacts and groups
 

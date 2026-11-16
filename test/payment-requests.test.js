@@ -39,18 +39,21 @@ function outstandingHistory(api){
   ];
 }
 
-test('History combines partly paid bills with unpaid bills and Home expands only outstanding shares',()=>{
+test('History separates paid, partly paid and unpaid bills and Home expands only outstanding shares',()=>{
   const api=app();
   outstandingHistory(api);
   const all=api.V.history();
-  assert.deepEqual([...all.matchAll(/data-k="h" data-f="([^"]+)"/g)].map(m=>m[1]),['all','unpaid','paid']);
-  assert.match(all,/2 paid, 2 unpaid/);
+  assert.deepEqual([...all.matchAll(/data-k="h" data-f="([^"]+)"/g)].map(m=>m[1]),['all','unpaid','part','paid']);
+  assert.match(all,/2 paid, 1 partly paid, 1 unpaid/);
   api.ui.hf='unpaid';
   const unpaid=api.V.history();
-  assert.match(unpaid,/Café &amp; Tea/);
-  assert.match(unpaid,/Partly paid/);
   assert.match(unpaid,/Lunch counter/);
-  assert.doesNotMatch(unpaid,/Pizza place|Solo snack/);
+  assert.doesNotMatch(unpaid,/Café &amp; Tea|Pizza place|Solo snack/);
+  api.ui.hf='part';
+  const part=api.V.history();
+  assert.match(part,/Café &amp; Tea/);
+  assert.match(part,/Partly paid/);
+  assert.doesNotMatch(part,/Lunch counter|Pizza place|Solo snack/);
   api.ui.hq='Jordan';
   assert.doesNotMatch(api.V.history(),/Café &amp; Tea/);
   api.ui.hq='';
