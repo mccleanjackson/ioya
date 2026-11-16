@@ -56,6 +56,13 @@ button,input{font:inherit;color:inherit}
 .link{background:none;border:0;padding:0;cursor:pointer;color:var(--pen);font-weight:600;text-decoration:underline;text-underline-offset:3px}
 
 /* hero */
+.qr-card{display:inline-flex;align-items:center;gap:14px;margin-top:26px;padding:10px 18px 10px 10px;background:var(--card);border-radius:18px;
+  box-shadow:0 18px 40px -22px rgba(21,23,28,.35),inset 0 0 0 1px var(--line)}
+.qr-card img{display:block;width:104px;height:104px;border-radius:10px;background:#fff}
+.qr-card b{display:block;font:700 16px/1.25 var(--f-display)}
+.qr-card span{display:block;margin-top:4px;color:var(--muted);font:500 13px var(--f-mono)}
+.qr-card[hidden]{display:none}
+@media (max-width:900px){.qr-card{display:none}}  /* on a phone you're already here */
 .hero{padding:64px 0 40px;overflow:hidden}
 .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;align-items:center;gap:48px}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font:600 12px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-dark);
@@ -170,6 +177,10 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
           <li>Venmo, PayPal, Zelle and more</li>
           <li>Tax and tip shared fairly</li>
         </ul>
+        <div class="qr-card" id="qr-card">
+          <img id="qr-img" src="/qr.png" width="104" height="104" alt="QR code that opens IOYA's home page">
+          <div><b>Scan to open IOYA on your phone</b><span id="qr-host">ioya.onrender.com</span></div>
+        </div>
       </div>
       <div class="shot">
         <div class="phone"><img src="/images/ioya-review-and-send.png" width="390" height="844"
@@ -231,6 +242,14 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
 <script src="/config.js"></script>
 <script src="/session.js"></script>
 <script>
+// "Scan to open IOYA": show the address the QR code holds, and hide the card if the code can't be made.
+(() => {
+  const card = document.getElementById('qr-card'), img = document.getElementById('qr-img'), host = document.getElementById('qr-host');
+  if (!card || !img?.addEventListener) return;
+  if (host) host.textContent = location.host;
+  if (img.complete && !img.naturalWidth) card.hidden = true;
+  img.addEventListener('error', () => { card.hidden = true; });
+})();
 (function(){
 'use strict';
 // Landing page login (email + password, through Supabase Auth). Admins also see the "Maintain"

@@ -4,6 +4,7 @@ const path = require('path');
 const express = require('express');
 const {manualPaymentRequests} = require('./manual-payment-requests');
 const {profileShare} = require('./profile-share');
+const {siteQr} = require('./site-qr');
 
 const {SUPABASE_URL, SUPABASE_ANON_KEY, IOYA_PUBLIC_ORIGIN, RENDER_EXTERNAL_URL} = process.env;
 const preview = process.env.IOYA_PREVIEW === '1';
@@ -58,6 +59,8 @@ app.get(['/pay', '/pay.html'], (req, res) => {
 // admin "Maintain" pages are at /admin.
 app.get(['/app', '/app/'], (req, res) => res.sendFile(path.join(publicDir, 'app.html')));
 app.get(['/admin', '/admin/'], (req, res) => res.sendFile(path.join(publicDir, 'admin.html')));
+// /qr.png: the landing page's "Scan to open IOYA" QR code.
+app.use(siteQr({publicOrigin: configuredOrigin(IOYA_PUBLIC_ORIGIN || RENDER_EXTERNAL_URL)}));
 // Shared profiles: /u/<code> (Profile → Share my profile).
 app.use(profileShare({
   preview, supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY, publicDir,
