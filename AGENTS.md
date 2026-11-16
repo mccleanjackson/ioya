@@ -128,6 +128,7 @@ supabase/payment-preference.sql  Preferred payment app: profile_payment_accounts
 supabase/avatars.sql        Profile pictures: public "avatars" Storage bucket + per-folder policies, users.avatar_path, set_my_avatar()
 docs/ioya-erd.svg (.png, .pdf)  The ERD (source of truth for the data model). ioya-erd-original.* is the team's October diagram
 docs/ioya-architecture.svg (.png)  System architecture diagram
+docs/ioya-dfd-level0.svg, ioya-dfd-level1.svg (.png)  Level 0 and Level 1 data flow diagrams (README "Data Flow Diagrams"). ioya-dfd-level1-original-v1/v2.png are the team's earlier drafts
 README.md                   Human setup guide + course deliverable (graded; keep its 5 sections)
 .env.example                Template for .env
 ```
@@ -315,7 +316,7 @@ The team works on **short-lived branches, one per task**, and merges into `main`
 - Never commit `.env`, keys, or `node_modules` (all in `.gitignore`). Before committing, check that `git diff --cached` contains no Supabase URL or key.
 - **Ask your human before every `git push`**, before opening or merging a pull request, and before anything else that leaves their computer. Never force-push (`git push --force`) or rewrite history on `main`.
 - **Do not add AI co-author or "Generated with" lines** to commits or PRs unless your human explicitly asks; the team wants work attributed to the teammate only.
-- **Keeping the diagrams current:** if you add or change a table or column, update `docs/ioya-erd.svg` (boxes are plain SVG: a rect per table, one text row per column; lines are polylines with crow's-foot marks), re-export the PNG and PDF, and update the README's "Relationships and cardinality" table. Ask your human first: the ERD is graded. If you add a page, service or connection, update `docs/ioya-architecture.svg` and its PNG the same way.
+- **Keeping the diagrams current:** if you add or change a table or column, update `docs/ioya-erd.svg` (boxes are plain SVG: a rect per table, one text row per column; lines are polylines with crow's-foot marks), re-export the PNG and PDF, and update the README's "Relationships and cardinality" table. Ask your human first: the ERD is graded. If you add a page, service or connection, update `docs/ioya-architecture.svg` and its PNG the same way, and the data flow diagrams (`docs/ioya-dfd-level0.svg`, `docs/ioya-dfd-level1.svg`) if data moves differently.
 - If you change setup steps, the data model, or how the vertical slice works, update `README.md` too (it is graded and must keep these sections: App Summary, ERD, Tech Stack, How to Get It Running, Verifying the Vertical Slice).
 
 ## Course rules (important)
