@@ -6,12 +6,16 @@
 <title>IOYA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&family=Finlandica:wght@400;500;600;700&display=swap">
 <style>
 /* Responsive app: full-width on phones, spacious workspace on laptops. */
 :root{
   --desk:#E8EBF0; --paper:#FAFBFC; --card:#FFFFFF; --ink:#15171C; --muted:#5C6371; --line:#D9DEE6;
   --accent:#CC6FCC; --accent-ink:#FFFFFF; --accent-soft:#F6E5F6;
+  --brand-yellow:#FEEB00; --brand-yellow-soft:#FFF9C2;
+  --brand-blue:#5258E5; --brand-blue-soft:#E3E4FF;
+  --brand-purple:#CC6FCC; --brand-purple-soft:#F6E5F6;
+  --brand-red:#FE4B6B; --brand-red-soft:#FFE2E8;
   --history-paid:#5258E5; --history-paid-soft:#E3E4FF;
   --history-part:#FEEB00; --history-part-soft:#FFF9C2;
   --history-unpaid:#FE4B6B; --history-unpaid-soft:#FFE2E8;
@@ -33,7 +37,7 @@
   --f-logo:"Bungee", "Arial Black", system-ui, sans-serif;
   --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --f-body:"Figtree", -apple-system, "Segoe UI", system-ui, sans-serif;
-  --f-mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --f-mono:"Finlandica", ui-monospace, "SF Mono", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --desk:#0A0C10; --paper:#12151C; --card:#1A1E27; --ink:#ECEEF2; --muted:#9AA2B1; --line:#2B313D;
@@ -41,6 +45,8 @@
   --history-paid:#5258E5; --history-paid-soft:#292B5F;
   --history-part:#FEEB00; --history-part-soft:#3F3914;
   --history-unpaid:#FE4B6B; --history-unpaid-soft:#4B202B;
+  --brand-yellow-soft:#3A3208; --brand-blue-soft:#292B5F;
+  --brand-purple-soft:#3B253C; --brand-red-soft:#4B202B;
   --method-venmo-soft:#12395A; --method-paypal-soft:#263B66; --method-zelle-soft:#342354;
   --palette-cashapp-soft:#164527; --palette-applecash-soft:#303030; --palette-brown-soft:#493426;
   --palette-applecash:#FEFEFE; --palette-applecash-soft:#E2E2E2;
@@ -56,6 +62,8 @@
   --history-paid:#5258E5; --history-paid-soft:#292B5F;
   --history-part:#FEEB00; --history-part-soft:#3F3914;
   --history-unpaid:#FE4B6B; --history-unpaid-soft:#4B202B;
+  --brand-yellow-soft:#3A3208; --brand-blue-soft:#292B5F;
+  --brand-purple-soft:#3B253C; --brand-red-soft:#4B202B;
   --method-venmo-soft:#12395A; --method-paypal-soft:#263B66; --method-zelle-soft:#342354;
   --palette-cashapp-soft:#164527; --palette-applecash-soft:#303030; --palette-brown-soft:#493426;
   --palette-applecash:#FEFEFE; --palette-applecash-soft:#E2E2E2;
@@ -94,8 +102,13 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .app-loading-logo{width:200px;height:94px;object-fit:cover;animation:loading-pulse 1.6s ease-in-out infinite}
 .app-loading-dots{display:flex;gap:6px}
 .app-loading-dots i{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:loading-dot 1.2s ease-in-out infinite}
+.app-loading-dots i:nth-child(1){background:var(--brand-yellow)}
+.app-loading-dots i:nth-child(2){background:var(--brand-blue)}
+.app-loading-dots i:nth-child(3){background:var(--brand-purple)}
+.app-loading-dots i:nth-child(4){background:var(--brand-red)}
 .app-loading-dots i:nth-child(2){animation-delay:.15s}
 .app-loading-dots i:nth-child(3){animation-delay:.3s}
+.app-loading-dots i:nth-child(4){animation-delay:.45s}
 @keyframes loading-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.96);opacity:.75}}
 @keyframes loading-dot{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-6px);opacity:1}}
 
@@ -140,15 +153,16 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .logo img{display:block;width:170px;height:80px;object-fit:cover;object-position:center; transform: translate(-20px, -10px)}
 .tag{font-family:var(--f-display);font-weight:700;font-size:21px;margin:-27px 0 0;line-height:1.2}
 .tag em{font-style:normal;text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:4px}
-mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
+mark{background:var(--hi);color:var(--ink);padding:0 5px;border-radius:4px}
 .cta{display:flex;align-items:center;gap:14px;text-align:left;background:var(--accent);color:var(--accent-ink);border-radius:18px;padding:16px 18px}
 .cta .ic{width:34px;height:34px}
 .cta b{display:block;font-family:var(--f-display);font-size:20px;letter-spacing:-.01em}
 .cta small{font-size:13px;opacity:.85}
-.btn.resume-split{background:var(--accent-soft);color:var(--ink);box-shadow:inset 0 0 0 1px var(--accent)}
-.btn.resume-split:hover{background:var(--card)}
+.btn.resume-split{background:var(--history-paid-soft);color:var(--ink);box-shadow:inset 0 0 0 1px var(--history-paid)}
 .resume-split .ic{width:16px;height:16px}
-.resume-row{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+.resume-row{display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.resume-row .btn{flex:1;min-width:0}
+.resume-row .btn.danger{background:var(--history-unpaid-soft);color:var(--ink);box-shadow:inset 0 0 0 1px var(--history-unpaid)}
 .btn.flow-discard{flex:none;width:auto;margin:0;gap:6px;color:var(--bad)}
 .flow-discard .ic{width:16px;height:16px}
 .danger-link{color:var(--bad)}
@@ -332,13 +346,15 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .hstatus-bar{display:flex;height:10px;overflow:hidden;border-radius:999px;background:var(--line);gap:3px}
 .hstatus-bar i{display:block;height:100%;min-width:0}
 .hstatus-bar .paid{background:var(--history-paid)}
+.hstatus-bar .part{background:var(--history-part)}
 .hstatus-bar .unpaid{background:var(--history-unpaid)}
 .hstatus-empty{width:100%;background:var(--line)}
-.hstatus-counts{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:12px}
+.hstatus-counts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
 .hstatus-count{display:flex;flex-direction:column;gap:2px;min-width:0}
 .hstatus-count span{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;white-space:nowrap}
 .hstatus-count span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
 .hstatus-count.paid span::before{background:var(--history-paid)}
+.hstatus-count.part span::before{background:var(--history-part)}
 .hstatus-count.unpaid span::before{background:var(--history-unpaid)}
 .hstatus-count strong{font:600 22px/1 var(--f-mono)}
 .hstatus-count:not(:last-child){border-right:1px solid var(--line)}
@@ -355,6 +371,7 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-filter-glider{position:absolute;z-index:0;top:2px;bottom:2px;left:0;width:0;border-radius:999px;pointer-events:none}
 .history-filter-glider.ready{transition:left .4s cubic-bezier(.2,1.12,.3,1),width .3s cubic-bezier(.2,.8,.2,1),background-color .18s ease}
 .history-filter-glider[data-f="all"]{background:var(--accent)}
+.history-filter-glider[data-f="part"]{background:var(--history-part)}
 .history-filter-glider[data-f="unpaid"]{background:var(--history-unpaid)}
 .history-filter-glider[data-f="paid"]{background:var(--history-paid)}
 .history-filter-glider.squash{animation:history-filter-squash .4s cubic-bezier(.2,.8,.2,1)}
@@ -399,6 +416,8 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .history-fchips .fchip[data-f="all"].on{background:var(--accent);color:var(--ink);box-shadow:none}
 .history-fchips .fchip[data-f="paid"]{background:var(--history-paid-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-paid)}
 .history-fchips .fchip[data-f="paid"].on{background:var(--history-paid);color:var(--ink);box-shadow:none}
+.history-fchips .fchip[data-f="part"]{background:var(--history-part-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-part)}
+.history-fchips .fchip[data-f="part"].on{background:var(--history-part);color:var(--ink);box-shadow:none}
 .history-fchips .fchip[data-f="unpaid"]{background:var(--history-unpaid-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--history-unpaid)}
 .history-fchips .fchip[data-f="unpaid"].on{background:var(--history-unpaid);color:var(--ink);box-shadow:none}
 .history-fchips .fchip{position:relative;z-index:1;transition:color .18s ease,background-color .18s ease,box-shadow .18s ease}
@@ -474,8 +493,10 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .grp{max-width:110px;flex-shrink:0;overflow-wrap:anywhere}
 .grp small{color:var(--muted);font-weight:500;font-family:var(--f-mono);font-size:11px;margin-top:-4px}
 .gc{width:58px;height:58px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:18px;background:var(--card)}
-.grp:nth-child(3n+1) .gc{background:var(--accent);color:var(--on-hi)}
-.grp:nth-child(3n+2) .gc{background:var(--accent-soft);color:var(--on-hi)}
+.grp:nth-child(4n+1) .gc{background:var(--brand-yellow-soft);color:var(--ink);box-shadow:inset 0 0 0 2px var(--brand-yellow)}
+.grp:nth-child(4n+2) .gc{background:var(--brand-blue-soft);color:var(--ink);box-shadow:inset 0 0 0 2px var(--brand-blue)}
+.grp:nth-child(4n+3) .gc{background:var(--brand-purple-soft);color:var(--ink);box-shadow:inset 0 0 0 2px var(--brand-purple)}
+.grp:nth-child(4n+4) .gc{background:var(--brand-red-soft);color:var(--ink);box-shadow:inset 0 0 0 2px var(--brand-red)}
 .grp.add .gc{background:transparent;box-shadow:inset 0 0 0 2px var(--line);border:0;color:var(--muted)}
 .ctable{background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line);overflow:hidden}
 .ctable .chead,.ctable .crow{display:grid;grid-template-columns:1fr auto;gap:10px;padding:11px 14px;text-align:left;width:100%;align-items:center}
@@ -1291,21 +1312,22 @@ function receiptSplitDetail(s){
     ${s.receipts.map(receiptCard).join('')}`;
 }
 function historyPaymentStatus(split){
-  return split.requests.some(isUnpaid) ? 'unpaid' : 'paid';
+  return splitStatus(split)[0];
 }
 function historyStatusSummary(){
-  const counts = {paid:0, unpaid:0};
+  const counts = {paid:0, part:0, unpaid:0};
   S.history.forEach(s => counts[historyPaymentStatus(s)]++);
   const total = S.history.length;
   const width = cls => total ? `${counts[cls] / total * 100}%` : '0%';
   const bar = total
-    ? ['paid','unpaid'].map(cls => counts[cls] ? `<i class="${cls}" style="width:${width(cls)}" aria-hidden="true"></i>` : '').join('')
+    ? ['paid','part','unpaid'].map(cls => counts[cls] ? `<i class="${cls}" style="width:${width(cls)}" aria-hidden="true"></i>` : '').join('')
     : '<i class="hstatus-empty" aria-hidden="true"></i>';
   return `<section class="hstatus" aria-label="Split status overview">
     <div class="hstatus-title"><b>Payment status</b><small>${total} split${total === 1 ? '' : 's'}</small></div>
-    <div class="hstatus-bar" role="img" aria-label="${counts.paid} paid, ${counts.unpaid} unpaid">${bar}</div>
+    <div class="hstatus-bar" role="img" aria-label="${counts.paid} paid, ${counts.part} partly paid, ${counts.unpaid} unpaid">${bar}</div>
     <div class="hstatus-counts">
       <div class="hstatus-count paid"><span>Paid</span><strong>${counts.paid}</strong></div>
+      <div class="hstatus-count part"><span>Partly paid</span><strong>${counts.part}</strong></div>
       <div class="hstatus-count unpaid"><span>Unpaid</span><strong>${counts.unpaid}</strong></div>
     </div>
   </section>`;
@@ -1377,7 +1399,7 @@ V.home = () => {
   <p class="tag">Keep track of the bill with just <mark> one simple system.</mark></p>
   <button class="cta" data-act="start">${I('scan')}<span><b>Pay New Tab</b><small>Click here to split a new receipt!</small></span></button>
   ${S.draft.items.length ? `<div class="resume-row"><button class="btn small resume-split" data-act="resume">${I('history')}Resume current split</button>
-    <button class="link" data-act="askDiscard">Discard</button></div>` : ''}
+    <button class="btn small danger" data-act="askDiscard">${I('x')}Discard</button></div>` : ''}
   <h2 class="eyebrow" id="unpaid-heading">Unpaid bills</h2>
   <section class="board" aria-labelledby="unpaid-heading">
     ${unpaid.map(({s, people, amount}) => {
@@ -1405,7 +1427,7 @@ function findBar(k, placeholder, label, filters, filterLabel){
       `<button class="fchip${ui[k + 'f'] === f ? ' on' : ''}" data-act="filter" data-k="${k}" data-f="${f}" aria-pressed="${ui[k + 'f'] === f}">${icon ? I(icon) : ''}${esc(name)}</button>`).join('')}</div>
   </div>`;
 }
-const HFILTERS = [['all','All'],['unpaid','Unpaid'],['paid','Paid']];
+const HFILTERS = [['all','All'],['paid','Paid'],['part','Partly paid'],['unpaid','Unpaid']];
 // Everything a split can be found by, with a label for the parts that aren't already visible on its card.
 function historySearchFields(s){
   return [[s.merchant], [s.eventName], [fmtDate(s.date)], [money(s.you + s.requests.reduce((a, r) => a + r.amount, 0))],
@@ -2454,7 +2476,7 @@ function sheetHTML(){
         <label class="field"><span>First Name:</span><input id="f-first" value="${esc(c.first)}" autocomplete="off"></label>
         <label class="field"><span>Last Name: <small>(optional)</small></span><input id="f-last" value="${esc(c.last)}" autocomplete="off"></label>
       </div>
-      <label class="field"><span>Phone Number:</span><input id="f-phone" inputmode="tel" value="${esc(c.phone)}" placeholder="(555) 000-0000" autocomplete="off"></label>
+      <label class="field"><span>Phone Number: <small>(optional)</small></span><input id="f-phone" inputmode="tel" value="${esc(c.phone)}" placeholder="(555) 000-0000" autocomplete="off"></label>
       <p class="eyebrow">Payment Methods</p>
       ${methods.map(m => `<div class="frow" style="gap:10px">
         <label class="field" style="flex:1"><span>${esc(m.name)}:</span><input id="f-m-${m.id}" value="${esc(has(m.id)?.username || '')}" placeholder="${esc(PROFILE_HINTS[METHOD_KEY[m.name]] || 'Account details')}" autocomplete="off"></label>
@@ -2661,7 +2683,7 @@ function syncTabIndicator(){
 function loadingScreen(){
   return `<div class="app-loading" role="status" aria-live="polite">
     <img class="app-loading-logo" src="/ioya_logo.png" alt="" width="200" height="94">
-    <div class="app-loading-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="app-loading-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     <p class="fine">${S.userId == null ? 'Setting up your account…' : 'Loading your splits…'}</p>
   </div>`;
 }
