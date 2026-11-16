@@ -37,7 +37,7 @@ The same diagram is in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf), and its source 
 
 **How the diagram becomes tables.** The SQL in [`supabase/schema.sql`](supabase/schema.sql) uses the same tables and columns, written in Postgres's lowercase snake_case style: `Users.UserFirstName` becomes `users.user_first_name`, `Contacts_Payment_Method` becomes `contacts_payment_method`, and so on. Money is stored as whole cents, so `1959` means $19.59. One table in `schema.sql` is not drawn: `manual_payment_sms`, which is only for an optional text-message feature the live app doesn't use.
 
-**Accounts.** `Users.AuthUserID` (unique) links a row to its Supabase Auth login; it is empty for the sample users in `seed.sql` and for users an admin adds before they log in. `UserEmail` is the login email, `IsAdmin` marks admins, `AvatarPath` names the profile picture file in Supabase Storage (empty = no photo), and `ProfileCode` (unique) is the random code in a shared profile link, `/u/<code>` (empty until the person first taps **Share my profile**). `Events.ClientKey` is a random key the app sends with **Save to History** so a split is never saved twice. `Profile_Payment_Accounts.Accounts` and `Manual_Payment_Requests.Data` hold several values in one JSON column.
+**Accounts.** `Users.AuthUserID` (unique) links a row to its Supabase Auth login; it is empty for the sample users in `seed.sql` and for users an admin adds before they log in. `UserEmail` is the login email, `IsAdmin` marks admins, `AvatarPath` names the profile picture file in Supabase Storage (empty = no photo), and `ProfileCode` (unique) is the random code in a shared profile link, `/u/<code>` (empty until the person first taps **Share my profile**). `Friend_Groups.Position` is the group's place in its owner's list on the Contacts tab (empty until they reorder). `Events.ClientKey` is a random key the app sends with **Save to History** so a split is never saved twice. `Profile_Payment_Accounts.Accounts` and `Manual_Payment_Requests.Data` hold several values in one JSON column.
 
 **The payer is also a contact.** Each user has one row in `contacts` with the same name and phone as their `users` row. That lets the payer be a participant and be assigned items like everyone else, and the app shows that contact as "You."
 
@@ -115,6 +115,7 @@ IOYA never sends money or marks anyone paid by itself: payment apps don't report
 - Add, edit and delete contacts with their phone and payment usernames (★ = preferred). A contact on a past split can't be deleted, because that would erase their items from the receipt.
 - **Import device contacts** uses the phone's contact picker where supported, or a `.vcf` file. You review the list and tick who to save; only names and the first phone number are used, and people you already have are skipped.
 - **Groups** (for example "Lunch crew") can be added to a split in one tap. Search keeps your selections, empty groups are allowed, and deleting a group keeps its contacts.
+- **Reorder groups** by dragging them on the Contacts tab (on a phone, hold for a moment, then drag; on a keyboard, Alt + ← / →). The order is saved to your account ([`supabase/group-order.sql`](supabase/group-order.sql)) and is also used in the split's Add Contacts list.
 
 ### Admin pages (`/admin`)
 
@@ -272,7 +273,7 @@ Open the printed address on the phone and enter the emailed PIN. It needs the co
 
 - **Profile sharing:** log in to a saved profile, tap **Profile → Share my profile**, then **Open my page** (or scan the QR code on the live site). The page shows only your name, photo and payment apps, even in a private window. **Make a new link** makes the old link say "This profile link isn't working."
 - **Discard split:** start a split, tap **Discard split**, then **Keep split** (nothing changes) and again **Discard split** (Home no longer shows Resume, even after a refresh).
-- **Groups:** on Contacts, create a group, rename it, change members, refresh, and delete it (its contacts stay).
+- **Groups:** on Contacts, create a group, rename it, change members, refresh, and delete it (its contacts stay). With two or more groups, drag one to a new place, refresh, and check it stayed there.
 
 These are steps for checking the software, not test results. Students do and record their own required course testing.
 

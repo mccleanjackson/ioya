@@ -474,8 +474,15 @@ input:focus,select:focus{outline:none;border-color:var(--pen)}
 .grp{max-width:110px;flex-shrink:0;overflow-wrap:anywhere}
 .grp small{color:var(--muted);font-weight:500;font-family:var(--f-mono);font-size:11px;margin-top:-4px}
 .gc{width:58px;height:58px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:18px;background:var(--card)}
-.grp:nth-child(3n+1) .gc{background:var(--accent);color:var(--on-hi)}
-.grp:nth-child(3n+2) .gc{background:var(--accent-soft);color:var(--on-hi)}
+.grp[data-tone="1"] .gc{background:var(--accent);color:var(--on-hi)}
+.grp[data-tone="2"] .gc{background:var(--accent-soft);color:var(--on-hi)}
+/* Drag to reorder (groupDrag below). Siblings slide aside with a transition; the dragged one follows the pointer. */
+.groups .grp{touch-action:pan-x;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;transition:transform .16s ease}
+.groups .grp.dragging{transition:none;z-index:2;cursor:grabbing}
+.groups .grp.dragging .gc{box-shadow:inset 0 0 0 2px var(--ink),0 10px 22px rgba(0,0,0,.22);transform:scale(1.08)}
+.groups .grp .gc{transition:transform .16s ease,box-shadow .16s ease}
+.groups.drag-on{scroll-behavior:auto}
+.ghint{margin:-4px 0 0}
 .grp.add .gc{background:transparent;box-shadow:inset 0 0 0 2px var(--line);border:0;color:var(--muted)}
 .ctable{background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line);overflow:hidden}
 .ctable .chead,.ctable .crow{display:grid;grid-template-columns:1fr auto;gap:10px;padding:11px 14px;text-align:left;width:100%;align-items:center}
@@ -850,7 +857,7 @@ async function loadAll(){
       sb.from('payment_methods').select('pay_method_id, pay_method_name').order('pay_method_id').then(need),
       sb.from('contacts').select(CONTACT_SELECT)
         .eq('user_id', S.userId).order('contact_id').then(need),
-      sb.from('friend_groups').select('group_id, group_name, group_members(contact_id)').order('group_id').then(need),
+      sb.from('friend_groups').select('*, group_members(contact_id)').order('group_id').then(need),
       sb.from('events').select(`*,
           participants(contact_id, paid_method_id),
           receipts(receipt_id, payer_user_id, merchant_name, receipt_date, tax_cents, fees_cents, tip_percent, tip_cents, total_cents,
@@ -870,7 +877,8 @@ async function loadAll(){
     const byId = Object.fromEntries(S.contacts.map(c => [c.id, c]));
     // The database returns only this user's own groups, including empty ones. Members are limited
     // to contacts on the list (this drops the user's own "You" contact if a group includes it).
-    S.groups = groups.map(groupFromRow);
+    // Saved order first (friend_groups.position, group-order.sql), then groups not placed yet, oldest first.
+    S.groups = groups.slice().sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity) || a.group_id - b.group_id).map(groupFromRow);
     S.history = events.filter(e => e.receipts.some(r => r.payer_user_id === S.userId)).map(e => {
       const owed = {};
       const balanceCents = e.client_key?.startsWith(BALANCED_SPLIT_KEY);
@@ -1490,7 +1498,7 @@ function contactList(){
 V.contacts = () => `
   <header class="top"><h1 class="h">Your Contacts</h1></header>
   <div class="ghead"><h2 class="eyebrow">Groups</h2><button class="btn small ghost" data-act="sheet" data-s="group">${I('plus')} New group</button></div>
-  ${S.groups.length ? `<div class="groups">${S.groups.map(g => `<button class="grp" data-act="sheet" data-s="group" data-id="${esc(g.id)}" aria-label="Edit group ${esc(g.name)}, ${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}"><span class="gc">${esc(ini(g.name))}</span><span>${esc(g.name)}</span><small>${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}</small></button>`).join('')}</div>` : '<p class="fine gempty">No groups yet. Keep your frequent split partners together in a group.</p>'}
+  ${S.groups.length ? `<div class="groups" id="group-row">${S.groups.map(g => `<button class="grp" data-act="sheet" data-s="group" data-id="${esc(g.id)}" data-tone="${Number(g.id) % 3}" ${S.groups.length > 1 ? 'aria-describedby="group-order-hint"' : ''} aria-label="Edit group ${esc(g.name)}, ${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}"><span class="gc">${esc(ini(g.name))}</span><span>${esc(g.name)}</span><small>${g.members.length} ${g.members.length === 1 ? 'person' : 'people'}</small></button>`).join('')}</div>${S.groups.length > 1 ? '<p class="fine ghint" id="group-order-hint">Drag a group to reorder (hold, then drag on a phone). Keyboard: Alt + ← / →.</p>' : ''}` : '<p class="fine gempty">No groups yet. Keep your frequent split partners together in a group.</p>'}
   <h2 class="eyebrow">Contacts</h2>
   ${findBar('c', 'Search names or payment methods', 'Search contacts by first and last name or payment method', contactFilters(), 'Filter by payment method')}
   <div class="clist" data-live="clist">${contactList()}</div>
@@ -1627,7 +1635,7 @@ function pickerResults(){
   const limit = S.draft.people.length >= 12;
   const order = (a, b) => a.name.localeCompare(b.name);
   const matches = entry => entry.name.toLocaleLowerCase().includes(q);
-  const groups = S.groups.filter(matches).sort(order).map(g => ({...g, available:g.members.filter(id => !selected.has(id)).length})).filter(g => g.available);
+  const groups = S.groups.filter(matches).map(g => ({...g, available:g.members.filter(id => !selected.has(id)).length})).filter(g => g.available);
   const contacts = S.contacts.filter(c => !selected.has(c.id) && matches(c)).sort(order);
   function row(entry, action, detail, avatar){
     return `<li><button class="match-pick-row" data-act="${action}" data-id="${esc(entry.id)}" ${limit ? 'disabled' : ''}><span class="match-face" aria-hidden="true">${avatar}</span><span class="pick-name">${esc(entry.name)}${detail ? `<small>${detail}</small>` : ''}</span>${I('plus')}</button></li>`;
@@ -2725,6 +2733,104 @@ function render(){
   sizeRequestNotes();
   save();
 }
+// ---------- reorder groups (Contacts tab; supabase/group-order.sql) ----------
+// Drag with a mouse (starts after moving 6px), or hold ~0.45s on a touch screen and then drag; a plain
+// click/tap still opens the group. Alt + ←/→ moves the focused group. The new order shows right away and is
+// saved with save_group_order(); if saving fails, the previous order comes back.
+let groupDrag = null, groupOrderVersion = 0, groupClickBlockedUntil = 0;
+function moveGroup(id, to){
+  const from = S.groups.findIndex(g => g.id === id);
+  if (from < 0 || to < 0 || to >= S.groups.length || to === from) return false;
+  const before = S.groups.slice();
+  const [g] = S.groups.splice(from, 1); S.groups.splice(to, 0, g);
+  render();
+  saveGroupOrder(before);
+  return true;
+}
+async function saveGroupOrder(before){
+  const version = ++groupOrderVersion;
+  if (CFG.preview) return;
+  try { need(await sb.rpc('save_group_order', {p_group_ids:S.groups.map(g => Number(g.id))})); }
+  catch(e) {
+    if (version !== groupOrderVersion) return;  // a newer order is already being saved
+    S.groups = before.filter(g => S.groups.some(x => x.id === g.id)).concat(S.groups.filter(g => !before.some(x => x.id === g.id)));
+    render();
+    toast(/save_group_order|position/i.test(e?.message || '') ? 'Saving the group order needs a database update: run supabase/group-order.sql.'
+      : 'Couldn\'t save the new group order. Check your connection and try again.');
+  }
+}
+function groupDragSlots(row){
+  return [...row.querySelectorAll('.grp')].map(el => ({id:el.dataset.id, el, mid:el.offsetLeft + el.offsetWidth / 2, width:el.offsetWidth}));
+}
+function startGroupDrag(){
+  const d = groupDrag; if (!d || d.started || !d.el.isConnected) return;
+  d.started = true; d.slots = groupDragSlots(d.row);
+  d.from = d.slots.findIndex(x => x.id === d.id); d.to = d.from;
+  d.gap = d.slots.length > 1 ? Math.abs(d.slots[1].el.offsetLeft - d.slots[0].el.offsetLeft) - d.slots[0].width : 14;
+  d.el.classList.add('dragging'); d.row.classList.add('drag-on');
+  navigator.vibrate?.(15);
+}
+function moveGroupDrag(x){
+  const d = groupDrag, rowBox = d.row.getBoundingClientRect();
+  // Scroll the row when dragging near its edges.
+  if (x < rowBox.left + 36) d.row.scrollLeft -= 10; else if (x > rowBox.right - 36) d.row.scrollLeft += 10;
+  const dx = x - d.startX + (d.row.scrollLeft - d.startScroll);
+  d.el.style.transform = `translateX(${dx}px)`;
+  const center = d.slots[d.from].mid + dx, shift = d.slots[d.from].width + d.gap;
+  let to = d.from;
+  d.slots.forEach((s, i) => { if (i < d.from && center < s.mid) to = Math.min(to, i); if (i > d.from && center > s.mid) to = Math.max(to, i); });
+  d.to = to;
+  d.slots.forEach((s, i) => {
+    if (i === d.from) return;
+    const off = d.from < i && i <= to ? -shift : to <= i && i < d.from ? shift : 0;
+    s.el.style.transform = off ? `translateX(${off}px)` : '';
+  });
+}
+function endGroupDrag(commit){
+  const d = groupDrag; groupDrag = null; if (!d) return;
+  clearTimeout(d.timer);
+  if (!d.started) return;
+  groupClickBlockedUntil = Date.now() + 400;  // the click that ends a drag doesn't open the group
+  d.row.classList.remove('drag-on');
+  d.slots.forEach(s => { s.el.style.transform = ''; s.el.classList.remove('dragging'); });
+  if (commit && d.to !== d.from && moveGroup(d.id, d.to)) {
+    document.querySelector(`#group-row .grp[data-id="${CSS.escape(d.id)}"]`)?.focus({preventScroll:true});
+  }
+}
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest?.('#group-row .grp'); if (!el || e.button > 0 || S.groups.length < 2 || groupDrag) return;
+  const row = el.parentElement;
+  groupDrag = {id:el.dataset.id, el, row, pointerId:e.pointerId, startX:e.clientX, startY:e.clientY, startScroll:row.scrollLeft, started:false,
+    touch:e.pointerType !== 'mouse'};
+  if (groupDrag.touch) groupDrag.timer = setTimeout(startGroupDrag, 450);
+});
+document.addEventListener('pointermove', e => {
+  const d = groupDrag; if (!d || e.pointerId !== d.pointerId) return;
+  if (!d.el.isConnected) return endGroupDrag(false);
+  const moved = Math.hypot(e.clientX - d.startX, e.clientY - d.startY);
+  if (!d.started){
+    if (d.touch) { if (moved > 8) endGroupDrag(false); return; }  // moved before the hold finished: it's a scroll
+    if (moved < 6) return;
+    startGroupDrag();
+  }
+  e.preventDefault();
+  moveGroupDrag(e.clientX);
+});
+document.addEventListener('pointerup', e => { if (groupDrag && e.pointerId === groupDrag.pointerId) endGroupDrag(true); });
+document.addEventListener('pointercancel', e => { if (groupDrag && e.pointerId === groupDrag.pointerId) endGroupDrag(false); });
+// Once a hold-to-drag has started, stop the row (and page) from scrolling under the finger.
+document.addEventListener('touchmove', e => { if (groupDrag?.started) e.preventDefault(); }, {passive:false});
+document.addEventListener('contextmenu', e => { if (groupDrag || e.target.closest?.('#group-row .grp')) e.preventDefault(); });
+document.addEventListener('keydown', e => {
+  const el = e.target.closest?.('#group-row .grp');
+  if (!el || !e.altKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+  e.preventDefault();
+  const id = el.dataset.id, from = S.groups.findIndex(g => g.id === id), to = from + (e.key === 'ArrowLeft' ? -1 : 1);
+  if (moveGroup(id, to)) {
+    document.querySelector(`#group-row .grp[data-id="${CSS.escape(id)}"]`)?.focus();
+    toast(`Moved ${S.groups[to].name} to position ${to + 1} of ${S.groups.length}.`);
+  }
+});
 // Discard split (Home, the camera's resume banner, every split screen): throws away the unfinished
 // split kept in this browser. Nothing is in the database until Save to History, so nothing to delete there.
 function discardSplit(){
@@ -3944,6 +4050,7 @@ async function setPaid(methodId){
 }
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el || el.disabled || ui.preparing) return;
+  if (Date.now() < groupClickBlockedUntil && el.closest('#group-row')) { e.preventDefault(); return; }
   const f = A[el.dataset.act]; if (f){ e.preventDefault(); f(el.dataset, el); }
 });
 document.addEventListener('input', e => {
