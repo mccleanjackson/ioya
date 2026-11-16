@@ -132,6 +132,12 @@ mark{background:var(--hi);color:var(--on-hi);padding:0 5px;border-radius:4px}
 .btn.resume-split{background:var(--accent-soft);color:var(--ink);box-shadow:inset 0 0 0 1px var(--accent)}
 .btn.resume-split:hover{background:var(--card)}
 .resume-split .ic{width:16px;height:16px}
+.resume-row{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+.btn.flow-discard{flex:none;width:auto;margin:0;gap:6px;color:var(--bad)}
+.flow-discard .ic{width:16px;height:16px}
+.danger-link{color:var(--bad)}
+.btn.danger{background:var(--bad);color:#fff;box-shadow:none}
+@media(max-width:420px){.flow-discard span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
 
 .board{background:var(--card);border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line);overflow:hidden}
 .home-bill + .home-bill{border-top:1px solid var(--line)}
@@ -714,6 +720,7 @@ const ICONS = {
   cash:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9h.01M18 15h.01"/>',
   none:'<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
   star:'<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
   qr:'<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/>'
 };
 const I = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
@@ -1164,7 +1171,8 @@ function flowHead(i, back){
     const initial = flowStartWidths?.[k] ?? (previous >= k ? 100 : 0);
     return `<i><span style="width:${initial}%"></span></i>`;
   }).join('')}</div>
-  <span class="step-l">${i+1}/${STEPS.length}</span></div>`;
+  <span class="step-l">${i+1}/${STEPS.length}</span>
+  <button class="btn small ghost flow-discard" data-act="askDiscard" title="Discard this split">${I('trash')}<span>Discard split</span></button></div>`;
 }
 
 function isUnpaid(r){
@@ -1352,7 +1360,8 @@ V.home = () => {
   </header>
   <p class="tag">Keep track of the bill with just <mark> one simple system.</mark></p>
   <button class="cta" data-act="start">${I('scan')}<span><b>Pay New Tab</b><small>Click here to split a new receipt!</small></span></button>
-  ${S.draft.items.length ? `<button class="btn small resume-split" data-act="resume">${I('history')}Resume current split</button>` : ''}
+  ${S.draft.items.length ? `<div class="resume-row"><button class="btn small resume-split" data-act="resume">${I('history')}Resume current split</button>
+    <button class="link" data-act="askDiscard">Discard</button></div>` : ''}
   <h2 class="eyebrow" id="unpaid-heading">Unpaid bills</h2>
   <section class="board" aria-labelledby="unpaid-heading">
     ${unpaid.map(({s, people, amount}) => {
@@ -1505,6 +1514,7 @@ V.scan = () => {
         <span>Resume your current split?</span>
         <div class="camera-resume-actions">
           <button class="btn small" data-act="resume">Resume split</button>
+          <button class="btn small ghost" data-act="askDiscard">Discard</button>
           <button class="iconbtn" data-act="dismissCameraResume" aria-label="Dismiss resume split banner">${I('x')}</button>
         </div></div>` : ''}
       ${ui.cameraError || (ui.cameraOpen && ui.cameraLightMode) ? `<div class="camera-preview-controls">
@@ -1872,7 +1882,8 @@ V.sent = () => {
     <div class="next two"><button class="btn ghost" data-act="go" data-v="summary" ${ui.savingSplit ? 'disabled' : ''}>Edit split</button>${CFG.preview
       ? '<button class="btn" data-act="previewHistory">View preview history</button>'
       : `<button class="btn" data-act="saveSplit" ${ui.savingSplit ? 'disabled' : ''}>${ui.savingSplit ? 'Saving…' : ui.saveSplitError ? 'Try again' : 'Save to History'}</button>`}</div>
-    ${CFG.preview ? '' : `<p class="fine" style="text-align:center"><button class="link" data-act="done" ${ui.savingSplit ? 'disabled' : ''}>Not now, keep it in this browser</button></p>`}`;
+    ${CFG.preview ? '' : `<p class="fine" style="text-align:center"><button class="link" data-act="done" ${ui.savingSplit ? 'disabled' : ''}>Not now, keep it in this browser</button></p>`}
+    <p class="fine" style="text-align:center"><button class="link danger-link" data-act="askDiscard" ${ui.savingSplit ? 'disabled' : ''}>Discard split</button></p>`;
 };
 
 /* ---------- saving a finished split to History (supabase/save-splits.sql) ----------
@@ -2479,6 +2490,12 @@ function sheetHTML(){
       : `<h2 id="sh-t">This split is no longer here</h2><p class="fine">It may have been removed. Close this and refresh the page.</p>
         <div class="next"><button class="btn ghost" data-act="close">Close</button></div>`;
   }
+  if (s.type === 'discardSplit'){
+    body = `<h2 id="sh-t">Discard this split?</h2>
+      <p class="fine">The receipt, items and who had what will be deleted from this browser. You can't undo this. Splits already saved to History aren't affected.</p>
+      <div class="next two"><button class="btn ghost" data-act="close">Keep split</button>
+        <button class="btn danger" data-act="discardSplit">Discard split</button></div>`;
+  }
   if (s.type === 'confirmTotal'){
     body = `<h2 id="sh-t">Does this match your receipt total?</h2>
       <p class="mono confirm-split-total">${money(s.total)}</p>
@@ -2675,6 +2692,16 @@ function render(){
   if (v === 'scan' && ui.cameraOpen) attachCameraPreview();
   sizeRequestNotes();
   save();
+}
+// Discard split (Home, the camera's resume banner, every split screen): throws away the unfinished
+// split kept in this browser. Nothing is in the database until Save to History, so nothing to delete there.
+function discardSplit(){
+  if (ui.savingSplit) return;
+  stopCamera(); cancelScan(); clearPhoto(); clearCapturePreview();
+  ui.sheet = null; ui.saveSplitError = ''; ui.sendError = '';
+  S.draft = newDraft();
+  go('home');  // render() saves the empty draft, so Resume current split stays gone after a refresh
+  toast('Split discarded.');
 }
 function go(v){
   if (v !== 'scan' && ui.capturePreviewUrl) clearCapturePreview();
@@ -3405,6 +3432,8 @@ const A = {
   send: () => prepareSplitRequests(),
   previewHistory: () => { if (CFG.preview) finishPreviewSplit(); },
   saveSplit: () => saveSplitToHistory(),
+  askDiscard: () => { if (ui.savingSplit) return; ui.sheet = {type:'discardSplit'}; render(); },
+  discardSplit: () => discardSplit(),
   done: () => { stopCamera(); cancelScan(); clearPhoto(); go('home'); toast('Split kept in this browser. Use Resume current split to return.'); }
 };
 // Profile: save_my_profile updates the users row and the "You" contact together (supabase/profile.sql).
