@@ -44,6 +44,19 @@ test('a one-cent custom tip split three ways is not lost or duplicated',()=>{
   assert.equal(c.totals.a,2);assert.equal(c.totals.b,1);assert.equal(c.totals.c,1);
 });
 
+test('two shared lines totaling $16 give four people exactly $4 each',()=>{
+  const api=app(), d=receipt(api);
+  const ids=['me','a','b','c'];
+  Object.assign(d,{items:[{id:'x',price:798},{id:'y',price:802}],tax:0,fees:0,
+    people:ids.map(id=>({id})),assign:{x:ids,y:ids}});
+  const c=api.calc(d);
+  assert.deepEqual(Object.values(c.totals),[400,400,400,400]);
+  assert.deepEqual(Array.from(c.lines.me,line=>line.share),[200,200]);
+  assert.equal(c.sumTotals,1600);
+  d.assign.y=[...ids].reverse();
+  assert.deepEqual(Object.values(api.calc(d).totals),[400,400,400,400]);
+});
+
 test('a saved percentage tip becomes an equivalent fixed dollar amount',()=>{
   const api=app(),d=receipt(api);
   Object.assign(d,{tipMode:'percent',tipPct:18,fees:0});
@@ -95,13 +108,67 @@ test('custom dollar tips stay fixed when item prices change',()=>{
   assert.equal(api.calc(d).tip,250);
 });
 
+test('Next allows a partially entered receipt and reports the first missing name or price',()=>{
+  const api=app(), d=receipt(api);
+  api.S.view='review';
+  d.items=[{id:'a',name:'',price:0},{id:'b',name:'',price:0}];
+  assert.match(api.LIVE.revnext(),/disabled/);
+  d.items[0].price=500;
+  assert.doesNotMatch(api.LIVE.revnext(),/disabled/);
+  api.A.reviewNext();
+  assert.equal(api.sheetHTML(),'');
+  assert.match(api.LIVE.itemnotice({}),/Item 1 needs a name/);
+  d.items[0].name='  ';
+  assert.match(api.LIVE.itemnotice({}),/Item 1 needs a name/);
+  d.items[0].name='Meal';
+  d.items[1].name='Drink';
+  api.A.reviewNext();
+  assert.equal(api.sheetHTML(),'');
+  assert.match(api.LIVE.itemnotice({}),/Item 2 needs a valid price greater than \$0/);
+  d.items[1].price=200;
+  api.A.reviewNext();
+  assert.match(api.sheetHTML(),/Does this match your receipt total/);
+});
+
+test('quantity edits update the split and survive refresh without changing the unit price',()=>{
+  const api=app(), d=receipt(api);
+  api.S.view='review';
+  d.tax=d.fees=0;
+  assert.match(api.V.review(),/>x 1<\/button>/);
+  assert.match(api.V.review(),/id="tax"[^>]*value="" placeholder="0.00"/);
+
+  const edit = (field,id,value) => api.dispatch('input',{target:{dataset:{in:field,id},value,setAttribute(){}}});
+  edit('quantity','a','3');
+  edit('tax',undefined,'');
+  edit('tipamount',undefined,'0');
+  assert.equal(api.LIVE.reviewTotal(),'$21.00');
+  assert.match(api.V.review(),/id="p-a"[^>]*value="5.50"/);
+  const restored = app({view:'review',draft:d});
+  assert.match(restored.V.review(),/>x 3<\/button>/);
+  assert.equal(restored.calc(restored.S.draft).totals.me,1650);
+
+  edit('quantity','a','1.5');
+  api.A.reviewNext();
+  assert.equal(api.sheetHTML(),'');
+  assert.match(api.LIVE.itemnotice({}),/positive whole number/);
+  edit('quantity','a','3');
+  edit('iprice','b','0');
+  api.A.reviewNext();
+  assert.equal(api.sheetHTML(),'');
+  assert.match(api.LIVE.itemnotice({}),/valid price greater than \$0/);
+  edit('iprice','b','4.50');
+  assert.doesNotMatch(api.LIVE.revnext(),/disabled/);
+});
+
 test('invalid custom amounts block advancing and sending instead of being silently charged',()=>{
   const api=app(),d=receipt(api);
+  api.S.view='review';
   for(const value of ['-2.00','abc','1.234','1e3','Infinity','99999999999999999999']){
     Object.assign(d,{tipMode:'amount',tipInput:value});
     assert.equal(api.calc(d).tipValid,false,value);
     assert.equal(api.sendPlan().globalBlock,true,value);
-    assert.match(api.LIVE.revnext(),/disabled/,value);
+    api.A.reviewNext();
+    assert.equal(api.sheetHTML(),'',value);
   }
 });
 
