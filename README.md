@@ -37,7 +37,7 @@ The same diagram is in [`docs/ioya-erd.pdf`](docs/ioya-erd.pdf), and its source 
 
 **How the diagram becomes tables.** The SQL in [`supabase/schema.sql`](supabase/schema.sql) uses the same tables and columns, written in Postgres's lowercase snake_case style: `Users.UserFirstName` becomes `users.user_first_name`, `Contacts_Payment_Method` becomes `contacts_payment_method`, and so on. Money is stored as whole cents, so `1959` means $19.59. One table in `schema.sql` is not drawn: `manual_payment_sms`, which is only for an optional text-message feature the live app doesn't use.
 
-**Accounts.** `Users.AuthUserID` (unique) links a row to its Supabase Auth login; it is empty for the sample users in `seed.sql` and for users an admin adds before they log in. `UserEmail` is the login email, `IsAdmin` marks admins, `AvatarPath` names the profile picture file in Supabase Storage (empty = no photo), and `ProfileCode` (unique) is the random code in a shared profile link, `/u/<code>` (empty until the person first taps **Share my profile**). `Friend_Groups.Position` is the group's place in its owner's list on the Contacts tab (empty until they reorder). `Events.ClientKey` is a random key the app sends with **Save to History** so a split is never saved twice. `Profile_Payment_Accounts.Accounts` and `Manual_Payment_Requests.Data` hold several values in one JSON column.
+**Accounts.** `Users.AuthUserID` (unique) links a row to its Supabase Auth login; it is empty for the sample users in `seed.sql` and for users an admin adds before they log in. `UserEmail` is the login email, `IsAdmin` marks admins, `AvatarPath` names the profile picture file in Supabase Storage (empty = no photo), and `ProfileCode` (unique) is the random code in a shared profile link, `/u/<code>` (empty until the person first taps **Share my profile**). `Friend_Groups.Position` is the group's place in its owner's list on the Contacts tab (empty until they reorder). `Events.ClientKey` is a random key the app sends with **Save to History** so a split is never saved twice. `Events.CreatedAt` is when the split was saved and `Participants.PaidAt` is when the payer marked that person paid (both used by the OKR page; empty for splits saved before it). `Profile_Payment_Accounts.Accounts` and `Manual_Payment_Requests.Data` hold several values in one JSON column.
 
 **The payer is also a contact.** Each user has one row in `contacts` with the same name and phone as their `users` row. That lets the payer be a participant and be assigned items like everyone else, and the app shows that contact as "You."
 
@@ -117,6 +117,19 @@ IOYA never sends money or marks anyone paid by itself: payment apps don't report
 - **Groups** (for example "Lunch crew") can be added to a split in one tap. Search keeps your selections, empty groups are allowed, and deleting a group keeps its contacts.
 - **Reorder groups** by dragging them on the Contacts tab (on a phone, hold for a moment, then drag; on a keyboard, Alt + ← / →). The order is saved to your account ([`supabase/group-order.sql`](supabase/group-order.sql)) and is also used in the split's Add Contacts list.
 
+### OKR page (`/okrs`)
+
+Our four key results, counted live across the whole app (all time) and refreshed every 5 seconds. Anyone can open it from the landing page (**OKRs**); it shows only totals, never names. The payer's own share is never counted, and "paid" means the payer pressed **Mark as paid**.
+
+| Objective | Key result | How it's counted | Action in the app that moves it |
+|---|---|---|---|
+| A. Increase the % of people who pay back the payer | 1. % of splits fully paid back | Splits where everyone is marked paid ÷ all splits with at least one other person | Save a split (goes down), then mark everyone on it paid (goes up) |
+| | 2. Of splits not fully paid back, % of the bill paid back | Dollars marked paid ÷ dollars owed on those splits (tax, fees and tip included) | Mark one person paid on a split that still has unpaid people |
+| B. Decrease the time it takes a group to pay back the payer | 3. % of people paid back within 24 hours | People marked paid within 24 hours of the split being saved ÷ people who have paid or whose split is over 24 hours old | Save a split, then mark someone paid right away |
+| | 4. Average time to pay back (whole app) | Average time from saving a split to marking each person paid | Save a split, then mark someone paid |
+
+The numbers come from `okr_stats()` ([`supabase/okrs.sql`](supabase/okrs.sql)), which returns only totals. A database trigger records when each person is marked paid, so key results 3 and 4 count splits saved after `okrs.sql` was run.
+
 ### Admin pages (`/admin`)
 
 Admins (`users.is_admin = true`) see **Maintain Users, Contacts, Groups, Splits and Payment Methods** on the landing page, and an **Admin tools** button on the Profile tab. Each page has search, filters, sorting, **View**, **Add**, **Edit** and **Delete** (with a confirmation that says exactly what goes), and red messages under the field that needs fixing. Highlights:
@@ -130,7 +143,7 @@ The database checks `is_admin()` in every admin function, so hiding the buttons 
 
 ### Security
 
-The browser uses Supabase's public **anon** key, and Row Level Security is on for every table ([`supabase/private-data.sql`](supabase/private-data.sql)). A signed-in person can **read only their own rows** (their user row, contacts, groups, and the splits they paid for), **update only `participants.paid_method_id`** on their own splits, and change everything else only through database functions (`save_contact`, `save_group`, `save_my_split`, and so on) that check the input and act only on their own data. Someone with the anon key and no session can't read or change anything. The only public reads are the shared payment page and shared profile page, which return just what those pages show. Never put the `service_role` key or the database password in `.env` or in the code.
+The browser uses Supabase's public **anon** key, and Row Level Security is on for every table ([`supabase/private-data.sql`](supabase/private-data.sql)). A signed-in person can **read only their own rows** (their user row, contacts, groups, and the splits they paid for), **update only `participants.paid_method_id`** on their own splits, and change everything else only through database functions (`save_contact`, `save_group`, `save_my_split`, and so on) that check the input and act only on their own data. Someone with the anon key and no session can't read or change anything. The only public reads are the shared payment page and shared profile page, which return just what those pages show, and the OKR page's totals. Never put the `service_role` key or the database password in `.env` or in the code.
 
 ## How to Get It Running
 
@@ -275,6 +288,8 @@ Open the printed address on the phone and enter the emailed PIN. It needs the co
 - **Discard split:** start a split, tap **Discard split**, then **Keep split** (nothing changes) and again **Discard split** (Home no longer shows Resume, even after a refresh).
 - **Groups:** on Contacts, create a group, rename it, change members, refresh, and delete it (its contacts stay). With two or more groups, drag one to a new place, refresh, and check it stayed there.
 
+- **OKRs:** open `/okrs` in one window and the app in another. Save a split with two friends: key result 1's split count goes up. In History, mark one friend paid: key results 2, 3 and 4 change within 5 seconds. Mark the other friend paid: key result 1 goes up.
+
 These are steps for checking the software, not test results. Students do and record their own required course testing.
 
 ## Project Layout
@@ -284,12 +299,14 @@ server.js                 Serves public/ and /config.js (Supabase URL + anon key
 manual-payment-requests.js  /api/manual-requests: payment links and shared QR codes for the /pay page
 profile-share.js          /u/<code> shared profile pages, their details and QR codes
 site-qr.js                /qr.png: the landing page's "Scan to open IOYA" QR code
+okrs.js                   /okrs and /api/okrs: the live OKR page and its numbers
 sms-delivery.js           Optional text-message delivery for payment links (not used by the live app)
 public/index.html         The landing page (/): How it works, Log in, admin Maintain buttons, Log out
 public/app.html           The app (/app): all screens, styles and Supabase calls
 public/admin.html         Admin Maintain pages (/admin), admins only
 public/pay.html           The page friends open from a payment link or shared QR code (/pay)
 public/profile.html       The public profile page from a profile QR code (/u/<code>)
+public/okrs.html          The OKR page (/okrs): the 4 key results, live
 public/session.js         Keeps the Supabase login in cookies (shared by every page)
 public/contact-import.js  Reads .vcf contact files for Import device contacts
 public/images/            Screenshots of the app used on the landing page
@@ -306,7 +323,7 @@ docs/                     ERD, architecture and data flow diagrams (SVG sources 
 
 This project was built with help from AI coding assistants; the team reviewed and merged each change through pull requests. What the AI did:
 
-- **Claude (Anthropic):** the original clickable prototype and its connection to Supabase; guest accounts and private-data security rules; profiles with email codes and passwords; profile pictures; profile payment accounts and the preferred app; the landing page, cookie login and admin flag; the five admin Maintain pages; Save to History; shared profile pages with QR codes; Discard split; the loading screen and screen transitions; the redrawn ERD, the architecture diagram, and the Level 0 and Level 1 data flow diagrams; automated tests; and documentation.
+- **Claude (Anthropic):** the original clickable prototype and its connection to Supabase; guest accounts and private-data security rules; profiles with email codes and passwords; profile pictures; profile payment accounts and the preferred app; the landing page, cookie login and admin flag; the five admin Maintain pages; Save to History; shared profile pages with QR codes; Discard split; reordering groups; the loading screen and screen transitions; the live OKR page; the redrawn ERD, the architecture diagram, and the Level 0 and Level 1 data flow diagrams; automated tests; and documentation.
 - **Other AI assistants used by teammates:** payment-app handoffs, validation, clipboard fallback, reminders, Home unpaid bills and text drafts, History filters, the shared QR code and `/pay` page for all recipients, the contact and group pickers, item matching, the group editor, the responsive phone/laptop layout, contact import, and receipt entry improvements, with their automated checks.
 
 Software checks in `test/` are not student-authored course testing or findings. Each student discloses AI assistance in their own submissions.
