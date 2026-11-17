@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>OKRs · IOYA</title>
+  <!-- The team's 4 key results, live across the whole app (/okrs). Served by okrs.js; numbers from /api/okrs. -->
+  <style>
+    :root{
+      --desk:#E8EBF0;--paper:#FAFBFC;--card:#FFF;--ink:#15171C;--muted:#5C6371;
+      --line:#D9DEE6;--accent:#CC6FCC;--accent-soft:#F6E5F6;--focus:#3654D1;
+      --good:#167F46;--bad:#A32718;--track:#E6E9EF;
+      color-scheme:light;
+    }
+    @media(prefers-color-scheme:dark){:root{
+      --desk:#0A0C10;--paper:#12151C;--card:#1A1E27;--ink:#ECEEF2;--muted:#A7AEBC;
+      --line:#363D4B;--accent:#FF7A2E;--accent-soft:#3B2112;--focus:#9EAEFF;
+      --good:#63D99A;--bad:#FF8B7B;--track:#2A303C;
+      color-scheme:dark;
+    }}
+    *{box-sizing:border-box}
+    [hidden]{display:none!important}
+    body{margin:0;background:var(--desk);color:var(--ink);font:15px/1.45 system-ui,sans-serif}
+    main{max-width:980px;margin:32px auto;padding:26px;background:var(--paper);border:1px solid var(--line);border-radius:24px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .brand{font-family:"Arial Black",system-ui,sans-serif;font-size:27px;font-weight:950;letter-spacing:-.04em;color:inherit;text-decoration:none}
+    .tag{color:var(--muted);font:650 11px/1.4 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.08em}
+    h1,h2,h3,p{margin:0}
+    h1{font-size:30px;letter-spacing:-.02em;margin-top:18px}
+    .lede{color:var(--muted);margin-top:6px;max-width:62ch}
+    .live{display:inline-flex;align-items:center;gap:8px}
+    .dot{width:9px;height:9px;border-radius:50%;background:var(--good);animation:pulse 2s ease-in-out infinite}
+    .live.stale .dot{background:var(--bad);animation:none}
+    @keyframes pulse{50%{opacity:.35}}
+    section{margin-top:28px}
+    h2{font-size:18px;line-height:1.3}
+    h2 .tag{display:block;margin-bottom:2px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:10px;align-content:start}
+    .card h3{font-size:15px;line-height:1.35}
+    .num{font:800 44px/1 ui-monospace,"IBM Plex Mono",monospace;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+    .num.empty{font-size:22px;color:var(--muted);font-weight:650;letter-spacing:0}
+    .num.bump{animation:bump .9s ease}
+    @keyframes bump{0%{color:var(--accent);transform:scale(1.06)}100%{transform:none}}
+    .bar{height:10px;border-radius:99px;background:var(--track);overflow:hidden}
+    .bar span{display:block;height:100%;width:0;background:var(--accent);border-radius:inherit;transition:width .6s ease}
+    .detail{color:var(--muted);font-size:14px}
+    .how{font-size:14px;border-top:1px dashed var(--line);padding-top:10px}
+    .how b{font-weight:700}
+    .alert{margin-top:18px;padding:12px 14px;border-radius:12px;background:var(--card);border:1px solid var(--bad);color:var(--bad)}
+    .foot{margin-top:26px;color:var(--muted);font-size:13px}
+    a{color:inherit}
+    a:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:4px}
+    @media(max-width:600px){main{margin:0;border-radius:0;border:0;padding:20px}}
+    @media(prefers-reduced-motion:reduce){.dot,.num.bump{animation:none}.bar span{transition:none}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <a class="brand" href="/">IOYA</a>
+    <span class="tag live" id="live" role="status"><span class="dot" aria-hidden="true"></span><span id="live-text">Loading…</span></span>
+  </header>
+  <h1>Our OKRs, live</h1>
+  <p class="lede">Every number is counted across the whole app, all time, and refreshes every 5 seconds. Do the action under a card in the app and watch its number change.</p>
+  <p class="alert" id="alert" role="alert" hidden></p>
+
+  <section aria-labelledby="obj-a">
+    <h2 id="obj-a"><span class="tag">Objective A</span>Increase the % of people who pay back the payer</h2>
+    <div class="grid">
+      <article class="card" id="kr1">
+        <h3>Key Result 1 · Splits fully paid back</h3>
+        <p class="num empty" data-num>–</p>
+        <div class="bar" aria-hidden="true"><span data-bar></span></div>
+        <p class="detail" data-detail>Loading…</p>
+        <p class="how"><b>How to move it:</b> save a split (the % goes down), then in History mark everyone on it as paid (the % goes up).</p>
+      </article>
+      <article class="card" id="kr2">
+        <h3>Key Result 2 · Of the splits not fully paid back, % of the bill paid back</h3>
+        <p class="num empty" data-num>–</p>
+        <div class="bar" aria-hidden="true"><span data-bar></span></div>
+        <p class="detail" data-detail>Loading…</p>
+        <p class="how"><b>How to move it:</b> in History, mark one person paid on a split that still has unpaid people.</p>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="obj-b">
+    <h2 id="obj-b"><span class="tag">Objective B</span>Decrease the time it takes a group to pay back the payer</h2>
+    <div class="grid">
+      <article class="card" id="kr3">
+        <h3>Key Result 3 · People who paid back within 24 hours</h3>
+        <p class="num empty" data-num>–</p>
+        <div class="bar" aria-hidden="true"><span data-bar></span></div>
+        <p class="detail" data-detail>Loading…</p>
+        <p class="how"><b>How to move it:</b> save a split, then mark someone paid right away.</p>
+      </article>
+      <article class="card" id="kr4">
+        <h3>Key Result 4 · Average time to pay back (whole app)</h3>
+        <p class="num empty" data-num>–</p>
+        <p class="detail" data-detail>Loading…</p>
+        <p class="how"><b>How to move it:</b> save a split, then mark someone paid. Each payment updates the average.</p>
+      </article>
+    </div>
+  </section>
+
+  <p class="foot">"Paid" means the payer pressed Mark as paid in IOYA (payment apps don't tell IOYA when money arrives). The payer's own share is never counted. Times are only known for splits saved since the OKR tracking started, so Key Results 3 and 4 count those splits only. <a href="/app">Open the app</a></p>
+</main>
+<script>
+  const REFRESH_MS = 5000;
+  const $ = (id, sel) => document.getElementById(id).querySelector(sel);
+  const money = c => '$' + (c / 100).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const plural = (n, one, many) => `${n.toLocaleString('en-US')} ${n === 1 ? one : (many || one + 's')}`;
+
+  function duration(seconds) {
+    if (seconds < 60) return 'under 1 min';
+    const m = Math.floor(seconds / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
+    if (d) return `${d}d ${h % 24}h`;
+    if (h) return `${h}h ${m % 60}m`;
+    return `${m} min`;
+  }
+
+  function show(id, text, bar, detail) {
+    const num = $(id, '[data-num]');
+    const empty = text == null;
+    const shown = empty ? 'No data yet' : text;
+    if (num.textContent !== shown && num.dataset.ready) {   // the number just changed: flash it
+      num.classList.remove('bump'); void num.offsetWidth; num.classList.add('bump');
+    }
+    num.textContent = shown;
+    num.dataset.ready = '1';
+    num.classList.toggle('empty', empty);
+    const b = $(id, '[data-bar]');
+    if (b) b.style.width = (bar || 0) + '%';
+    $(id, '[data-detail]').textContent = detail;
+  }
+
+  const pct = p => (p == null ? null : (Number.isInteger(p) ? p : p.toFixed(1)) + '%');
+
+  function draw(s) {
+    show('kr1', pct(s.kr1.percent), s.kr1.percent,
+      s.kr1.splits ? `${s.kr1.fullyPaid.toLocaleString('en-US')} of ${plural(s.kr1.splits, 'split')} fully paid back` : 'No splits with other people yet.');
+    show('kr2', pct(s.kr2.percent), s.kr2.percent,
+      s.kr2.splits ? `${money(s.kr2.paidCents)} of ${money(s.kr2.owedCents)} paid back across ${plural(s.kr2.splits, 'split')} not fully paid` : 'Every split is fully paid back.');
+    show('kr3', pct(s.kr3.percent), s.kr3.percent,
+      s.kr3.people ? `${s.kr3.onTime.toLocaleString('en-US')} of ${plural(s.kr3.people, 'person', 'people')} paid within ${s.kr3.hours} hours (people still inside the 24 hours who haven't paid aren't counted yet)` : 'No one has been marked paid on a split saved since tracking started.');
+    show('kr4', s.kr4.seconds == null ? null : duration(s.kr4.seconds), null,
+      s.kr4.paid ? `Average from saving the split to marking paid, over ${plural(s.kr4.paid, 'payment')}` : 'No one has been marked paid on a split saved since tracking started.');
+  }
+
+  let timer = null;
+  async function load() {
+    clearTimeout(timer);
+    const live = document.getElementById('live'), liveText = document.getElementById('live-text'), alert = document.getElementById('alert');
+    try {
+      const res = await fetch('/api/okrs', {cache: 'no-store'});
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw Object.assign(new Error(), {shown: body.error});
+      draw(body);
+      alert.hidden = true;
+      live.classList.remove('stale');
+      liveText.textContent = 'Live · updated ' + new Date(body.updatedAt).toLocaleTimeString([], {hour: 'numeric', minute: '2-digit', second: '2-digit'});
+    } catch (e) {
+      alert.textContent = e.shown || 'The OKR numbers are unavailable right now. Check your connection; this page keeps trying.';
+      alert.hidden = false;
+      live.classList.add('stale');
+      liveText.textContent = 'Not updating';
+    }
+    if (!document.hidden) timer = setTimeout(load, REFRESH_MS);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); else clearTimeout(timer); });
+  load();
+</script>
+</body>
+</html>

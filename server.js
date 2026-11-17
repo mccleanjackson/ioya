@@ -5,6 +5,7 @@ const express = require('express');
 const {manualPaymentRequests} = require('./manual-payment-requests');
 const {profileShare} = require('./profile-share');
 const {siteQr} = require('./site-qr');
+const {okrs} = require('./okrs');
 
 const {SUPABASE_URL, SUPABASE_ANON_KEY, IOYA_PUBLIC_ORIGIN, RENDER_EXTERNAL_URL} = process.env;
 const preview = process.env.IOYA_PREVIEW === '1';
@@ -61,6 +62,8 @@ app.get(['/app', '/app/'], (req, res) => res.sendFile(path.join(publicDir, 'app.
 app.get(['/admin', '/admin/'], (req, res) => res.sendFile(path.join(publicDir, 'admin.html')));
 // /qr.png: the landing page's "Scan to open IOYA" QR code.
 app.use(siteQr({publicOrigin: configuredOrigin(IOYA_PUBLIC_ORIGIN || RENDER_EXTERNAL_URL)}));
+// /okrs: the team's 4 key results, live (supabase/okrs.sql).
+app.use(okrs({preview, supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY, publicDir}));
 // Shared profiles: /u/<code> (Profile → Share my profile).
 app.use(profileShare({
   preview, supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY, publicDir,
